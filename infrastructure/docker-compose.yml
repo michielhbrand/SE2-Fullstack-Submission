@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 9090
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "9090:9090"
+    command:
+      - start-dev
+      - --http-port=9090
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - microservices-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: keycloak-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+  authdb:
+    image: postgres:15-alpine
+    container_name: authdb-postgres
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - authdb_data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+
+volumes:
+  keycloak_data:
+  postgres_data:
+  authdb_data:
+
+networks:
+  microservices-network:
+    driver: bridge

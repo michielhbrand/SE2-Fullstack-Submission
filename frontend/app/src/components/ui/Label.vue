@@ -1,0 +1,16 @@
+<script setup lang="ts">
+import { computed, type HTMLAttributes } from 'vue'
+import { cn } from '@/lib/utils'
+
+interface Props {
+  class?: HTMLAttributes['class']
+}
+
+const props = defineProps<Props>()
+</script>
+
+<template>
+  <label :class="cn('text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', props.class)">
+    <slot />
+  </label>
+</template>
