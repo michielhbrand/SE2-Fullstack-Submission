@@ -1,4 +1,5 @@
 import axios from 'axios'
+import router from '../router'
 
 const KEYCLOAK_URL = 'http://localhost:9090'
 const REALM = 'microservices'
@@ -20,6 +21,8 @@ interface TokenResponse {
 class AuthService {
   private accessToken: string | null = null
   private refreshToken: string | null = null
+  private tokenExpirationTimer: number | null = null
+  private readonly TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
 
   async login(credentials: LoginCredentials): Promise<boolean> {
     try {
@@ -42,8 +45,18 @@ class AuthService {
       this.accessToken = response.data.access_token
       this.refreshToken = response.data.refresh_token
       
+      // Calculate expiration time
+      const expirationTime = Date.now() + (response.data.expires_in * 1000)
+      
       localStorage.setItem('access_token', this.accessToken)
       localStorage.setItem('refresh_token', this.refreshToken)
+      localStorage.setItem('token_expiration', expirationTime.toString())
+      
+      // Reset sidebar to expanded state on successful login
+      localStorage.setItem('sidebarCollapsed', 'false')
+      
+      // Set up automatic logout when token expires
+      this.setupTokenExpirationCheck(response.data.expires_in)
 
       return true
     } catch (error) {
@@ -52,11 +65,28 @@ class AuthService {
     }
   }
 
-  logout() {
+  logout(dueToExpiration: boolean = false) {
     this.accessToken = null
     this.refreshToken = null
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('token_expiration')
+    
+    // Clear the expiration timer
+    if (this.tokenExpirationTimer) {
+      clearTimeout(this.tokenExpirationTimer)
+      this.tokenExpirationTimer = null
+    }
+    
+    // Set flag if logout is due to token expiration
+    if (dueToExpiration) {
+      sessionStorage.setItem(this.TOKEN_EXPIRED_FLAG, 'true')
+    }
+    
+    // Redirect to login page
+    if (router.currentRoute.value.path !== '/login') {
+      router.push('/login')
+    }
   }
 
   getAccessToken(): string | null {
@@ -71,7 +101,53 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAccessToken()
+    const token = this.getAccessToken()
+    if (!token) return false
+    
+    // Check if token is expired
+    return !this.isTokenExpired()
+  }
+  
+  private isTokenExpired(): boolean {
+    const expirationTime = localStorage.getItem('token_expiration')
+    if (!expirationTime) return true
+    
+    const expiration = parseInt(expirationTime, 10)
+    return Date.now() >= expiration
+  }
+  
+  private setupTokenExpirationCheck(expiresIn: number) {
+    // Clear any existing timer
+    if (this.tokenExpirationTimer) {
+      clearTimeout(this.tokenExpirationTimer)
+    }
+    
+    // Set timer to logout when token expires
+    // Subtract 5 seconds to logout slightly before actual expiration
+    const timeoutDuration = Math.max((expiresIn - 5) * 1000, 0)
+    
+    this.tokenExpirationTimer = window.setTimeout(() => {
+      console.log('Token expired, logging out...')
+      this.logout(true)
+    }, timeoutDuration)
+  }
+  
+  // Initialize expiration check on app load
+  initializeExpirationCheck() {
+    const expirationTime = localStorage.getItem('token_expiration')
+    if (!expirationTime) return
+    
+    const expiration = parseInt(expirationTime, 10)
+    const now = Date.now()
+    
+    if (now >= expiration) {
+      // Token already expired
+      this.logout(true)
+    } else {
+      // Set up timer for remaining time
+      const remainingTime = Math.floor((expiration - now) / 1000)
+      this.setupTokenExpirationCheck(remainingTime)
+    }
   }
 
   private decodeJWT(token: string): any {
@@ -109,6 +185,16 @@ class AuthService {
       console.error('Failed to get user info:', error)
       return null
     }
+  }
+
+  // Check if the redirect was due to token expiration
+  wasRedirectedDueToExpiration(): boolean {
+    return sessionStorage.getItem(this.TOKEN_EXPIRED_FLAG) === 'true'
+  }
+
+  // Clear the token expiration flag
+  clearExpirationFlag() {
+    sessionStorage.removeItem(this.TOKEN_EXPIRED_FLAG)
   }
 }
 

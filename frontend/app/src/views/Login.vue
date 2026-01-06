@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/auth'
 import { Button, Input, Label, Card, Alert } from '../components/ui/index'
@@ -10,9 +10,19 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const showPassword = ref(false)
+const tokenExpiredMessage = ref(false)
+
+onMounted(() => {
+  // Check if user was redirected due to token expiration
+  if (authService.wasRedirectedDueToExpiration()) {
+    tokenExpiredMessage.value = true
+    authService.clearExpirationFlag()
+  }
+})
 
 const handleLogin = async () => {
   error.value = ''
+  tokenExpiredMessage.value = false
   loading.value = true
 
   try {
@@ -43,18 +53,17 @@ const togglePasswordVisibility = () => {
     <div class="w-full max-w-md">
       <!-- Header -->
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-lg mb-4">
-          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-        </div>
         <h2 class="text-2xl font-semibold text-gray-900">Sign in</h2>
         <p class="mt-1 text-sm text-gray-500">Access your account securely</p>
       </div>
 
       <!-- Login Card -->
       <Card class="p-6 space-y-6">
+        <!-- Token Expiration Message -->
+        <div v-if="tokenExpiredMessage" class="text-sm text-red-600 text-center">
+          Your session has expired. Please sign in again.
+        </div>
+
         <!-- Error Alert -->
         <Alert v-if="error" variant="destructive">
           {{ error }}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { authService } from '../services/auth'
+import apiClient from '../services/api'
 import { Button } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 
@@ -18,24 +18,16 @@ onMounted(async () => {
 
 const fetchInvoices = async () => {
   try {
-    const token = authService.getToken()
-    const params = new URLSearchParams({
-      page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString()
-    })
-
-    const response = await fetch(`http://localhost:5000/api/Invoice?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      invoices.value = data.data
-      totalPages.value = data.pagination.totalPages
-      totalCount.value = data.pagination.totalCount
+    const params = {
+      page: currentPage.value,
+      pageSize: pageSize.value
     }
+
+    const response = await apiClient.get('/api/Invoice', { params })
+    
+    invoices.value = response.data.data
+    totalPages.value = response.data.pagination.totalPages
+    totalCount.value = response.data.pagination.totalCount
   } catch (error) {
     console.error('Failed to fetch invoices:', error)
   }

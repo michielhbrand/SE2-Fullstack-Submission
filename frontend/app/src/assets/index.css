@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@mdi/font/css/materialdesignicons.css";
 
 /* Light mode - Default */
 @theme {
