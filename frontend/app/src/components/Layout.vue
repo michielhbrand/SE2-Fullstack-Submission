@@ -8,7 +8,7 @@ import packageJson from '../../package.json'
 const router = useRouter()
 const route = useRoute()
 const username = ref('')
-const sidebarCollapsed = ref(false)
+let sidebarCollapsed = ref(false)
 const headerCollapsed = ref(false)
 const lastScrollY = ref(0)
 const showNewInvoiceModal = ref(false)
@@ -22,6 +22,8 @@ onMounted(async () => {
   if (userInfo) {
     username.value = userInfo.username
   }
+
+  sidebarCollapsed.value = localStorage.getItem('sidebarCollapsed') === 'true'
   
   window.addEventListener('scroll', handleScroll)
   await fetchClients()
@@ -45,6 +47,7 @@ const handleScroll = () => {
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value.toString())
 }
 
 const handleLogout = () => {
@@ -193,9 +196,6 @@ const filteredClients = computed(() => {
             </svg>
           </Button>
           <h1 class="text-xl font-semibold text-gray-900">Application Dashboard</h1>
-        </div>
-        
-        <div class="flex items-center gap-4">
           <Button
             @click="openNewInvoiceModal"
             class="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex"
@@ -205,6 +205,9 @@ const filteredClients = computed(() => {
             </svg>
             New Invoice
           </Button>
+        </div>
+        
+        <div class="flex items-center gap-4">
           <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
             <span>Welcome,</span>
             <span class="font-medium text-gray-900">{{ username || 'User' }}</span>
@@ -230,7 +233,7 @@ const filteredClients = computed(() => {
       :class="sidebarCollapsed ? 'w-16' : 'w-64'"
     >
       <div class="flex flex-col h-full">
-        <div class="flex items-center justify-between px-4 py-4">
+        <div class="hidden lg:flex items-center justify-between px-4 py-4">
           <h2
             v-if="!sidebarCollapsed"
             class="text-sm font-semibold text-gray-700 transition-opacity duration-200"
@@ -241,7 +244,7 @@ const filteredClients = computed(() => {
             variant="ghost"
             size="sm"
             @click="toggleSidebar"
-            class="hidden lg:flex transition-colors duration-50 active:bg-transparent"
+            class=" transition-colors duration-50 active:bg-transparent"
           >
             <svg
               class="w-5 h-5 transition-transform duration-300"
@@ -263,7 +266,7 @@ const filteredClients = computed(() => {
               to="/dashboard"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-center' : '',
+                sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/dashboard' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
@@ -277,7 +280,7 @@ const filteredClients = computed(() => {
               to="/clients"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-center' : '',
+                sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/clients' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
@@ -291,7 +294,7 @@ const filteredClients = computed(() => {
               to="/invoices"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-center' : '',
+                sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/invoices' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >

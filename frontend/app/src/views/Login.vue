@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/auth'
 import { Button, Input, Label, Card, Alert } from '../components/ui/index'
