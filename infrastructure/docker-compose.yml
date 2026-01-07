@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  keycloak:
+  invoice-tracker-keycloak:
     image: quay.io/keycloak/keycloak:23.0
-    container_name: keycloak
+    container_name: invoice-tracker-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
@@ -21,9 +21,9 @@ services:
     networks:
       - microservices-network
 
-  postgres:
+  invoice-tracker-postgres:
     image: postgres:15-alpine
-    container_name: keycloak-postgres
+    container_name: invoice-tracker-keycloak-postgres
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
@@ -33,9 +33,9 @@ services:
     networks:
       - microservices-network
 
-  authdb:
+  invoice-tracker-authdb:
     image: postgres:15-alpine
-    container_name: authdb-postgres
+    container_name: invoice-tracker-authdb-postgres
     environment:
       POSTGRES_DB: authdb
       POSTGRES_USER: postgres
@@ -47,10 +47,53 @@ services:
     networks:
       - microservices-network
 
+  invoice-tracker-zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: invoice-tracker-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - microservices-network
+
+  invoice-tracker-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: invoice-tracker-kafka
+    depends_on:
+      - invoice-tracker-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: invoice-tracker-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://invoice-tracker-kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - microservices-network
+
+  invoice-tracker-minio:
+    image: minio/minio:latest
+    container_name: invoice-tracker-minio
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - microservices-network
+
 volumes:
   keycloak_data:
   postgres_data:
   authdb_data:
+  minio_data:
 
 networks:
   microservices-network:
