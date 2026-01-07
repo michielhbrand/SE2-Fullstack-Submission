@@ -43,6 +43,11 @@ const isTemplateDropdownOpen = ref(false)
 const templateDropdownRef = ref<HTMLDivElement | null>(null)
 const templateSearchInputRef = ref<HTMLInputElement | null>(null)
 
+const clientSearchQuery = ref('')
+const isClientDropdownOpen = ref(false)
+const clientDropdownRef = ref<HTMLDivElement | null>(null)
+const clientSearchInputRef = ref<HTMLInputElement | null>(null)
+
 const fetchTemplates = async () => {
   loadingTemplates.value = true
   try {
@@ -117,7 +122,16 @@ const totalInvoiceAmount = computed(() => {
 })
 
 const filteredClients = computed(() => {
-  return props.clients
+  if (!clientSearchQuery.value) {
+    return props.clients
+  }
+  const query = clientSearchQuery.value.toLowerCase()
+  return props.clients.filter(client =>
+    client.name.toLowerCase().includes(query) ||
+    client.surname.toLowerCase().includes(query) ||
+    client.email.toLowerCase().includes(query) ||
+    (client.company && client.company.toLowerCase().includes(query))
+  )
 })
 
 const filteredTemplates = computed(() => {
@@ -128,6 +142,22 @@ const filteredTemplates = computed(() => {
     template.toLowerCase().includes(templateSearchQuery.value.toLowerCase())
   )
 })
+
+const toggleClientDropdown = () => {
+  isClientDropdownOpen.value = !isClientDropdownOpen.value
+  if (isClientDropdownOpen.value) {
+    // Focus search input when dropdown opens
+    setTimeout(() => {
+      clientSearchInputRef.value?.focus()
+    }, 50)
+  }
+}
+
+const selectClient = (clientId: number) => {
+  selectedClientId.value = clientId
+  isClientDropdownOpen.value = false
+  clientSearchQuery.value = ''
+}
 
 const toggleTemplateDropdown = () => {
   isTemplateDropdownOpen.value = !isTemplateDropdownOpen.value
@@ -149,6 +179,9 @@ const handleClickOutside = (event: MouseEvent) => {
   if (templateDropdownRef.value && !templateDropdownRef.value.contains(event.target as Node)) {
     isTemplateDropdownOpen.value = false
   }
+  if (clientDropdownRef.value && !clientDropdownRef.value.contains(event.target as Node)) {
+    isClientDropdownOpen.value = false
+  }
 }
 
 // Reset form when modal opens
@@ -159,7 +192,16 @@ const resetForm = () => {
   formErrors.value = {}
   templateSearchQuery.value = ''
   isTemplateDropdownOpen.value = false
+  clientSearchQuery.value = ''
+  isClientDropdownOpen.value = false
 }
+
+const getSelectedClientDisplay = computed(() => {
+  if (!selectedClientId.value) return 'Select a client...'
+  const client = props.clients.find(c => c.id === selectedClientId.value)
+  if (!client) return 'Select a client...'
+  return `${client.name} ${client.surname} (${client.email})`
+})
 
 // Watch for show prop changes to reset form
 watch(() => props.show, (newVal) => {
@@ -205,16 +247,68 @@ onUnmounted(() => {
             <!-- Client Selection -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Client *</label>
-              <select
-                v-model="selectedClientId"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.client ? 'border-red-500' : ''"
-              >
-                <option :value="null">Select a client...</option>
-                <option v-for="client in filteredClients" :key="client.id" :value="client.id">
-                  {{ client.name }} {{ client.surname }} ({{ client.email }})
-                </option>
-              </select>
+              <div class="relative" ref="clientDropdownRef">
+                <!-- Dropdown Button -->
+                <button
+                  type="button"
+                  @click="toggleClientDropdown"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between bg-white"
+                  :class="formErrors.client ? 'border-red-500' : ''"
+                >
+                  <span :class="selectedClientId ? 'text-gray-900' : 'text-gray-500'">
+                    {{ getSelectedClientDisplay }}
+                  </span>
+                  <svg
+                    class="w-5 h-5 text-gray-400 transition-transform"
+                    :class="{ 'rotate-180': isClientDropdownOpen }"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div
+                  v-if="isClientDropdownOpen"
+                  class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden"
+                >
+                  <!-- Search Input Inside Dropdown -->
+                  <div class="p-2 border-b border-gray-200 bg-gray-50">
+                    <input
+                      ref="clientSearchInputRef"
+                      v-model="clientSearchQuery"
+                      type="text"
+                      placeholder="Search clients..."
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      @click.stop
+                    />
+                  </div>
+
+                  <!-- Client Options -->
+                  <div class="overflow-y-auto max-h-48">
+                    <div
+                      v-if="filteredClients.length === 0"
+                      class="px-3 py-2 text-sm text-gray-500 text-center"
+                    >
+                      No clients found
+                    </div>
+                    <button
+                      v-for="client in filteredClients"
+                      :key="client.id"
+                      type="button"
+                      @click="selectClient(client.id)"
+                      class="w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors text-sm"
+                      :class="{ 'bg-blue-100 font-medium': selectedClientId === client.id }"
+                    >
+                      <div class="font-medium">{{ client.name }} {{ client.surname }}</div>
+                      <div class="text-xs text-gray-600">{{ client.email }}</div>
+                      <div v-if="client.company" class="text-xs text-gray-500">{{ client.company }}</div>
+                    </button>
+                  </div>
+                </div>
+              </div>
               <p v-if="formErrors.client" class="mt-1 text-sm text-red-600">{{ formErrors.client }}</p>
             </div>
 
