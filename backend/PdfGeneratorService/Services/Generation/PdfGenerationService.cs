@@ -1,4 +1,5 @@
 using PdfGeneratorService.Models;
+using PdfGeneratorService.Services.Storage;
 using PuppeteerSharp;
 using System.Text;
 
@@ -7,22 +8,39 @@ namespace PdfGeneratorService.Services.Generation;
 public class PdfGenerationService : IPdfGenerationService
 {
     private readonly ILogger<PdfGenerationService> _logger;
+    private readonly IMinioStorageService _storageService;
     private readonly string _templatePath;
 
-    public PdfGenerationService(ILogger<PdfGenerationService> logger, IWebHostEnvironment env)
+    public PdfGenerationService(
+        ILogger<PdfGenerationService> logger,
+        IWebHostEnvironment env,
+        IMinioStorageService storageService)
     {
         _logger = logger;
+        _storageService = storageService;
         _templatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
     }
 
-    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice)
+    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice, string? templateName = null)
     {
         try
         {
-            _logger.LogInformation("Generating PDF for Invoice {InvoiceId}", invoice.Id);
+            _logger.LogInformation("Generating PDF for Invoice {InvoiceId} with template {TemplateName}",
+                invoice.Id, templateName ?? "default");
 
             // Read the HTML template
-            var htmlTemplate = await File.ReadAllTextAsync(_templatePath);
+            string htmlTemplate;
+            
+            if (!string.IsNullOrEmpty(templateName))
+            {
+                // Fetch template from MinIO
+                htmlTemplate = await _storageService.GetTemplateAsync(templateName);
+            }
+            else
+            {
+                // Fall back to local template file
+                htmlTemplate = await File.ReadAllTextAsync(_templatePath);
+            }
 
             // Replace placeholders with actual data
             var htmlContent = PopulateTemplate(htmlTemplate, invoice);

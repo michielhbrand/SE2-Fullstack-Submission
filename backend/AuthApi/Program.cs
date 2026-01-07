@@ -23,6 +23,9 @@ builder.Services.AddHealthCheckServices();
 // Add Kafka Producer Service
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
+// Add HttpClient
+builder.Services.AddHttpClient();
+
 // Add Controllers
 builder.Services.AddControllers();
 

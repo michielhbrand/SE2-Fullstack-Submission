@@ -26,7 +26,10 @@ public class InvoiceCreatedConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Invoice Created Consumer started");
+        _logger.LogInformation("Invoice Created Consumer starting...");
+
+        // Wait a bit for the application to fully start
+        await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
         var config = new ConsumerConfig
         {
@@ -34,23 +37,39 @@ public class InvoiceCreatedConsumer : BackgroundService
             GroupId = "pdf-generator-service",
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
-            AllowAutoCreateTopics = true
+            AllowAutoCreateTopics = true,
+            SocketTimeoutMs = 5000,
+            SessionTimeoutMs = 10000
         };
 
-        using var consumer = new ConsumerBuilder<string, string>(config).Build();
-        
-        _logger.LogInformation("Subscribing to topic: {Topic}", _topic);
-        consumer.Subscribe(_topic);
-        _logger.LogInformation("Waiting for messages on topic: {Topic}. Topic will be created when first message is published.", _topic);
+        IConsumer<string, string>? consumer = null;
 
         try
         {
+            consumer = new ConsumerBuilder<string, string>(config)
+                .SetErrorHandler((_, e) =>
+                {
+                    if (e.IsFatal)
+                    {
+                        _logger.LogError("Fatal Kafka error: {Reason}", e.Reason);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Kafka error (non-fatal): {Reason}", e.Reason);
+                    }
+                })
+                .Build();
+
+            _logger.LogInformation("Subscribing to topic: {Topic}", _topic);
+            consumer.Subscribe(_topic);
+            _logger.LogInformation("Kafka consumer ready. Waiting for messages on topic: {Topic}", _topic);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     var consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
-                    
+
                     if (consumeResult?.Message?.Value != null)
                     {
                         _logger.LogInformation(
@@ -65,9 +84,13 @@ public class InvoiceCreatedConsumer : BackgroundService
                 }
                 catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
                 {
-                    // Topic doesn't exist yet - this is expected, just wait
-                    _logger.LogDebug("Topic {Topic} not yet created. Waiting for first message...", _topic);
+                    _logger.LogDebug("Topic {Topic} not yet created. Waiting...", _topic);
                     await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.Local_AllBrokersDown)
+                {
+                    _logger.LogWarning("Kafka brokers are down. Retrying in 10 seconds...");
+                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
                 }
                 catch (ConsumeException ex)
                 {
@@ -77,7 +100,7 @@ public class InvoiceCreatedConsumer : BackgroundService
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing invoice created event");
-                    // Continue processing other messages
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                 }
             }
         }
@@ -85,9 +108,17 @@ public class InvoiceCreatedConsumer : BackgroundService
         {
             _logger.LogInformation("Invoice Created Consumer is stopping");
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fatal error in Invoice Created Consumer");
+        }
         finally
         {
-            consumer.Close();
+            if (consumer != null)
+            {
+                consumer.Close();
+                consumer.Dispose();
+            }
             _logger.LogInformation("Invoice Created Consumer stopped");
         }
     }
@@ -97,7 +128,7 @@ public class InvoiceCreatedConsumer : BackgroundService
         try
         {
             var message = JsonSerializer.Deserialize<InvoiceCreatedEvent>(messageValue);
-            
+
             if (message == null)
             {
                 _logger.LogWarning("Failed to deserialize message: {Message}", messageValue);
@@ -122,8 +153,8 @@ public class InvoiceCreatedConsumer : BackgroundService
                 return;
             }
 
-            // Generate PDF
-            var pdfBytes = await pdfService.GeneratePdfFromInvoiceAsync(invoice);
+            // Generate PDF with specified template
+            var pdfBytes = await pdfService.GeneratePdfFromInvoiceAsync(invoice, invoice.TemplateId);
 
             // Upload to MinIO
             var storageKey = await minioService.UploadPdfAsync(invoice.Id, pdfBytes);

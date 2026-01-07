@@ -16,15 +16,48 @@ public class InvoiceController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<InvoiceController> _logger;
     private readonly IKafkaProducerService _kafkaProducer;
+    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
 
     public InvoiceController(
         ApplicationDbContext context,
         ILogger<InvoiceController> logger,
-        IKafkaProducerService kafkaProducer)
+        IKafkaProducerService kafkaProducer,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _logger = logger;
         _kafkaProducer = kafkaProducer;
+        _configuration = configuration;
+        _httpClient = httpClientFactory.CreateClient();
+    }
+
+    // GET: api/Invoice/templates
+    [HttpGet("templates")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<string>>> GetTemplates()
+    {
+        try
+        {
+            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
+            var response = await _httpClient.GetAsync($"{pdfServiceUrl}/api/Template");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var templates = await response.Content.ReadFromJsonAsync<List<string>>();
+                return Ok(templates ?? new List<string>());
+            }
+            
+            _logger.LogWarning("Failed to fetch templates from PDF Generator Service. Status: {Status}", response.StatusCode);
+            return Ok(new List<string>()); // Return empty list on failure
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching templates from PDF Generator Service");
+            return StatusCode(500, new { message = "Error fetching templates" });
+        }
     }
 
     // GET: api/Invoice
