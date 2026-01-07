@@ -1,4 +1,5 @@
 using AuthApi.Extensions;
+using AuthApi.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,9 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
 builder.Services.AddAuthenticationServices(builder.Configuration);
 builder.Services.AddHealthCheckServices();
+
+// Add Kafka Producer Service
+builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
 // Add Controllers
 builder.Services.AddControllers();

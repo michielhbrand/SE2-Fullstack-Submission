@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
-namespace AuthApi.Models;
+namespace PdfGeneratorService.Models;
 
 public class InvoiceItem
 {
@@ -26,7 +25,7 @@ public class InvoiceItem
     [NotMapped]
     public decimal TotalPrice => Amount * PricePerUnit;
 
-    // Navigation property - ignore during serialization to prevent circular references
-    // [JsonIgnore]
-    // public Invoice Invoice { get; set; } = null!;
+    // Navigation property
+    [ForeignKey("InvoiceId")]
+    public Invoice? Invoice { get; set; }
 }

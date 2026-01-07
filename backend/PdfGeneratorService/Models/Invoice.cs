@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AuthApi.Models;
+namespace PdfGeneratorService.Models;
 
 public class Invoice
 {

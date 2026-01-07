@@ -1,0 +1,58 @@
+using Confluent.Kafka;
+using System.Text.Json;
+
+namespace AuthApi.Services;
+
+public class KafkaProducerService : IKafkaProducerService, IDisposable
+{
+    private readonly IProducer<string, string> _producer;
+    private readonly ILogger<KafkaProducerService> _logger;
+    private readonly string _topic = "invoice-created";
+
+    public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
+    {
+        _logger = logger;
+        
+        var config = new ProducerConfig
+        {
+            BootstrapServers = configuration["Kafka:BootstrapServers"] ?? "localhost:9092"
+        };
+
+        _producer = new ProducerBuilder<string, string>(config).Build();
+    }
+
+    public async Task PublishInvoiceCreatedEventAsync(int invoiceId)
+    {
+        try
+        {
+            var message = new
+            {
+                InvoiceId = invoiceId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var messageJson = JsonSerializer.Serialize(message);
+
+            var result = await _producer.ProduceAsync(_topic, new Message<string, string>
+            {
+                Key = invoiceId.ToString(),
+                Value = messageJson
+            });
+
+            _logger.LogInformation(
+                "Invoice created event published to Kafka. InvoiceId: {InvoiceId}, Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
+                invoiceId, _topic, result.Partition.Value, result.Offset.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing invoice created event for InvoiceId: {InvoiceId}", invoiceId);
+            throw;
+        }
+    }
+
+    public void Dispose()
+    {
+        _producer?.Flush(TimeSpan.FromSeconds(10));
+        _producer?.Dispose();
+    }
+}

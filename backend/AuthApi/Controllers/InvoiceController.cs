@@ -1,5 +1,6 @@
 using AuthApi.Data;
 using AuthApi.Models;
+using AuthApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,16 @@ public class InvoiceController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<InvoiceController> _logger;
+    private readonly IKafkaProducerService _kafkaProducer;
 
-    public InvoiceController(ApplicationDbContext context, ILogger<InvoiceController> logger)
+    public InvoiceController(
+        ApplicationDbContext context,
+        ILogger<InvoiceController> logger,
+        IKafkaProducerService kafkaProducer)
     {
         _context = context;
         _logger = logger;
+        _kafkaProducer = kafkaProducer;
     }
 
     // GET: api/Invoice
@@ -102,6 +108,17 @@ public class InvoiceController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Invoice {InvoiceId} created by {User}", invoice.Id, userEmail);
+
+        // Publish Kafka event for PDF generation
+        try
+        {
+            await _kafkaProducer.PublishInvoiceCreatedEventAsync(invoice.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish Kafka event for Invoice {InvoiceId}", invoice.Id);
+            // Continue - invoice is created, PDF generation will be retried
+        }
 
         return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
     }

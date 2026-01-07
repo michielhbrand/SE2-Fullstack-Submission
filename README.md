@@ -1,6 +1,6 @@
 # Minimal Full-Stack Microservices Project
 
-A complete full-stack microservices application with Vue.js frontend, .NET Web API backend, and Keycloak authentication, designed to run locally on macOS using Rancher.
+A complete full-stack microservices application with Vue.js frontend, .NET Web API backend, Keycloak authentication, and asynchronous PDF generation using Kafka and MinIO, designed to run locally on macOS using Rancher.
 
 ## 🏗️ Architecture
 
@@ -12,17 +12,30 @@ A complete full-stack microservices application with Vue.js frontend, .NET Web A
 - **HTTP Client**: Axios
 - **Authentication**: OAuth2.0 via Keycloak
 
-### Backend
-- **Framework**: .NET 8.0 Web API
-- **Authentication**: JWT Bearer with Keycloak
-- **API Documentation**: Scalar (instead of Swagger UI)
-- **Health Checks**: Built-in health endpoint
+### Backend Services
+- **AuthApi**: Main .NET 8.0 Web API
+  - JWT Bearer authentication with Keycloak
+  - Invoice management (CRUD operations)
+  - Kafka event producer
+  - API Documentation: Scalar
+  - Health Checks: Built-in health endpoint
+
+- **PdfGeneratorService**: Dedicated PDF generation microservice
+  - Kafka event consumer
+  - HTML to PDF conversion using PuppeteerSharp
+  - MinIO object storage integration
+  - Asynchronous processing
 
 ### Identity Service
 - **Provider**: Keycloak (containerized)
 - **Port**: 9090 (custom, not default 9000)
 - **Realm**: microservices
 - **Protocol**: OAuth2.0 / OpenID Connect
+
+### Message Broker & Storage
+- **Message Broker**: Apache Kafka with Zookeeper
+- **Object Storage**: MinIO (S3-compatible)
+- **Database**: PostgreSQL (shared by AuthApi and PdfGeneratorService)
 
 ### Infrastructure
 - **Container Runtime**: Rancher Desktop (instead of Docker Desktop)
@@ -39,19 +52,34 @@ Minimal-FullStack-V1/
 │       │   │   └── ui/         # shadcn-vue components
 │       │   ├── views/          # Page components
 │       │   │   ├── Login.vue
-│       │   │   └── Welcome.vue
+│       │   │   ├── Welcome.vue
+│       │   │   ├── Invoices.vue
+│       │   │   └── Clients.vue
 │       │   ├── router/         # Vue Router configuration
 │       │   ├── services/       # API services
 │       │   └── lib/            # Utility functions
 │       └── ...
 ├── backend/
-│   └── AuthApi/                # .NET Web API
-│       ├── Program.cs          # Main application configuration
-│       ├── appsettings.json    # Configuration settings
-│       └── ...
+│   ├── AuthApi/                # Main .NET Web API
+│   │   ├── Controllers/        # API controllers
+│   │   ├── Services/           # Business services (Kafka producer)
+│   │   ├── Models/             # Data models
+│   │   ├── Data/               # Database context
+│   │   ├── Program.cs          # Main application configuration
+│   │   └── appsettings.json    # Configuration settings
+│   └── PdfGeneratorService/    # PDF generation microservice
+│       ├── BackgroundServices/ # Kafka consumer
+│       ├── Services/           # PDF & MinIO services
+│       ├── Models/             # Data models
+│       ├── Data/               # Database context
+│       ├── Templates/          # HTML invoice template
+│       ├── Program.cs          # Service configuration
+│       └── appsettings.json    # Configuration settings
 ├── infrastructure/
-│   ├── docker-compose.yml      # Container orchestration
+│   ├── docker-compose.yml      # Container orchestration (Keycloak, Kafka, MinIO, PostgreSQL)
 │   └── keycloak-realm.json     # Keycloak realm configuration
+├── docs/
+│   └── PDF_GENERATION_SYSTEM.md # PDF generation system documentation
 └── README.md
 ```
 
@@ -70,16 +98,24 @@ Minimal-FullStack-V1/
 
 ## 📦 Installation & Setup
 
-### 1. Start Keycloak Identity Service
+### 1. Start Infrastructure Services
 
 ```bash
 cd infrastructure
 docker-compose up -d
 ```
 
-Wait for Keycloak to start (approximately 30-60 seconds). Verify it's running:
+This will start:
+- Keycloak (authentication) on port 9090
+- PostgreSQL (database) on port 5432
+- Kafka (message broker) on port 9092
+- Zookeeper (Kafka coordination) on port 2181
+- MinIO (object storage) on ports 9000 (API) and 9001 (Console)
+
+Wait for all services to start (approximately 30-60 seconds). Verify they're running:
 ```bash
-curl http://localhost:9090/health
+curl http://localhost:9090/health  # Keycloak
+curl http://localhost:9001          # MinIO Console
 ```
 
 ### 2. Configure Keycloak Realm
@@ -94,8 +130,16 @@ curl http://localhost:9090/health
    - Click "Browse" and select [`infrastructure/keycloak-realm.json`](infrastructure/keycloak-realm.json)
    - Click "Create"
 
-### 3. Start Backend API
+### 3. Apply Database Migrations
 
+```bash
+cd backend/AuthApi
+dotnet ef database update
+```
+
+### 4. Start Backend Services
+
+**Start AuthApi (Main API):**
 ```bash
 cd backend/AuthApi
 dotnet restore
@@ -107,10 +151,23 @@ The API will start on `http://localhost:5000`
 **API Endpoints:**
 - Health Check: `http://localhost:5000/health`
 - API Documentation: `http://localhost:5000/scalar/v1`
+- Invoices: `http://localhost:5000/api/Invoice`
+- Clients: `http://localhost:5000/api/Client`
 - User Info (protected): `http://localhost:5000/api/user`
-- Public endpoint: `http://localhost:5000/api/public`
 
-### 4. Start Frontend Application
+**Start PdfGeneratorService (in a new terminal):**
+```bash
+cd backend/PdfGeneratorService
+dotnet restore
+dotnet run
+```
+
+The service will start on `http://localhost:5001`
+
+**Service Endpoints:**
+- Health Check: `http://localhost:5001/health`
+
+### 5. Start Frontend Application
 
 ```bash
 cd frontend/app
@@ -147,22 +204,40 @@ The application comes with a pre-configured test user:
 - ✅ Protected routes with Vue Router
 - ✅ OAuth2.0 authentication flow
 - ✅ Token-based API communication
+- ✅ Invoice management (CRUD operations)
+- ✅ Client management
 - ✅ Login and Welcome pages
 
 ### Backend Features
 - ✅ JWT Bearer authentication
 - ✅ Keycloak integration
 - ✅ CORS configuration for frontend
-- ✅ Health check endpoint
+- ✅ Health check endpoints
 - ✅ Scalar API documentation
-- ✅ Protected and public endpoints
+- ✅ Invoice and Client APIs
+- ✅ **Asynchronous PDF generation**
+- ✅ **Kafka event-driven architecture**
+- ✅ **MinIO object storage integration**
+- ✅ PostgreSQL database with EF Core
 
 ### Infrastructure Features
-- ✅ Containerized Keycloak
-- ✅ Custom port configuration (9090)
+- ✅ Containerized services (Keycloak, Kafka, MinIO, PostgreSQL)
+- ✅ Apache Kafka message broker
+- ✅ MinIO S3-compatible object storage
+- ✅ Zookeeper for Kafka coordination
 - ✅ Pre-configured realm and client
 - ✅ Test user setup
 - ✅ Rancher Desktop compatible
+
+### PDF Generation System
+- ✅ **Event-driven architecture** - Kafka-based async processing
+- ✅ **HTML to PDF conversion** - Using PuppeteerSharp/Chromium
+- ✅ **Object storage** - PDFs stored in MinIO
+- ✅ **Database tracking** - PDF storage keys in Invoice records
+- ✅ **Microservice architecture** - Dedicated PdfGeneratorService
+- ✅ **Professional templates** - Customizable HTML invoice templates
+
+📖 **[View detailed PDF Generation System documentation](docs/PDF_GENERATION_SYSTEM.md)**
 
 ## 🔧 Configuration
 
@@ -286,9 +361,14 @@ docker-compose down -v
 
 ### Port Configuration
 - Frontend: 5173 (Vite default)
-- Backend: 5000 (.NET default)
+- AuthApi: 5000 (.NET default)
+- PdfGeneratorService: 5001
 - Keycloak: 9090 (custom, not default 9000)
-- PostgreSQL (Keycloak DB): 5432 (internal only)
+- PostgreSQL: 5432
+- Kafka: 9092
+- Zookeeper: 2181
+- MinIO API: 9000
+- MinIO Console: 9001
 
 ### Security Considerations
 - This is a development setup - not production-ready

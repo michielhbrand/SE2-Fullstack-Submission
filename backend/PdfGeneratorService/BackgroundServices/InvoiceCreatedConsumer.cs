@@ -1,0 +1,154 @@
+using Confluent.Kafka;
+using Microsoft.EntityFrameworkCore;
+using PdfGeneratorService.Data;
+using PdfGeneratorService.Services.Generation;
+using PdfGeneratorService.Services.Storage;
+using System.Text.Json;
+
+namespace PdfGeneratorService.BackgroundServices;
+
+public class InvoiceCreatedConsumer : BackgroundService
+{
+    private readonly ILogger<InvoiceCreatedConsumer> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IConfiguration _configuration;
+    private readonly string _topic = "invoice-created";
+
+    public InvoiceCreatedConsumer(
+        ILogger<InvoiceCreatedConsumer> logger,
+        IServiceProvider serviceProvider,
+        IConfiguration configuration)
+    {
+        _logger = logger;
+        _serviceProvider = serviceProvider;
+        _configuration = configuration;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Invoice Created Consumer started");
+
+        var config = new ConsumerConfig
+        {
+            BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
+            GroupId = "pdf-generator-service",
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = false,
+            AllowAutoCreateTopics = true
+        };
+
+        using var consumer = new ConsumerBuilder<string, string>(config).Build();
+        
+        _logger.LogInformation("Subscribing to topic: {Topic}", _topic);
+        consumer.Subscribe(_topic);
+        _logger.LogInformation("Waiting for messages on topic: {Topic}. Topic will be created when first message is published.", _topic);
+
+        try
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
+                    
+                    if (consumeResult?.Message?.Value != null)
+                    {
+                        _logger.LogInformation(
+                            "Received message from Kafka. Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
+                            consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
+
+                        await ProcessInvoiceCreatedEventAsync(consumeResult.Message.Value, stoppingToken);
+
+                        consumer.Commit(consumeResult);
+                        _logger.LogInformation("Message committed successfully");
+                    }
+                }
+                catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
+                {
+                    // Topic doesn't exist yet - this is expected, just wait
+                    _logger.LogDebug("Topic {Topic} not yet created. Waiting for first message...", _topic);
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (ConsumeException ex)
+                {
+                    _logger.LogError(ex, "Error consuming message from Kafka");
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing invoice created event");
+                    // Continue processing other messages
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Invoice Created Consumer is stopping");
+        }
+        finally
+        {
+            consumer.Close();
+            _logger.LogInformation("Invoice Created Consumer stopped");
+        }
+    }
+
+    private async Task ProcessInvoiceCreatedEventAsync(string messageValue, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var message = JsonSerializer.Deserialize<InvoiceCreatedEvent>(messageValue);
+            
+            if (message == null)
+            {
+                _logger.LogWarning("Failed to deserialize message: {Message}", messageValue);
+                return;
+            }
+
+            _logger.LogInformation("Processing invoice created event for InvoiceId: {InvoiceId}", message.InvoiceId);
+
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var pdfService = scope.ServiceProvider.GetRequiredService<IPdfGenerationService>();
+            var minioService = scope.ServiceProvider.GetRequiredService<IMinioStorageService>();
+
+            // Fetch invoice with items from database
+            var invoice = await dbContext.Invoices
+                .Include(i => i.Items)
+                .FirstOrDefaultAsync(i => i.Id == message.InvoiceId, cancellationToken);
+
+            if (invoice == null)
+            {
+                _logger.LogWarning("Invoice {InvoiceId} not found in database", message.InvoiceId);
+                return;
+            }
+
+            // Generate PDF
+            var pdfBytes = await pdfService.GeneratePdfFromInvoiceAsync(invoice);
+
+            // Upload to MinIO
+            var storageKey = await minioService.UploadPdfAsync(invoice.Id, pdfBytes);
+
+            // Update invoice with PDF storage key
+            invoice.PdfStorageKey = storageKey;
+            invoice.LastModifiedDate = DateTime.UtcNow;
+            invoice.ModifiedBy = "pdf-generator-service";
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Successfully processed invoice {InvoiceId}. PDF stored at: {StorageKey}",
+                invoice.Id, storageKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in ProcessInvoiceCreatedEventAsync");
+            throw;
+        }
+    }
+
+    private class InvoiceCreatedEvent
+    {
+        public int InvoiceId { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+}

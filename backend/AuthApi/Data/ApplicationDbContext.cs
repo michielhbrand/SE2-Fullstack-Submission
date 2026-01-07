@@ -37,10 +37,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Invoice>(entity =>
         {
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.HasMany(e => e.Items)
-                .WithOne(e => e.Invoice)
-                .HasForeignKey(e => e.InvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Items);
+                // .WithOne(e => e.Invoice)
+                // .HasForeignKey(e => e.InvoiceId)
+                // .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure InvoiceItem entity
