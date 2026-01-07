@@ -225,4 +225,37 @@ public class MinioStorageService : IMinioStorageService
             throw;
         }
     }
+
+    public async Task<string> GetPresignedUrlAsync(string storageKey, int expiryInSeconds = 3600)
+    {
+        try
+        {
+            _logger.LogInformation("Generating presigned URL for storage key: {StorageKey}", storageKey);
+
+            // Parse the storage key (format: "bucket/objectName")
+            var parts = storageKey.Split('/', 2);
+            if (parts.Length != 2)
+            {
+                throw new ArgumentException($"Invalid storage key format: {storageKey}. Expected format: 'bucket/objectName'");
+            }
+
+            var bucketName = parts[0];
+            var objectName = parts[1];
+
+            var presignedGetObjectArgs = new PresignedGetObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectName)
+                .WithExpiry(expiryInSeconds);
+
+            var presignedUrl = await _minioClient.PresignedGetObjectAsync(presignedGetObjectArgs);
+
+            _logger.LogInformation("Successfully generated presigned URL for {StorageKey}", storageKey);
+            return presignedUrl;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating presigned URL for storage key: {StorageKey}", storageKey);
+            throw;
+        }
+    }
 }

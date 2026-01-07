@@ -95,6 +95,47 @@ public class InvoiceController : ControllerBase
         return Ok(response);
     }
 
+    // GET: api/Invoice/{id}/pdf-url
+    [HttpGet("{id}/pdf-url")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<object>> GetInvoicePdfUrl(int id)
+    {
+        var invoice = await _context.Invoices.FindAsync(id);
+
+        if (invoice == null)
+        {
+            return NotFound(new { message = $"Invoice with ID {id} not found" });
+        }
+
+        if (string.IsNullOrEmpty(invoice.PdfStorageKey))
+        {
+            return NotFound(new { message = "PDF not yet generated for this invoice" });
+        }
+
+        try
+        {
+            // Call PdfGeneratorService to get presigned URL
+            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
+            var response = await _httpClient.GetAsync($"{pdfServiceUrl}/api/Pdf/presigned-url?storageKey={Uri.EscapeDataString(invoice.PdfStorageKey)}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                return Ok(new { url = result?["url"] ?? "" });
+            }
+            
+            _logger.LogWarning("Failed to get presigned URL from PDF Generator Service. Status: {Status}", response.StatusCode);
+            return StatusCode(500, new { message = "Failed to generate PDF URL" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PDF URL for Invoice {InvoiceId}", id);
+            return StatusCode(500, new { message = "Error generating PDF URL" });
+        }
+    }
+
     // GET: api/Invoice/5
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

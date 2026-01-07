@@ -10,6 +10,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const totalPages = ref(0)
 const totalCount = ref(0)
+const previewingPdf = ref<number | null>(null)
 
 onMounted(async () => {
   await fetchInvoices()
@@ -58,8 +59,28 @@ const paginationPages = computed(() => {
 })
 
 const getTotalAmount = (invoice: any) => {
-  return invoice.items?.reduce((sum: number, item: any) => 
+  return invoice.items?.reduce((sum: number, item: any) =>
     sum + (item.amount * item.pricePerUnit), 0) || 0
+}
+
+const previewPdf = async (invoiceId: number) => {
+  try {
+    previewingPdf.value = invoiceId
+    const response = await apiClient.get(`/api/Invoice/${invoiceId}/pdf-url`)
+    const pdfUrl = response.data.url
+    
+    // Open PDF in new tab
+    window.open(pdfUrl, '_blank')
+  } catch (error: any) {
+    console.error('Failed to preview PDF:', error)
+    if (error.response?.status === 404) {
+      alert('PDF not yet generated for this invoice')
+    } else {
+      alert('Failed to load PDF preview')
+    }
+  } finally {
+    previewingPdf.value = null
+  }
 }
 </script>
 
@@ -90,6 +111,7 @@ const getTotalAmount = (invoice: any) => {
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PDF</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
@@ -117,9 +139,40 @@ const getTotalAmount = (invoice: any) => {
                       {{ invoice.notificationSent ? 'Sent' : 'Pending' }}
                     </span>
                   </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button
+                      v-if="invoice.pdfStorageKey"
+                      @click="previewPdf(invoice.id)"
+                      :disabled="previewingPdf === invoice.id"
+                      class="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                      title="Preview PDF"
+                    >
+                      <svg
+                        v-if="previewingPdf === invoice.id"
+                        class="animate-spin h-5 w-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <span v-else class="text-gray-400 text-sm">N/A</span>
+                  </td>
                 </tr>
                 <tr v-if="invoices.length === 0">
-                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                     No invoices found
                   </td>
                 </tr>

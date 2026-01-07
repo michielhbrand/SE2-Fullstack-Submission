@@ -7,4 +7,5 @@ public interface IMinioStorageService
     Task<List<string>> ListTemplatesAsync();
     Task<string> GetTemplateAsync(string templateName);
     Task EnsureBucketsExistAsync();
+    Task<string> GetPresignedUrlAsync(string storageKey, int expiryInSeconds = 3600);
 }
