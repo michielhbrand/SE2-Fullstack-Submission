@@ -80,7 +80,7 @@ const closeNewInvoiceModal = () => {
   showNewInvoiceModal.value = false
 }
 
-const saveNewInvoice = async (data: { clientId: number, items: any[] }) => {
+const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: string }) => {
   try {
     const token = authService.getToken()
     const selectedClient = clients.value.find(c => c.id === data.clientId)
@@ -95,6 +95,7 @@ const saveNewInvoice = async (data: { clientId: number, items: any[] }) => {
       clientSurname: selectedClient.surname,
       clientAddress: selectedClient.address || '',
       clientCellphone: selectedClient.cellphone,
+      templateId: data.templateId,
       items: data.items.map(item => ({
         description: item.description,
         amount: item.amount,

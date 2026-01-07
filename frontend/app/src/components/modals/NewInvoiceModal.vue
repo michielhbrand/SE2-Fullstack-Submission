@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Button } from '../ui/index'
+import apiClient from '@/services/api'
 
 interface InvoiceItem {
   description: string
@@ -25,15 +26,39 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'save', data: { clientId: number, items: InvoiceItem[] }): void
+  (e: 'save', data: { clientId: number, items: InvoiceItem[], templateId?: string }): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const selectedClientId = ref<number | null>(null)
+const selectedTemplateId = ref<string>('')
 const invoiceItems = ref<InvoiceItem[]>([{ description: '', amount: 1, pricePerUnit: 0 }])
 const formErrors = ref<Record<string, string>>({})
+const templates = ref<string[]>([])
+const loadingTemplates = ref(false)
+const templateSearchQuery = ref('')
+const isTemplateDropdownOpen = ref(false)
+const templateDropdownRef = ref<HTMLDivElement | null>(null)
+const templateSearchInputRef = ref<HTMLInputElement | null>(null)
+
+const fetchTemplates = async () => {
+  loadingTemplates.value = true
+  try {
+    const response = await apiClient.get('/api/invoice/templates')
+    templates.value = response.data || []
+    // Set default template if available
+    if (templates.value.length > 0 && !selectedTemplateId.value) {
+      selectedTemplateId.value = templates.value[0] || ''
+    }
+  } catch (error) {
+    console.error('Error fetching templates:', error)
+    templates.value = []
+  } finally {
+    loadingTemplates.value = false
+  }
+}
 
 const addInvoiceItem = () => {
   invoiceItems.value.push({ description: '', amount: 1, pricePerUnit: 0 })
@@ -50,6 +75,10 @@ const validateForm = () => {
   
   if (!selectedClientId.value) {
     formErrors.value.client = 'Please select a client'
+  }
+
+  if (!selectedTemplateId.value) {
+    formErrors.value.template = 'Please select a template'
   }
   
   invoiceItems.value.forEach((item, index) => {
@@ -74,7 +103,8 @@ const handleSave = () => {
   
   emit('save', {
     clientId: selectedClientId.value,
-    items: invoiceItems.value
+    items: invoiceItems.value,
+    templateId: selectedTemplateId.value || undefined
   })
 }
 
@@ -90,18 +120,62 @@ const filteredClients = computed(() => {
   return props.clients
 })
 
+const filteredTemplates = computed(() => {
+  if (!templateSearchQuery.value) {
+    return templates.value
+  }
+  return templates.value.filter(template =>
+    template.toLowerCase().includes(templateSearchQuery.value.toLowerCase())
+  )
+})
+
+const toggleTemplateDropdown = () => {
+  isTemplateDropdownOpen.value = !isTemplateDropdownOpen.value
+  if (isTemplateDropdownOpen.value) {
+    // Focus search input when dropdown opens
+    setTimeout(() => {
+      templateSearchInputRef.value?.focus()
+    }, 50)
+  }
+}
+
+const selectTemplate = (template: string) => {
+  selectedTemplateId.value = template
+  isTemplateDropdownOpen.value = false
+  templateSearchQuery.value = ''
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (templateDropdownRef.value && !templateDropdownRef.value.contains(event.target as Node)) {
+    isTemplateDropdownOpen.value = false
+  }
+}
+
 // Reset form when modal opens
 const resetForm = () => {
   selectedClientId.value = null
+  selectedTemplateId.value = templates.value.length > 0 ? (templates.value[0] || '') : ''
   invoiceItems.value = [{ description: '', amount: 1, pricePerUnit: 0 }]
   formErrors.value = {}
+  templateSearchQuery.value = ''
+  isTemplateDropdownOpen.value = false
 }
 
 // Watch for show prop changes to reset form
 watch(() => props.show, (newVal) => {
   if (newVal) {
     resetForm()
+    fetchTemplates()
   }
+})
+
+onMounted(() => {
+  fetchTemplates()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -142,6 +216,76 @@ watch(() => props.show, (newVal) => {
                 </option>
               </select>
               <p v-if="formErrors.client" class="mt-1 text-sm text-red-600">{{ formErrors.client }}</p>
+            </div>
+
+            <!-- Template Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Template *</label>
+              <div class="relative" ref="templateDropdownRef">
+                <!-- Dropdown Button -->
+                <button
+                  type="button"
+                  @click="toggleTemplateDropdown"
+                  :disabled="loadingTemplates"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between bg-white"
+                  :class="formErrors.template ? 'border-red-500' : ''"
+                >
+                  <span :class="selectedTemplateId ? 'text-gray-900' : 'text-gray-500'">
+                    {{ loadingTemplates ? 'Loading templates...' : (selectedTemplateId || 'Select a template...') }}
+                  </span>
+                  <svg
+                    class="w-5 h-5 text-gray-400 transition-transform"
+                    :class="{ 'rotate-180': isTemplateDropdownOpen }"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div
+                  v-if="isTemplateDropdownOpen && !loadingTemplates"
+                  class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden"
+                >
+                  <!-- Search Input Inside Dropdown -->
+                  <div class="p-2 border-b border-gray-200 bg-gray-50">
+                    <input
+                      ref="templateSearchInputRef"
+                      v-model="templateSearchQuery"
+                      type="text"
+                      placeholder="Search templates..."
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      @click.stop
+                    />
+                  </div>
+
+                  <!-- Template Options -->
+                  <div class="overflow-y-auto max-h-48">
+                    <div
+                      v-if="filteredTemplates.length === 0"
+                      class="px-3 py-2 text-sm text-gray-500 text-center"
+                    >
+                      No templates found
+                    </div>
+                    <button
+                      v-for="template in filteredTemplates"
+                      :key="template"
+                      type="button"
+                      @click="selectTemplate(template)"
+                      class="w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors text-sm"
+                      :class="{ 'bg-blue-100 font-medium': selectedTemplateId === template }"
+                    >
+                      {{ template }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p v-if="formErrors.template" class="mt-1 text-sm text-red-600">{{ formErrors.template }}</p>
+              <p v-if="!loadingTemplates && templates.length === 0" class="mt-1 text-sm text-yellow-600">
+                No templates available. Please contact administrator.
+              </p>
             </div>
 
             <!-- Invoice Items -->
