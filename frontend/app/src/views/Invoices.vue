@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import apiClient from '../services/api'
-import { Button } from '../components/ui/index'
+import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 
 const loading = ref(true)
@@ -12,11 +12,11 @@ const totalPages = ref(0)
 const totalCount = ref(0)
 
 onMounted(async () => {
-  loading.value = false
   await fetchInvoices()
 })
 
 const fetchInvoices = async () => {
+  loading.value = true
   try {
     const params = {
       page: currentPage.value,
@@ -30,6 +30,8 @@ const fetchInvoices = async () => {
     totalCount.value = response.data.pagination.totalCount
   } catch (error) {
     console.error('Failed to fetch invoices:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -73,7 +75,12 @@ const getTotalAmount = (invoice: any) => {
 
         <!-- Invoices Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="overflow-x-auto">
+          <!-- Loading Spinner -->
+          <div v-if="loading" class="flex items-center justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+          
+          <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
@@ -119,7 +126,7 @@ const getTotalAmount = (invoice: any) => {
               </tbody>
             </table>
           </div>
-
+          
           <!-- Pagination -->
           <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div class="text-sm text-gray-700">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import apiClient from '../services/api'
-import { Button } from '../components/ui/index'
+import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
 import EditClientModal from '../components/modals/EditClientModal.vue'
@@ -20,11 +20,11 @@ const searchQuery = ref('')
 const editClientData = ref<any>(null)
 
 onMounted(async () => {
-  loading.value = false
   await fetchClients()
 })
 
 const fetchClients = async () => {
+  loading.value = true
   try {
     const params: any = {
       page: currentPage.value,
@@ -42,6 +42,8 @@ const fetchClients = async () => {
     totalCount.value = response.data.pagination.totalCount
   } catch (error) {
     console.error('Failed to fetch clients:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -159,7 +161,12 @@ const paginationPages = computed(() => {
 
         <!-- Clients Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="overflow-x-auto">
+          <!-- Loading Spinner -->
+          <div v-if="loading" class="flex items-center justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+          
+          <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
@@ -206,7 +213,7 @@ const paginationPages = computed(() => {
               </tbody>
             </table>
           </div>
-
+          
           <!-- Pagination -->
           <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div class="text-sm text-gray-700">
