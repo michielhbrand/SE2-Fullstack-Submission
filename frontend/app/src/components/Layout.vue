@@ -5,6 +5,7 @@ import { authService } from '../services/auth'
 import { Button, Separator, ScrollArea } from '../components/ui/index'
 import packageJson from '../../package.json'
 import NewInvoiceModal from './modals/NewInvoiceModal.vue'
+import ServerStatus from './ServerStatus.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -160,6 +161,7 @@ const saveNewInvoice = async (data: { clientId: number, items: any[] }) => {
         
         <div class="flex items-center gap-4">
           <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
+            <ServerStatus />
             <span>Welcome,</span>
             <span class="font-medium text-gray-900">{{ username || 'User' }}</span>
           </div>
@@ -267,7 +269,7 @@ const saveNewInvoice = async (data: { clientId: number, items: any[] }) => {
 
     <!-- Main Content -->
     <main
-      class="transition-all duration-300 ease-in-out pt-16"
+      class="transition-all duration-300 ease-in-out pt-16 pl-16"
       :class="sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'"
     >
       <slot />
