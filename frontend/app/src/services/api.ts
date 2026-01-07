@@ -41,4 +41,33 @@ apiClient.interceptors.response.use(
   }
 )
 
+// Template API functions
+export const templateApi = {
+  // Get all templates
+  getTemplates: async () => {
+    const response = await apiClient.get('http://localhost:5001/api/Template')
+    return response.data
+  },
+
+  // Get a specific template
+  getTemplate: async (templateName: string) => {
+    const response = await apiClient.get(`http://localhost:5001/api/Template/${encodeURIComponent(templateName)}`)
+    return response.data
+  },
+
+  // Upload a new template
+  uploadTemplate: async (name: string, content: string) => {
+    const response = await apiClient.post('http://localhost:5001/api/Template', {
+      name,
+      content
+    })
+    return response.data
+  },
+
+  // Get preview URL for a template
+  getPreviewUrl: (templateName: string) => {
+    return `http://localhost:5001/api/Template/${encodeURIComponent(templateName)}/preview`
+  }
+}
+
 export default apiClient

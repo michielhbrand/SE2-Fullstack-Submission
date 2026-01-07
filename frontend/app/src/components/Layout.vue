@@ -257,6 +257,20 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
               </svg>
               <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Invoices</span>
             </router-link>
+
+            <router-link
+              to="/templates"
+              class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              :class="[
+                sidebarCollapsed ? 'justify-left' : '',
+                route.path === '/templates' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
+              ]"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+              </svg>
+              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Templates</span>
+            </router-link>
           </nav>
         </ScrollArea>
 

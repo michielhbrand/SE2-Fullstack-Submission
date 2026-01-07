@@ -1,0 +1,232 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { Button, Spinner, Alert } from '../components/ui/index'
+import { templateApi } from '../services/api'
+import Layout from '../components/Layout.vue'
+
+interface Template {
+  name: string
+  lastModified?: string
+  size?: string
+}
+
+const templates = ref<Template[]>([])
+const loading = ref(true)
+const error = ref<string | null>(null)
+const previewUrl = ref<string | null>(null)
+const previewLoading = ref(false)
+const previewTemplate = ref<string | null>(null)
+
+onMounted(async () => {
+  await fetchTemplates()
+})
+
+const fetchTemplates = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const data = await templateApi.getTemplates()
+    templates.value = data.map((name: string) => ({
+      name,
+      lastModified: 'N/A',
+      size: 'N/A'
+    }))
+  } catch (err: any) {
+    console.error('Failed to fetch templates:', err)
+    error.value = err.response?.data?.message || 'Failed to load templates'
+  } finally {
+    loading.value = false
+  }
+}
+
+const previewTemplateHandler = async (templateName: string) => {
+  previewLoading.value = true
+  previewTemplate.value = templateName
+  previewUrl.value = null
+  
+  try {
+    // Generate preview URL
+    previewUrl.value = templateApi.getPreviewUrl(templateName)
+  } catch (err: any) {
+    console.error('Failed to generate preview:', err)
+    error.value = err.response?.data?.message || 'Failed to generate preview'
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+const closePreview = () => {
+  previewUrl.value = null
+  previewTemplate.value = null
+}
+
+const getFileExtension = (filename: string) => {
+  const parts = filename.split('.')
+  const ext = parts[parts.length - 1]
+  return parts.length > 1 && ext ? ext.toUpperCase() : 'HTML'
+}
+</script>
+
+<template>
+  <Layout>
+    <div class="p-6 lg:p-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="mb-8">
+          <h2 class="text-3xl font-bold text-gray-900">Templates</h2>
+          <p class="mt-2 text-gray-600">Manage and preview your invoice templates</p>
+        </div>
+
+    <!-- Error Alert -->
+    <Alert v-if="error" variant="destructive" class="mb-6">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ error }}</span>
+      </div>
+    </Alert>
+
+    <!-- Templates Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <Spinner size="lg" />
+      </div>
+      
+      <div v-else-if="templates.length > 0" class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Template Name
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Type
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Last Modified
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Size
+              </th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="template in templates" :key="template.name" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <span class="text-sm font-medium text-gray-900">{{ template.name }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ getFileExtension(template.name) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ template.lastModified }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ template.size }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <Button
+                  @click="previewTemplateHandler(template.name)"
+                  variant="outline"
+                  size="sm"
+                  class="inline-flex items-center"
+                >
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Preview
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Empty State -->
+      <div v-else class="px-6 py-12 text-center text-gray-500">
+        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No templates found</h3>
+        <p class="text-gray-500">Upload your first template to get started</p>
+      </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div
+      v-if="previewUrl"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+      @click.self="closePreview"
+    >
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900">Template Preview</h2>
+            <p class="text-sm text-gray-500 mt-1">{{ previewTemplate }}</p>
+          </div>
+          <Button
+            @click="closePreview"
+            variant="ghost"
+            size="sm"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </Button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="flex-1 overflow-hidden relative">
+          <div v-if="previewLoading" class="absolute inset-0 flex items-center justify-center bg-gray-50">
+            <Spinner class="w-8 h-8" />
+          </div>
+          <iframe
+            v-else
+            :src="previewUrl"
+            class="w-full h-full border-0"
+            title="Template Preview"
+          />
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <Button
+            @click="closePreview"
+            variant="outline"
+          >
+            Close
+          </Button>
+          <a
+            :href="previewUrl"
+            download
+            target="_blank"
+          >
+            <Button variant="default">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Download
+            </Button>
+          </a>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </Layout>
+</template>

@@ -5,6 +5,7 @@ import Dashboard from '../views/Dashboard.vue'
 import Welcome from '../views/Welcome.vue'
 import Clients from '../views/Clients.vue'
 import Invoices from '../views/Invoices.vue'
+import Templates from '../views/Templates.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -41,6 +42,12 @@ const router = createRouter({
       path: '/invoices',
       name: 'Invoices',
       component: Invoices,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/templates',
+      name: 'Templates',
+      component: Templates,
       meta: { requiresAuth: true },
     },
   ],

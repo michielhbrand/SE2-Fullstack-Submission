@@ -28,6 +28,18 @@ builder.Services.AddScoped<IMinioStorageService, MinioStorageService>();
 builder.Services.AddHostedService<InvoiceCreatedConsumer>();
 builder.Services.AddHostedService<MinioInitializationService>();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 // Add Controllers
 builder.Services.AddControllers();
 
@@ -43,6 +55,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Use CORS
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 
