@@ -23,6 +23,9 @@ builder.Services.AddHealthCheckServices();
 // Add Kafka Producer Service
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
+// Add Keycloak Authentication Service
+builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
+
 // Add HttpClient
 builder.Services.AddHttpClient();
 

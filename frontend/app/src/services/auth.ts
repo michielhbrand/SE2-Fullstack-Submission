@@ -1,9 +1,6 @@
 import axios from 'axios'
 import router from '../router'
 
-const KEYCLOAK_URL = 'http://localhost:9090'
-const REALM = 'microservices'
-const CLIENT_ID = 'frontend-app'
 const API_URL = 'http://localhost:5000'
 
 interface LoginCredentials {
@@ -26,18 +23,15 @@ class AuthService {
 
   async login(credentials: LoginCredentials): Promise<boolean> {
     try {
-      const params = new URLSearchParams()
-      params.append('client_id', CLIENT_ID)
-      params.append('grant_type', 'password')
-      params.append('username', credentials.username)
-      params.append('password', credentials.password)
-
       const response = await axios.post<TokenResponse>(
-        `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`,
-        params,
+        `${API_URL}/api/Auth/login`,
+        {
+          username: credentials.username,
+          password: credentials.password
+        },
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
         }
       )
@@ -65,7 +59,29 @@ class AuthService {
     }
   }
 
-  logout(dueToExpiration: boolean = false) {
+  async logout(dueToExpiration: boolean = false) {
+    // Get refresh token before clearing
+    const refreshToken = this.refreshToken || localStorage.getItem('refresh_token')
+    
+    // Call AuthAPI logout endpoint if we have a refresh token
+    if (refreshToken) {
+      try {
+        await axios.post(
+          `${API_URL}/api/Auth/logout`,
+          { refreshToken },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      } catch (error) {
+        console.error('Logout request failed:', error)
+        // Continue with local cleanup even if server logout fails
+      }
+    }
+    
+    // Clear local state
     this.accessToken = null
     this.refreshToken = null
     localStorage.removeItem('access_token')

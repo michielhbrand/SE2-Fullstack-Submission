@@ -49,9 +49,9 @@ const toggleSidebar = () => {
   localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value.toString())
 }
 
-const handleLogout = () => {
-  authService.logout()
-  router.push('/login')
+const handleLogout = async () => {
+  await authService.logout()
+  // Router push is handled by the logout method
 }
 
 const fetchClients = async () => {

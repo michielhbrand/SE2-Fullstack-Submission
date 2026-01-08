@@ -17,9 +17,9 @@ onMounted(async () => {
   loading.value = false
 })
 
-const handleLogout = () => {
-  authService.logout()
-  router.push('/login')
+const handleLogout = async () => {
+  await authService.logout()
+  // Router push is handled by the logout method
 }
 </script>
 
