@@ -5,9 +5,12 @@ import { templateApi } from '../services/api'
 import Layout from '../components/Layout.vue'
 
 interface Template {
+  id: number
   name: string
-  lastModified?: string
-  size?: string
+  version: number
+  createdBy: string
+  created: string
+  storageKey: string
 }
 
 const templates = ref<Template[]>([])
@@ -26,11 +29,14 @@ const fetchTemplates = async () => {
   error.value = null
   
   try {
-    const data = await templateApi.getTemplates()
-    templates.value = data.map((name: string) => ({
-      name,
-      lastModified: 'N/A',
-      size: 'N/A'
+    const response = await templateApi.getTemplates()
+    templates.value = response.data.map((template: any) => ({
+      id: template.id,
+      name: template.name,
+      version: template.version,
+      createdBy: template.createdBy,
+      created: new Date(template.created).toLocaleDateString(),
+      storageKey: template.storageKey
     }))
   } catch (err: any) {
     console.error('Failed to fetch templates:', err)
@@ -40,14 +46,15 @@ const fetchTemplates = async () => {
   }
 }
 
-const previewTemplateHandler = async (templateName: string) => {
+const previewTemplateHandler = async (template: any) => {
   previewLoading.value = true
-  previewTemplate.value = templateName
+  previewTemplate.value = template.name
   previewUrl.value = null
   
   try {
-    // Generate preview URL
-    previewUrl.value = templateApi.getPreviewUrl(templateName)
+    // Get preview URL from AuthApi
+    const response = await templateApi.getPreviewUrl(template.id)
+    previewUrl.value = response.url
   } catch (err: any) {
     console.error('Failed to generate preview:', err)
     error.value = err.response?.data?.message || 'Failed to generate preview'
@@ -59,12 +66,6 @@ const previewTemplateHandler = async (templateName: string) => {
 const closePreview = () => {
   previewUrl.value = null
   previewTemplate.value = null
-}
-
-const getFileExtension = (filename: string) => {
-  const parts = filename.split('.')
-  const ext = parts[parts.length - 1]
-  return parts.length > 1 && ext ? ext.toUpperCase() : 'HTML'
 }
 </script>
 
@@ -102,13 +103,13 @@ const getFileExtension = (filename: string) => {
                 Template Name
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type
+                Version
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Modified
+                Created By
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Size
+                Created
               </th>
               <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -116,7 +117,7 @@ const getFileExtension = (filename: string) => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="template in templates" :key="template.name" class="hover:bg-gray-50">
+            <tr v-for="template in templates" :key="template.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,18 +128,18 @@ const getFileExtension = (filename: string) => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                  {{ getFileExtension(template.name) }}
+                  v{{ template.version }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ template.lastModified }}
+                {{ template.createdBy }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ template.size }}
+                {{ template.created }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Button
-                  @click="previewTemplateHandler(template.name)"
+                  @click="previewTemplateHandler(template)"
                   variant="outline"
                   size="sm"
                   class="inline-flex items-center"

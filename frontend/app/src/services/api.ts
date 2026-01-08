@@ -44,29 +44,39 @@ apiClient.interceptors.response.use(
 // Template API functions
 export const templateApi = {
   // Get all templates
-  getTemplates: async () => {
-    const response = await apiClient.get('http://localhost:5001/api/Template')
+  getTemplates: async (page: number = 1, pageSize: number = 100) => {
+    const response = await apiClient.get('/api/Template', {
+      params: { page, pageSize }
+    })
     return response.data
   },
 
   // Get a specific template
-  getTemplate: async (templateName: string) => {
-    const response = await apiClient.get(`http://localhost:5001/api/Template/${encodeURIComponent(templateName)}`)
+  getTemplate: async (id: number) => {
+    const response = await apiClient.get(`/api/Template/${id}`)
     return response.data
   },
 
-  // Upload a new template
-  uploadTemplate: async (name: string, content: string) => {
-    const response = await apiClient.post('http://localhost:5001/api/Template', {
+  // Create a new template
+  createTemplate: async (name: string, version: number, content: string) => {
+    const response = await apiClient.post('/api/Template', {
       name,
+      version,
       content
     })
     return response.data
   },
 
+  // Delete a template
+  deleteTemplate: async (id: number) => {
+    const response = await apiClient.delete(`/api/Template/${id}`)
+    return response.data
+  },
+
   // Get preview URL for a template
-  getPreviewUrl: (templateName: string) => {
-    return `http://localhost:5001/api/Template/${encodeURIComponent(templateName)}/preview`
+  getPreviewUrl: async (id: number) => {
+    const response = await apiClient.get(`/api/Template/${id}/preview-url`)
+    return response.data
   }
 }
 

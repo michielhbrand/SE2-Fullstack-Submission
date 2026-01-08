@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Client> Clients { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
+    public DbSet<Template> Templates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,13 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<InvoiceItem>(entity =>
         {
             entity.Property(e => e.PricePerUnit).HasPrecision(18, 2);
+        });
+
+        // Configure Template entity
+        modelBuilder.Entity<Template>(entity =>
+        {
+            entity.HasIndex(e => new { e.Name, e.Version }).IsUnique();
+            entity.Property(e => e.Created).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
     }
 }
