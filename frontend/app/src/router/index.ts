@@ -7,6 +7,7 @@ import Clients from '../views/Clients.vue'
 import Invoices from '../views/Invoices.vue'
 import Quotes from '../views/Quotes.vue'
 import Templates from '../views/Templates.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,12 @@ const router = createRouter({
       name: 'Dashboard',
       component: Dashboard,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin',
+      name: 'AdminDashboard',
+      component: AdminDashboard,
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/welcome',
@@ -62,11 +69,18 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = authService.isAuthenticated()
+  const isAdmin = authService.isAdmin()
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
+  } else if (to.meta.requiresAdmin && !isAdmin) {
+    next('/login')
   } else if (to.path === '/login' && isAuthenticated) {
-    next('/dashboard')
+    if (isAdmin) {
+      next('/admin')
+    } else {
+      next('/dashboard')
+    }
   } else {
     next()
   }

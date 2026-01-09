@@ -13,6 +13,17 @@ interface TokenResponse {
   refresh_token: string
   expires_in: number
   token_type: string
+  roles?: string[]
+}
+
+export interface UserInfo {
+  id: string
+  username: string
+  email: string
+  firstName: string
+  lastName: string
+  enabled: boolean
+  roles: string[]
 }
 
 class AuthService {
@@ -20,11 +31,13 @@ class AuthService {
   private refreshToken: string | null = null
   private tokenExpirationTimer: number | null = null
   private readonly TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
+  private readonly IS_ADMIN_FLAG = 'is_admin_user'
 
-  async login(credentials: LoginCredentials): Promise<boolean> {
+  async login(credentials: LoginCredentials, isAdminLogin: boolean = false): Promise<boolean> {
     try {
+      const endpoint = isAdminLogin ? '/api/Auth/admin/login' : '/api/Auth/login'
       const response = await axios.post<TokenResponse>(
-        `${API_URL}/api/Auth/login`,
+        `${API_URL}${endpoint}`,
         {
           username: credentials.username,
           password: credentials.password
@@ -45,6 +58,13 @@ class AuthService {
       localStorage.setItem('access_token', this.accessToken)
       localStorage.setItem('refresh_token', this.refreshToken)
       localStorage.setItem('token_expiration', expirationTime.toString())
+      
+      // Store admin flag if admin login
+      if (isAdminLogin) {
+        localStorage.setItem(this.IS_ADMIN_FLAG, 'true')
+      } else {
+        localStorage.removeItem(this.IS_ADMIN_FLAG)
+      }
       
       // Reset sidebar to expanded state on successful login
       localStorage.setItem('sidebarCollapsed', 'false')
@@ -87,6 +107,7 @@ class AuthService {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('token_expiration')
+    localStorage.removeItem(this.IS_ADMIN_FLAG)
     
     // Clear the expiration timer
     if (this.tokenExpirationTimer) {
@@ -203,6 +224,23 @@ class AuthService {
     }
   }
 
+  getCurrentUserId(): string | null {
+    const token = this.getAccessToken()
+    if (!token) return null
+
+    try {
+      // Decode the JWT token to extract user ID from Keycloak
+      const decodedToken = this.decodeJWT(token)
+      if (!decodedToken) return null
+
+      // Keycloak stores user ID in 'sub' claim
+      return decodedToken.sub || null
+    } catch (error) {
+      console.error('Failed to get current user ID:', error)
+      return null
+    }
+  }
+
   // Check if the redirect was due to token expiration
   wasRedirectedDueToExpiration(): boolean {
     return sessionStorage.getItem(this.TOKEN_EXPIRED_FLAG) === 'true'
@@ -211,6 +249,58 @@ class AuthService {
   // Clear the token expiration flag
   clearExpirationFlag() {
     sessionStorage.removeItem(this.TOKEN_EXPIRED_FLAG)
+  }
+
+  // Check if current user is admin
+  isAdmin(): boolean {
+    return localStorage.getItem(this.IS_ADMIN_FLAG) === 'true'
+  }
+
+  // Get all users (admin only)
+  async getAllUsers(): Promise<UserInfo[]> {
+    try {
+      const token = this.getAccessToken()
+      if (!token) return []
+
+      const response = await axios.get<UserInfo[]>(
+        `${API_URL}/api/Auth/admin/users`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      return response.data
+    } catch (error) {
+      console.error('Failed to get users:', error)
+      return []
+    }
+  }
+
+  // Update user role (admin only)
+  async updateUserRole(userId: string, isAdmin: boolean): Promise<boolean> {
+    try {
+      const token = this.getAccessToken()
+      if (!token) return false
+
+      await axios.put(
+        `${API_URL}/api/Auth/admin/users/${userId}/role`,
+        { isAdmin },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      return true
+    } catch (error) {
+      console.error('Failed to update user role:', error)
+      return false
+    }
   }
 }
 

@@ -16,8 +16,10 @@ services:
     command:
       - start-dev
       - --http-port=9090
+      - --import-realm
     volumes:
       - keycloak_data:/opt/keycloak/data
+      - ./keycloak-realm.json:/opt/keycloak/data/import/keycloak-realm.json
     networks:
       - microservices-network
 
