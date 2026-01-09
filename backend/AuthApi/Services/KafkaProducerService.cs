@@ -7,7 +7,8 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 {
     private readonly IProducer<string, string> _producer;
     private readonly ILogger<KafkaProducerService> _logger;
-    private readonly string _topic = "invoice-created";
+    private readonly string _invoiceTopic = "invoice-created";
+    private readonly string _quoteTopic = "quote-created";
 
     public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
     {
@@ -33,7 +34,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             var messageJson = JsonSerializer.Serialize(message);
 
-            var result = await _producer.ProduceAsync(_topic, new Message<string, string>
+            var result = await _producer.ProduceAsync(_invoiceTopic, new Message<string, string>
             {
                 Key = invoiceId.ToString(),
                 Value = messageJson
@@ -41,11 +42,40 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             _logger.LogInformation(
                 "Invoice created event published to Kafka. InvoiceId: {InvoiceId}, Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
-                invoiceId, _topic, result.Partition.Value, result.Offset.Value);
+                invoiceId, _invoiceTopic, result.Partition.Value, result.Offset.Value);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error publishing invoice created event for InvoiceId: {InvoiceId}", invoiceId);
+            throw;
+        }
+    }
+
+    public async Task PublishQuoteCreatedEventAsync(int quoteId)
+    {
+        try
+        {
+            var message = new
+            {
+                QuoteId = quoteId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var messageJson = JsonSerializer.Serialize(message);
+
+            var result = await _producer.ProduceAsync(_quoteTopic, new Message<string, string>
+            {
+                Key = quoteId.ToString(),
+                Value = messageJson
+            });
+
+            _logger.LogInformation(
+                "Quote created event published to Kafka. QuoteId: {QuoteId}, Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
+                quoteId, _quoteTopic, result.Partition.Value, result.Offset.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing quote created event for QuoteId: {QuoteId}", quoteId);
             throw;
         }
     }

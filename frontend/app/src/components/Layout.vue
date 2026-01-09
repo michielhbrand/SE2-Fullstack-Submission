@@ -5,6 +5,7 @@ import { authService } from '../services/auth'
 import { Button, Separator, ScrollArea } from '../components/ui/index'
 import packageJson from '../../package.json'
 import NewInvoiceModal from './modals/NewInvoiceModal.vue'
+import NewQuoteModal from './modals/NewQuoteModal.vue'
 import ServerStatus from './ServerStatus.vue'
 
 const router = useRouter()
@@ -14,6 +15,9 @@ let sidebarCollapsed = ref(false)
 const headerCollapsed = ref(false)
 const lastScrollY = ref(0)
 const showNewInvoiceModal = ref(false)
+const showNewQuoteModal = ref(false)
+const showNewDropdown = ref(false)
+const newDropdownRef = ref<HTMLDivElement | null>(null)
 const clients = ref<any[]>([])
 
 onMounted(async () => {
@@ -25,11 +29,13 @@ onMounted(async () => {
   sidebarCollapsed.value = localStorage.getItem('sidebarCollapsed') === 'true'
   
   window.addEventListener('scroll', handleScroll)
+  document.addEventListener('click', handleClickOutside)
   await fetchClients()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('click', handleClickOutside)
 })
 
 const handleScroll = () => {
@@ -72,12 +78,32 @@ const fetchClients = async () => {
   }
 }
 
+const toggleNewDropdown = () => {
+  showNewDropdown.value = !showNewDropdown.value
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (newDropdownRef.value && !newDropdownRef.value.contains(event.target as Node)) {
+    showNewDropdown.value = false
+  }
+}
+
 const openNewInvoiceModal = () => {
   showNewInvoiceModal.value = true
+  showNewDropdown.value = false
 }
 
 const closeNewInvoiceModal = () => {
   showNewInvoiceModal.value = false
+}
+
+const openNewQuoteModal = () => {
+  showNewQuoteModal.value = true
+  showNewDropdown.value = false
+}
+
+const closeNewQuoteModal = () => {
+  showNewQuoteModal.value = false
 }
 
 const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: string }) => {
@@ -127,6 +153,54 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
     alert('Failed to save invoice')
   }
 }
+
+const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: string }) => {
+  try {
+    const token = authService.getToken()
+    const selectedClient = clients.value.find(c => c.id === data.clientId)
+    
+    if (!selectedClient) {
+      alert('Selected client not found')
+      return
+    }
+
+    const quote = {
+      clientName: selectedClient.name,
+      clientSurname: selectedClient.surname,
+      clientAddress: selectedClient.address || '',
+      clientCellphone: selectedClient.cellphone,
+      templateId: data.templateId,
+      items: data.items.map(item => ({
+        description: item.description,
+        amount: item.amount,
+        pricePerUnit: item.pricePerUnit
+      }))
+    }
+
+    const response = await fetch('http://localhost:5000/api/Quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(quote)
+    })
+
+    if (response.ok) {
+      closeNewQuoteModal()
+      // Emit event or refresh if on quotes page
+      if (route.path === '/quotes') {
+        window.location.reload()
+      }
+    } else {
+      const error = await response.json()
+      alert(error.message || 'Failed to create quote')
+    }
+  } catch (error) {
+    console.error('Failed to save quote:', error)
+    alert('Failed to save quote')
+  }
+}
 </script>
 
 <template>
@@ -149,15 +223,45 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
             </svg>
           </Button>
           <h1 class="text-xl font-semibold text-gray-900">Application Dashboard</h1>
-          <Button
-            @click="openNewInvoiceModal"
-            variant="default"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Invoice
-          </Button>
+          <div class="relative" ref="newDropdownRef">
+            <Button
+              @click="toggleNewDropdown"
+              variant="default"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              New
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </Button>
+            
+            <!-- Dropdown Menu -->
+            <div
+              v-if="showNewDropdown"
+              class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+            >
+              <button
+                @click="openNewQuoteModal"
+                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-t-lg"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                New Quote
+              </button>
+              <button
+                @click="openNewInvoiceModal"
+                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-b-lg"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                New Invoice
+              </button>
+            </div>
+          </div>
         </div>
         
         <div class="flex items-center gap-4">
@@ -259,6 +363,20 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
             </router-link>
 
             <router-link
+              to="/quotes"
+              class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              :class="[
+                sidebarCollapsed ? 'justify-left' : '',
+                route.path === '/quotes' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
+              ]"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Quotes</span>
+            </router-link>
+
+            <router-link
               to="/templates"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
@@ -296,6 +414,14 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
       :clients="clients"
       @close="closeNewInvoiceModal"
       @save="saveNewInvoice"
+    />
+
+    <!-- New Quote Modal -->
+    <NewQuoteModal
+      :show="showNewQuoteModal"
+      :clients="clients"
+      @close="closeNewQuoteModal"
+      @save="saveNewQuote"
     />
   </div>
 </template>

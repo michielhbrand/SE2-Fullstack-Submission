@@ -31,9 +31,9 @@ public class MinioInitializationService : IHostedService
                 await storageService.EnsureBucketsExistAsync();
                 _logger.LogInformation("MinIO buckets initialized successfully");
 
-                // Upload default template if it doesn't exist
-                var templates = await storageService.ListTemplatesAsync();
-                if (!templates.Contains("InvoiceTemplate.html"))
+                // Upload default invoice template if it doesn't exist
+                var invoiceTemplates = await storageService.ListTemplatesAsync();
+                if (!invoiceTemplates.Contains("InvoiceTemplate.html"))
                 {
                     _logger.LogInformation("Uploading default invoice template...");
                     var templatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
@@ -44,6 +44,21 @@ public class MinioInitializationService : IHostedService
                 else
                 {
                     _logger.LogInformation("Default invoice template already exists in MinIO");
+                }
+
+                // Upload default quote template if it doesn't exist
+                var quoteTemplates = await storageService.ListQuoteTemplatesAsync();
+                if (!quoteTemplates.Contains("QuoteTemplate.html"))
+                {
+                    _logger.LogInformation("Uploading default quote template...");
+                    var quoteTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "QuoteTemplate.html");
+                    var quoteTemplateContent = await File.ReadAllTextAsync(quoteTemplatePath, cancellationToken);
+                    await storageService.UploadQuoteTemplateAsync("QuoteTemplate.html", quoteTemplateContent);
+                    _logger.LogInformation("Default quote template uploaded successfully");
+                }
+                else
+                {
+                    _logger.LogInformation("Default quote template already exists in MinIO");
                 }
             }
             catch (Exception ex)

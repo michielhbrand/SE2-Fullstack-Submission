@@ -8,8 +8,10 @@ public class MinioStorageService : IMinioStorageService
 {
     private readonly IMinioClient _minioClient;
     private readonly ILogger<MinioStorageService> _logger;
-    private readonly string _invoicesBucketName = "invoices";
-    private readonly string _templatesBucketName = "templates";
+    private readonly string _invoicesBucketName = "invoice-pdfs";
+    private readonly string _invoiceTemplatesBucketName = "invoice-templates";
+    private readonly string _quotesBucketName = "quote-pdfs";
+    private readonly string _quoteTemplatesBucketName = "quote-templates";
 
     public MinioStorageService(IConfiguration configuration, ILogger<MinioStorageService> logger)
     {
@@ -50,7 +52,9 @@ public class MinioStorageService : IMinioStorageService
         try
         {
             await EnsureBucketExistsAsync(_invoicesBucketName);
-            await EnsureBucketExistsAsync(_templatesBucketName);
+            await EnsureBucketExistsAsync(_invoiceTemplatesBucketName);
+            await EnsureBucketExistsAsync(_quotesBucketName);
+            await EnsureBucketExistsAsync(_quoteTemplatesBucketName);
             _logger.LogInformation("All required buckets are ready");
         }
         catch (Exception ex)
@@ -115,14 +119,50 @@ public class MinioStorageService : IMinioStorageService
         }
     }
 
+    public async Task<string> UploadQuotePdfAsync(int quoteId, byte[] pdfBytes)
+    {
+        try
+        {
+            _logger.LogInformation("Starting PDF upload for Quote {QuoteId}, Size: {Size} bytes", quoteId, pdfBytes.Length);
+
+            // Ensure bucket exists
+            await EnsureBucketExistsAsync(_quotesBucketName);
+
+            // Generate unique object name
+            var objectName = $"quote-{quoteId}-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+
+            // Upload PDF using MemoryStream
+            using var stream = new MemoryStream(pdfBytes);
+            
+            var putObjectArgs = new PutObjectArgs()
+                .WithBucket(_quotesBucketName)
+                .WithObject(objectName)
+                .WithStreamData(stream)
+                .WithObjectSize(stream.Length)
+                .WithContentType("application/pdf");
+
+            await _minioClient.PutObjectAsync(putObjectArgs);
+
+            _logger.LogInformation("Successfully uploaded PDF to MinIO. Bucket: {Bucket}, Object: {Object}", _quotesBucketName, objectName);
+
+            // Return the storage key
+            return $"{_quotesBucketName}/{objectName}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading PDF to MinIO for Quote {QuoteId}", quoteId);
+            throw;
+        }
+    }
+
     public async Task<string> UploadTemplateAsync(string templateName, string htmlContent)
     {
         try
         {
-            _logger.LogInformation("Starting template upload: {TemplateName}", templateName);
+            _logger.LogInformation("Starting invoice template upload: {TemplateName}", templateName);
 
             // Ensure bucket exists
-            await EnsureBucketExistsAsync(_templatesBucketName);
+            await EnsureBucketExistsAsync(_invoiceTemplatesBucketName);
 
             // Ensure template name ends with .html
             if (!templateName.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
@@ -135,7 +175,7 @@ public class MinioStorageService : IMinioStorageService
             using var stream = new MemoryStream(bytes);
             
             var putObjectArgs = new PutObjectArgs()
-                .WithBucket(_templatesBucketName)
+                .WithBucket(_invoiceTemplatesBucketName)
                 .WithObject(templateName)
                 .WithStreamData(stream)
                 .WithObjectSize(stream.Length)
@@ -143,13 +183,52 @@ public class MinioStorageService : IMinioStorageService
 
             await _minioClient.PutObjectAsync(putObjectArgs);
 
-            _logger.LogInformation("Successfully uploaded template to MinIO. Bucket: {Bucket}, Object: {Object}", _templatesBucketName, templateName);
+            _logger.LogInformation("Successfully uploaded invoice template to MinIO. Bucket: {Bucket}, Object: {Object}", _invoiceTemplatesBucketName, templateName);
 
             return templateName;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading template {TemplateName} to MinIO", templateName);
+            _logger.LogError(ex, "Error uploading invoice template {TemplateName} to MinIO", templateName);
+            throw;
+        }
+    }
+
+    public async Task<string> UploadQuoteTemplateAsync(string templateName, string htmlContent)
+    {
+        try
+        {
+            _logger.LogInformation("Starting quote template upload: {TemplateName}", templateName);
+
+            // Ensure bucket exists
+            await EnsureBucketExistsAsync(_quoteTemplatesBucketName);
+
+            // Ensure template name ends with .html
+            if (!templateName.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            {
+                templateName += ".html";
+            }
+
+            // Upload template using MemoryStream
+            var bytes = Encoding.UTF8.GetBytes(htmlContent);
+            using var stream = new MemoryStream(bytes);
+            
+            var putObjectArgs = new PutObjectArgs()
+                .WithBucket(_quoteTemplatesBucketName)
+                .WithObject(templateName)
+                .WithStreamData(stream)
+                .WithObjectSize(stream.Length)
+                .WithContentType("text/html");
+
+            await _minioClient.PutObjectAsync(putObjectArgs);
+
+            _logger.LogInformation("Successfully uploaded quote template to MinIO. Bucket: {Bucket}, Object: {Object}", _quoteTemplatesBucketName, templateName);
+
+            return templateName;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading quote template {TemplateName} to MinIO", templateName);
             throw;
         }
     }
@@ -158,14 +237,14 @@ public class MinioStorageService : IMinioStorageService
     {
         try
         {
-            _logger.LogInformation("Listing templates from bucket: {Bucket}", _templatesBucketName);
+            _logger.LogInformation("Listing invoice templates from bucket: {Bucket}", _invoiceTemplatesBucketName);
 
             // Ensure bucket exists
-            await EnsureBucketExistsAsync(_templatesBucketName);
+            await EnsureBucketExistsAsync(_invoiceTemplatesBucketName);
 
             var templates = new List<string>();
             var listArgs = new ListObjectsArgs()
-                .WithBucket(_templatesBucketName)
+                .WithBucket(_invoiceTemplatesBucketName)
                 .WithRecursive(true);
 
             var observable = _minioClient.ListObjectsEnumAsync(listArgs);
@@ -178,12 +257,46 @@ public class MinioStorageService : IMinioStorageService
                 }
             }
 
-            _logger.LogInformation("Found {Count} templates in bucket", templates.Count);
+            _logger.LogInformation("Found {Count} invoice templates in bucket", templates.Count);
             return templates;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing templates from MinIO");
+            _logger.LogError(ex, "Error listing invoice templates from MinIO");
+            throw;
+        }
+    }
+
+    public async Task<List<string>> ListQuoteTemplatesAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Listing quote templates from bucket: {Bucket}", _quoteTemplatesBucketName);
+
+            // Ensure bucket exists
+            await EnsureBucketExistsAsync(_quoteTemplatesBucketName);
+
+            var templates = new List<string>();
+            var listArgs = new ListObjectsArgs()
+                .WithBucket(_quoteTemplatesBucketName)
+                .WithRecursive(true);
+
+            var observable = _minioClient.ListObjectsEnumAsync(listArgs);
+            
+            await foreach (var item in observable)
+            {
+                if (item.Key.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+                {
+                    templates.Add(item.Key);
+                }
+            }
+
+            _logger.LogInformation("Found {Count} quote templates in bucket", templates.Count);
+            return templates;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing quote templates from MinIO");
             throw;
         }
     }
@@ -192,7 +305,7 @@ public class MinioStorageService : IMinioStorageService
     {
         try
         {
-            _logger.LogInformation("Retrieving template: {TemplateName}", templateName);
+            _logger.LogInformation("Retrieving invoice template: {TemplateName}", templateName);
 
             // Ensure template name ends with .html
             if (!templateName.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
@@ -203,7 +316,7 @@ public class MinioStorageService : IMinioStorageService
             using var memoryStream = new MemoryStream();
             
             var getObjectArgs = new GetObjectArgs()
-                .WithBucket(_templatesBucketName)
+                .WithBucket(_invoiceTemplatesBucketName)
                 .WithObject(templateName)
                 .WithCallbackStream(async (stream) =>
                 {
@@ -214,14 +327,52 @@ public class MinioStorageService : IMinioStorageService
 
             var htmlContent = Encoding.UTF8.GetString(memoryStream.ToArray());
             
-            _logger.LogInformation("Successfully retrieved template: {TemplateName}, Size: {Size} bytes",
+            _logger.LogInformation("Successfully retrieved invoice template: {TemplateName}, Size: {Size} bytes",
                 templateName, memoryStream.Length);
 
             return htmlContent;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving template {TemplateName} from MinIO", templateName);
+            _logger.LogError(ex, "Error retrieving invoice template {TemplateName} from MinIO", templateName);
+            throw;
+        }
+    }
+
+    public async Task<string> GetQuoteTemplateAsync(string templateName)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving quote template: {TemplateName}", templateName);
+
+            // Ensure template name ends with .html
+            if (!templateName.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            {
+                templateName += ".html";
+            }
+
+            using var memoryStream = new MemoryStream();
+            
+            var getObjectArgs = new GetObjectArgs()
+                .WithBucket(_quoteTemplatesBucketName)
+                .WithObject(templateName)
+                .WithCallbackStream(async (stream) =>
+                {
+                    await stream.CopyToAsync(memoryStream);
+                });
+
+            await _minioClient.GetObjectAsync(getObjectArgs);
+
+            var htmlContent = Encoding.UTF8.GetString(memoryStream.ToArray());
+            
+            _logger.LogInformation("Successfully retrieved quote template: {TemplateName}, Size: {Size} bytes",
+                templateName, memoryStream.Length);
+
+            return htmlContent;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving quote template {TemplateName} from MinIO", templateName);
             throw;
         }
     }

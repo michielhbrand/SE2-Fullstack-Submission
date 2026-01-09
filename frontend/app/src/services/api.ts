@@ -80,4 +80,51 @@ export const templateApi = {
   }
 }
 
+// Quote API functions
+export const quoteApi = {
+  // Get all quotes
+  getQuotes: async (page: number = 1, pageSize: number = 10) => {
+    const response = await apiClient.get('/api/Quote', {
+      params: { page, pageSize }
+    })
+    return response.data
+  },
+
+  // Get a specific quote
+  getQuote: async (id: number) => {
+    const response = await apiClient.get(`/api/Quote/${id}`)
+    return response.data
+  },
+
+  // Create a new quote
+  createQuote: async (quoteData: any) => {
+    const response = await apiClient.post('/api/Quote', quoteData)
+    return response.data
+  },
+
+  // Update a quote
+  updateQuote: async (id: number, quoteData: any) => {
+    const response = await apiClient.put(`/api/Quote/${id}`, quoteData)
+    return response.data
+  },
+
+  // Delete a quote
+  deleteQuote: async (id: number) => {
+    const response = await apiClient.delete(`/api/Quote/${id}`)
+    return response.data
+  },
+
+  // Get PDF URL for a quote
+  getPdfUrl: async (id: number) => {
+    const response = await apiClient.get(`/api/Quote/${id}/pdf-url`)
+    return response.data
+  },
+
+  // Get quote templates
+  getTemplates: async () => {
+    const response = await apiClient.get('/api/Quote/templates')
+    return response.data
+  }
+}
+
 export default apiClient

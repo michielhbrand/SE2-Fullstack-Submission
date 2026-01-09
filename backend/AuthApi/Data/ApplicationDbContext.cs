@@ -14,6 +14,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Client> Clients { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
+    public DbSet<Quote> Quotes { get; set; }
+    public DbSet<QuoteItem> QuoteItems { get; set; }
     public DbSet<Template> Templates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +48,22 @@ public class ApplicationDbContext : DbContext
 
         // Configure InvoiceItem entity
         modelBuilder.Entity<InvoiceItem>(entity =>
+        {
+            entity.Property(e => e.PricePerUnit).HasPrecision(18, 2);
+        });
+
+        // Configure Quote entity
+        modelBuilder.Entity<Quote>(entity =>
+        {
+            entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasMany(e => e.Items);
+                // .WithOne(e => e.Quote)
+                // .HasForeignKey(e => e.QuoteId)
+                // .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure QuoteItem entity
+        modelBuilder.Entity<QuoteItem>(entity =>
         {
             entity.Property(e => e.PricePerUnit).HasPrecision(18, 2);
         });

@@ -26,6 +26,7 @@ builder.Services.AddScoped<IMinioStorageService, MinioStorageService>();
 
 // Add Background Services
 builder.Services.AddHostedService<InvoiceCreatedConsumer>();
+builder.Services.AddHostedService<QuoteCreatedConsumer>();
 builder.Services.AddHostedService<MinioInitializationService>();
 
 // Add CORS

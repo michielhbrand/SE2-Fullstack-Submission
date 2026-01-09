@@ -36,8 +36,25 @@ public class TemplateController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving templates");
-            return StatusCode(500, new { message = "Error retrieving templates" });
+            _logger.LogError(ex, "Error retrieving invoice templates");
+            return StatusCode(500, new { message = "Error retrieving invoice templates" });
+        }
+    }
+
+    // GET: api/Template/quote-templates
+    [HttpGet("quote-templates")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<string>>> GetQuoteTemplates()
+    {
+        try
+        {
+            var templates = await _storageService.ListQuoteTemplatesAsync();
+            return Ok(templates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving quote templates");
+            return StatusCode(500, new { message = "Error retrieving quote templates" });
         }
     }
 
@@ -99,11 +116,18 @@ public class TemplateController : ControllerBase
             var sampleInvoice = new Invoice
             {
                 Id = 1,
+                ClientId = 1,
                 DateCreated = DateTime.UtcNow,
-                ClientName = "John",
-                ClientSurname = "Doe",
-                ClientAddress = "123 Sample Street, City, State 12345",
-                ClientCellphone = "+1 (555) 123-4567",
+                Client = new Client
+                {
+                    Id = 1,
+                    Name = "John",
+                    Surname = "Doe",
+                    Email = "john.doe@example.com",
+                    Address = "123 Sample Street, City, State 12345",
+                    Cellphone = "+1 (555) 123-4567",
+                    DateCreated = DateTime.UtcNow
+                },
                 Items = new List<InvoiceItem>
                 {
                     new InvoiceItem
