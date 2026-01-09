@@ -142,9 +142,10 @@ public class InvoiceCreatedConsumer : BackgroundService
             var pdfService = scope.ServiceProvider.GetRequiredService<IPdfGenerationService>();
             var minioService = scope.ServiceProvider.GetRequiredService<IMinioStorageService>();
 
-            // Fetch invoice with items from database
+            // Fetch invoice with items and client from database
             var invoice = await dbContext.Invoices
                 .Include(i => i.Items)
+                .Include(i => i.Client)
                 .FirstOrDefaultAsync(i => i.Id == message.InvoiceId, cancellationToken);
 
             if (invoice == null)
@@ -161,8 +162,6 @@ public class InvoiceCreatedConsumer : BackgroundService
 
             // Update invoice with PDF storage key
             invoice.PdfStorageKey = storageKey;
-            invoice.LastModifiedDate = DateTime.UtcNow;
-            invoice.ModifiedBy = "pdf-generator-service";
 
             await dbContext.SaveChangesAsync(cancellationToken);
 

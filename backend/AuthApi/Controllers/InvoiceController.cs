@@ -75,6 +75,7 @@ public class InvoiceController : ControllerBase
 
         var invoices = await _context.Invoices
             .Include(i => i.Items)
+            .Include(i => i.Client)
             .OrderByDescending(i => i.DateCreated)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -145,6 +146,7 @@ public class InvoiceController : ControllerBase
     {
         var invoice = await _context.Invoices
             .Include(i => i.Items)
+            .Include(i => i.Client)
             .FirstOrDefaultAsync(i => i.Id == id);
 
         if (invoice == null)
@@ -217,6 +219,7 @@ public class InvoiceController : ControllerBase
 
         var existingInvoice = await _context.Invoices
             .Include(i => i.Items)
+            .Include(i => i.Client)
             .FirstOrDefaultAsync(i => i.Id == id);
 
         if (existingInvoice == null)
@@ -230,10 +233,7 @@ public class InvoiceController : ControllerBase
                        ?? "system";
 
         // Update properties
-        existingInvoice.ClientName = invoice.ClientName;
-        existingInvoice.ClientSurname = invoice.ClientSurname;
-        existingInvoice.ClientAddress = invoice.ClientAddress;
-        existingInvoice.ClientCellphone = invoice.ClientCellphone;
+        existingInvoice.ClientId = invoice.ClientId;
         existingInvoice.NotificationSent = invoice.NotificationSent;
         existingInvoice.LastModifiedDate = DateTime.UtcNow;
         existingInvoice.ModifiedBy = userEmail;
@@ -268,6 +268,7 @@ public class InvoiceController : ControllerBase
     {
         var invoice = await _context.Invoices
             .Include(i => i.Items)
+            .Include(i => i.Client)
             .FirstOrDefaultAsync(i => i.Id == id);
 
         if (invoice == null)

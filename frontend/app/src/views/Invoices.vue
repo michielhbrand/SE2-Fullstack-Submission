@@ -117,10 +117,10 @@ const previewPdf = async (invoiceId: number) => {
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">{{ invoice.clientName }} {{ invoice.clientSurname }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ invoice.client?.name }} {{ invoice.client?.surname }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ invoice.clientCellphone }}</div>
+                    <div class="text-sm text-gray-900">{{ invoice.client?.cellphone }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">{{ invoice.items?.length || 0 }} item(s)</div>

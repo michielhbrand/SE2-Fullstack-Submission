@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PdfGeneratorService.Models;
 
@@ -8,20 +9,10 @@ public class Invoice
     public int Id { get; set; }
 
     [Required]
-    [MaxLength(100)]
-    public string ClientName { get; set; } = string.Empty;
+    public int ClientId { get; set; }
 
-    [Required]
-    [MaxLength(100)]
-    public string ClientSurname { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(500)]
-    public string ClientAddress { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(20)]
-    public string ClientCellphone { get; set; } = string.Empty;
+    [ForeignKey(nameof(ClientId))]
+    public Client? Client { get; set; }
 
     [Required]
     public DateTime DateCreated { get; set; }
