@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { toast } from 'vue-sonner'
 
 export const useUIStore = defineStore('ui', () => {
   // Sidebar state
@@ -128,20 +129,24 @@ export const useUIStore = defineStore('ui', () => {
     notifications.value = []
   }
 
-  // Convenience notification methods
+  // Convenience notification methods using Sonner
   function showSuccess(message: string, duration?: number) {
+    toast.success(message, { duration })
     return addNotification('success', message, duration)
   }
 
   function showError(message: string, duration?: number) {
+    toast.error(message, { duration })
     return addNotification('error', message, duration)
   }
 
   function showInfo(message: string, duration?: number) {
+    toast.info(message, { duration })
     return addNotification('info', message, duration)
   }
 
   function showWarning(message: string, duration?: number) {
+    toast.warning(message, { duration })
     return addNotification('warning', message, duration)
   }
 

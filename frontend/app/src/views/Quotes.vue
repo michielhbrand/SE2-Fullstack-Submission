@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { quoteApi } from '../services/api'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
+import { toast } from 'vue-sonner'
 
 const loading = ref(true)
 const quotes = ref<any[]>([])
@@ -26,6 +27,7 @@ const fetchQuotes = async () => {
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch quotes:', error)
+    toast.error('Failed to fetch quotes')
   } finally {
     loading.value = false
   }
@@ -71,9 +73,9 @@ const previewPdf = async (quoteId: number) => {
   } catch (error: any) {
     console.error('Failed to preview PDF:', error)
     if (error.response?.status === 404) {
-      alert('PDF not yet generated for this quote')
+      toast.error('PDF not yet generated for this quote')
     } else {
-      alert('Failed to load PDF preview')
+      toast.error('Failed to load PDF preview')
     }
   } finally {
     previewingPdf.value = null

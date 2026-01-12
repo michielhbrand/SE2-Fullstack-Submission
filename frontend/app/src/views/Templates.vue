@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Button, Spinner, Alert } from '../components/ui/index'
+import { Button, Spinner } from '../components/ui/index'
 import { templateApi } from '../services/api'
 import Layout from '../components/Layout.vue'
+import { toast } from 'vue-sonner'
 
 interface Template {
   id: number
@@ -15,7 +16,6 @@ interface Template {
 
 const templates = ref<Template[]>([])
 const loading = ref(true)
-const error = ref<string | null>(null)
 const previewUrl = ref<string | null>(null)
 const previewLoading = ref(false)
 const previewTemplate = ref<string | null>(null)
@@ -26,7 +26,6 @@ onMounted(async () => {
 
 const fetchTemplates = async () => {
   loading.value = true
-  error.value = null
   
   try {
     const response = await templateApi.getTemplates()
@@ -40,7 +39,7 @@ const fetchTemplates = async () => {
     }))
   } catch (err: any) {
     console.error('Failed to fetch templates:', err)
-    error.value = err.response?.data?.message || 'Failed to load templates'
+    toast.error(err.response?.data?.message || 'Failed to load templates')
   } finally {
     loading.value = false
   }
@@ -57,7 +56,7 @@ const previewTemplateHandler = async (template: any) => {
     previewUrl.value = response.url
   } catch (err: any) {
     console.error('Failed to generate preview:', err)
-    error.value = err.response?.data?.message || 'Failed to generate preview'
+    toast.error(err.response?.data?.message || 'Failed to generate preview')
   } finally {
     previewLoading.value = false
   }
@@ -77,16 +76,6 @@ const closePreview = () => {
           <h2 class="text-3xl font-bold text-gray-900">Templates</h2>
           <p class="mt-2 text-gray-600">Manage and preview your invoice templates</p>
         </div>
-
-    <!-- Error Alert -->
-    <Alert v-if="error" variant="destructive" class="mb-6">
-      <div class="flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>{{ error }}</span>
-      </div>
-    </Alert>
 
     <!-- Templates Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">

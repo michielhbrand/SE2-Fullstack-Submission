@@ -2,14 +2,13 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, type UserInfo } from '../stores/auth'
-import { Button, Card, Alert, Spinner } from '../components/ui/index'
+import { Button, Card, Spinner } from '../components/ui/index'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const users = ref<UserInfo[]>([])
 const loading = ref(true)
-const error = ref('')
-const successMessage = ref('')
 const updatingUserId = ref<string | null>(null)
 const currentUserId = ref<string | null>(null)
 
@@ -28,11 +27,10 @@ onMounted(async () => {
 
 const loadUsers = async () => {
   loading.value = true
-  error.value = ''
   try {
     users.value = await authStore.getAllUsers()
   } catch (err) {
-    error.value = 'Failed to load users'
+    toast.error('Failed to load users')
     console.error('Error loading users:', err)
   } finally {
     loading.value = false
@@ -46,27 +44,25 @@ const handleLogout = async () => {
 const toggleUserRole = async (user: UserInfo) => {
   // Prevent self-demotion
   if (user.id === currentUserId.value && isAdmin(user)) {
-    error.value = 'You cannot demote yourself. This would lock you out of the admin portal.'
+    toast.error('You cannot demote yourself. This would lock you out of the admin portal.')
     return
   }
 
   updatingUserId.value = user.id
-  error.value = ''
-  successMessage.value = ''
 
   try {
     const newAdminStatus = !user.roles.includes('admin')
     const success = await authStore.updateUserRole(user.id, newAdminStatus)
 
     if (success) {
-      successMessage.value = `Successfully ${newAdminStatus ? 'promoted' : 'demoted'} ${user.username}`
+      toast.success(`Successfully ${newAdminStatus ? 'promoted' : 'demoted'} ${user.username}`)
       // Reload users to get updated data
       await loadUsers()
     } else {
-      error.value = 'Failed to update user role'
+      toast.error('Failed to update user role')
     }
   } catch (err) {
-    error.value = 'An error occurred while updating user role'
+    toast.error('An error occurred while updating user role')
     console.error('Error updating user role:', err)
   } finally {
     updatingUserId.value = null
@@ -113,16 +109,6 @@ const canToggleRole = (user: UserInfo) => {
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Messages -->
-      <div class="mb-6 space-y-4">
-        <Alert v-if="error" variant="destructive">
-          {{ error }}
-        </Alert>
-        <Alert v-if="successMessage" class="bg-green-50 text-green-800 border-green-200">
-          {{ successMessage }}
-        </Alert>
-      </div>
-
       <!-- Users Management Card -->
       <Card class="p-6">
         <div class="flex items-center justify-between mb-6">

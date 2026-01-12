@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Button, Input, Label, Card, Alert } from './ui/index'
+import { Button, Input, Label, Card } from './ui/index'
 
 interface Props {
   tokenExpiredMessage?: boolean
-  error?: string
   loading?: boolean
 }
 
@@ -14,7 +13,6 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   tokenExpiredMessage: false,
-  error: '',
   loading: false
 })
 
@@ -50,11 +48,6 @@ const togglePasswordVisibility = () => {
       <div v-if="tokenExpiredMessage" class="text-sm text-red-600 text-center">
         Your session has expired. Please sign in again.
       </div>
-
-      <!-- Error Alert -->
-      <Alert v-if="error" variant="destructive">
-        {{ error }}
-      </Alert>
 
       <!-- Login Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
@@ -110,15 +103,6 @@ const togglePasswordVisibility = () => {
               </svg>
             </button>
           </div>
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <input 
-            id="admin-remember" 
-            type="checkbox" 
-            class="h-4 w-4 text-gray-800 focus:ring-gray-800 border-gray-300 rounded"
-          />
-          <Label for="admin-remember" class="text-sm text-gray-700">Remember me</Label>
         </div>
 
         <Button 

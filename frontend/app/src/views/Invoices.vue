@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { invoiceApi } from '../services/api'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
+import { toast } from 'vue-sonner'
 
 const loading = ref(true)
 const invoices = ref<any[]>([])
@@ -26,6 +27,7 @@ const fetchInvoices = async () => {
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch invoices:', error)
+    toast.error('Failed to fetch invoices')
   } finally {
     loading.value = false
   }
@@ -71,9 +73,9 @@ const previewPdf = async (invoiceId: number) => {
   } catch (error: any) {
     console.error('Failed to preview PDF:', error)
     if (error.response?.status === 404) {
-      alert('PDF not yet generated for this invoice')
+      toast.error('PDF not yet generated for this invoice')
     } else {
-      alert('Failed to load PDF preview')
+      toast.error('Failed to load PDF preview')
     }
   } finally {
     previewingPdf.value = null

@@ -4,10 +4,10 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import UserLoginForm from '../components/UserLoginForm.vue'
 import AdminLoginForm from '../components/AdminLoginForm.vue'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const error = ref('')
 const loading = ref(false)
 const tokenExpiredMessage = ref(false)
 const isAdminMode = ref(false)
@@ -26,7 +26,6 @@ const toggleAdminMode = () => {
   
   isFlipping.value = true
   isAdminMode.value = !isAdminMode.value
-  error.value = ''
   tokenExpiredMessage.value = false
   
   // Reset flipping state after animation completes
@@ -36,7 +35,6 @@ const toggleAdminMode = () => {
 }
 
 const handleLogin = async (credentials: { username: string; password: string }) => {
-  error.value = ''
   tokenExpiredMessage.value = false
   loading.value = true
 
@@ -50,12 +48,13 @@ const handleLogin = async (credentials: { username: string; password: string }) 
         router.push('/dashboard')
       }
     } else {
-      error.value = isAdminMode.value
+      const errorMessage = isAdminMode.value
         ? 'Invalid credentials or insufficient permissions'
         : 'Invalid username or password'
+      toast.error(errorMessage)
     }
   } catch {
-    error.value = 'An error occurred during login'
+    toast.error('An error occurred during login')
   } finally {
     loading.value = false
   }
@@ -72,7 +71,6 @@ const handleLogin = async (credentials: { username: string; password: string }) 
           <div class="flip-side front">
             <UserLoginForm
               :token-expired-message="tokenExpiredMessage && !isAdminMode"
-              :error="!isAdminMode ? error : ''"
               :loading="loading"
               @submit="handleLogin"
             />
@@ -82,7 +80,6 @@ const handleLogin = async (credentials: { username: string; password: string }) 
           <div class="flip-side back">
             <AdminLoginForm
               :token-expired-message="tokenExpiredMessage && isAdminMode"
-              :error="isAdminMode ? error : ''"
               :loading="loading"
               @submit="handleLogin"
             />

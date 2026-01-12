@@ -5,6 +5,9 @@ import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/auth'
 
+// Sonner toast notifications
+import 'vue-sonner/style.css'
+
 // Vuetify
 // import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
