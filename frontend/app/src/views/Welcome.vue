@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '../services/auth'
+import { useAuthStore } from '../stores/auth'
 import Button from '../components/ui/Button.vue'
 import Card from '../components/ui/Card.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const username = ref('')
 const loading = ref(true)
 
 onMounted(async () => {
-  const userInfo = await authService.getUserInfo()
+  const userInfo = authStore.getUserInfo()
   if (userInfo) {
     username.value = userInfo.username
   }
@@ -18,7 +19,7 @@ onMounted(async () => {
 })
 
 const handleLogout = async () => {
-  await authService.logout()
+  await authStore.logout()
   // Router push is handled by the logout method
 }
 </script>

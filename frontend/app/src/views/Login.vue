@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '../services/auth'
+import { useAuthStore } from '../stores/auth'
 import UserLoginForm from '../components/UserLoginForm.vue'
 import AdminLoginForm from '../components/AdminLoginForm.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const error = ref('')
 const loading = ref(false)
 const tokenExpiredMessage = ref(false)
@@ -14,9 +15,9 @@ const isFlipping = ref(false)
 
 onMounted(() => {
   // Check if user was redirected due to token expiration
-  if (authService.wasRedirectedDueToExpiration()) {
+  if (authStore.wasRedirectedDueToExpiration()) {
     tokenExpiredMessage.value = true
-    authService.clearExpirationFlag()
+    authStore.clearExpirationFlag()
   }
 })
 
@@ -40,7 +41,7 @@ const handleLogin = async (credentials: { username: string; password: string }) 
   loading.value = true
 
   try {
-    const success = await authService.login(credentials, isAdminMode.value)
+    const success = await authStore.login(credentials, isAdminMode.value)
 
     if (success) {
       if (isAdminMode.value) {

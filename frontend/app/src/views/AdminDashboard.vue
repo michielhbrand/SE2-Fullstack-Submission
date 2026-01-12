@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService, type UserInfo } from '../services/auth'
+import { useAuthStore, type UserInfo } from '../stores/auth'
 import { Button, Card, Alert, Spinner } from '../components/ui/index'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const users = ref<UserInfo[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -14,13 +15,13 @@ const currentUserId = ref<string | null>(null)
 
 onMounted(async () => {
   // Verify admin access
-  if (!authService.isAdmin()) {
+  if (!authStore.isAdmin) {
     router.push('/login')
     return
   }
 
   // Get current user ID
-  currentUserId.value = authService.getCurrentUserId()
+  currentUserId.value = authStore.getCurrentUserId()
 
   await loadUsers()
 })
@@ -29,7 +30,7 @@ const loadUsers = async () => {
   loading.value = true
   error.value = ''
   try {
-    users.value = await authService.getAllUsers()
+    users.value = await authStore.getAllUsers()
   } catch (err) {
     error.value = 'Failed to load users'
     console.error('Error loading users:', err)
@@ -39,7 +40,7 @@ const loadUsers = async () => {
 }
 
 const handleLogout = async () => {
-  await authService.logout()
+  await authStore.logout()
 }
 
 const toggleUserRole = async (user: UserInfo) => {
@@ -55,7 +56,7 @@ const toggleUserRole = async (user: UserInfo) => {
 
   try {
     const newAdminStatus = !user.roles.includes('admin')
-    const success = await authService.updateUserRole(user.id, newAdminStatus)
+    const success = await authStore.updateUserRole(user.id, newAdminStatus)
 
     if (success) {
       successMessage.value = `Successfully ${newAdminStatus ? 'promoted' : 'demoted'} ${user.username}`

@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { clientApi } from '../services/api'
+import { useUIStore } from '../stores/ui'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
 import EditClientModal from '../components/modals/EditClientModal.vue'
 
+// UI Store for modal management
+const uiStore = useUIStore()
+
 const loading = ref(true)
-const showNewClientModal = ref(false)
-const showEditClientModal = ref(false)
 const clients = ref<any[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const totalPages = ref(0)
 const totalCount = ref(0)
 const searchQuery = ref('')
-
-// Edit client data
-const editClientData = ref<any>(null)
 
 onMounted(async () => {
   await fetchClients()
@@ -43,15 +42,11 @@ const fetchClients = async () => {
 }
 
 const openNewClientModal = () => {
-  showNewClientModal.value = true
-}
-
-const closeNewClientModal = () => {
-  showNewClientModal.value = false
+  uiStore.openNewClientModal()
 }
 
 const openEditClientModal = (client: any) => {
-  editClientData.value = {
+  const clientData = {
     id: client.id,
     name: client.name,
     surname: client.surname,
@@ -60,33 +55,30 @@ const openEditClientModal = (client: any) => {
     address: client.address || '',
     company: client.company || ''
   }
-  showEditClientModal.value = true
-}
-
-const closeEditClientModal = () => {
-  showEditClientModal.value = false
-  editClientData.value = null
+  uiStore.openEditClientModal(clientData)
 }
 
 const saveNewClient = async (client: any) => {
   try {
     await clientApi.createClient(client)
-    closeNewClientModal()
+    uiStore.closeNewClientModal()
+    uiStore.showSuccess('Client created successfully')
     await fetchClients()
   } catch (error: any) {
     console.error('Failed to save client:', error)
-    alert(error.response?.data?.message || 'Failed to save client')
+    uiStore.showError(error.response?.data?.message || 'Failed to save client')
   }
 }
 
 const saveEditClient = async (client: any) => {
   try {
     await clientApi.updateClient(client.id, client)
-    closeEditClientModal()
+    uiStore.closeEditClientModal()
+    uiStore.showSuccess('Client updated successfully')
     await fetchClients()
   } catch (error: any) {
     console.error('Failed to update client:', error)
-    alert(error.response?.data?.message || 'Failed to update client')
+    uiStore.showError(error.response?.data?.message || 'Failed to update client')
   }
 }
 
@@ -248,15 +240,15 @@ const paginationPages = computed(() => {
 
     <!-- Modals -->
     <NewClientModal
-      :show="showNewClientModal"
-      @close="closeNewClientModal"
+      :show="uiStore.showNewClientModal"
+      @close="uiStore.closeNewClientModal"
       @save="saveNewClient"
     />
 
     <EditClientModal
-      :show="showEditClientModal"
-      :client="editClientData"
-      @close="closeEditClientModal"
+      :show="uiStore.showEditClientModal"
+      :client="uiStore.editClientData"
+      @close="uiStore.closeEditClientModal"
       @save="saveEditClient"
     />
   </Layout>

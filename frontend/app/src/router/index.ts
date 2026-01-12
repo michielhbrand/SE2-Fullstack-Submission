@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authService } from '../services/auth'
+import { useAuthStore } from '../stores/auth'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Welcome from '../views/Welcome.vue'
@@ -68,8 +68,9 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = authService.isAuthenticated()
-  const isAdmin = authService.isAdmin()
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
+  const isAdmin = authStore.isAdmin
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')

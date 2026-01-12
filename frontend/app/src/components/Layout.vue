@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { authService } from '../services/auth'
+import { useAuthStore } from '../stores/auth'
+import { useUIStore } from '../stores/ui'
+import { clientApi, invoiceApi, quoteApi } from '../services/api'
 import { Button, Separator, ScrollArea } from '../components/ui/index'
 import packageJson from '../../package.json'
 import NewInvoiceModal from './modals/NewInvoiceModal.vue'
@@ -10,26 +12,28 @@ import ServerStatus from './ServerStatus.vue'
 
 const router = useRouter()
 const route = useRoute()
-const username = ref('')
-let sidebarCollapsed = ref(false)
-const headerCollapsed = ref(false)
+
+// Stores
+const authStore = useAuthStore()
+const uiStore = useUIStore()
+
 const lastScrollY = ref(0)
-const showNewInvoiceModal = ref(false)
-const showNewQuoteModal = ref(false)
-const showNewDropdown = ref(false)
 const newDropdownRef = ref<HTMLDivElement | null>(null)
 const clients = ref<any[]>([])
 
 onMounted(async () => {
-  const userInfo = await authService.getUserInfo()
-  if (userInfo) {
-    username.value = userInfo.username
+  // Load sidebar state
+  uiStore.loadSidebarState()
+  
+  // Load user info if not already loaded
+  if (!authStore.username) {
+    authStore.loadTokenFromStorage()
   }
-
-  sidebarCollapsed.value = localStorage.getItem('sidebarCollapsed') === 'true'
   
   window.addEventListener('scroll', handleScroll)
   document.addEventListener('click', handleClickOutside)
+  
+  // Fetch all clients for modals
   await fetchClients()
 })
 
@@ -42,77 +46,40 @@ const handleScroll = () => {
   const currentScrollY = window.scrollY
   
   if (currentScrollY > 50 && currentScrollY > lastScrollY.value) {
-    headerCollapsed.value = true
+    uiStore.setHeaderCollapsed(true)
   } else if (currentScrollY < lastScrollY.value) {
-    headerCollapsed.value = false
+    uiStore.setHeaderCollapsed(false)
   }
   
   lastScrollY.value = currentScrollY
 }
 
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-  localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value.toString())
+const handleClickOutside = (event: MouseEvent) => {
+  if (newDropdownRef.value && !newDropdownRef.value.contains(event.target as Node)) {
+    uiStore.closeNewDropdown()
+  }
 }
 
 const handleLogout = async () => {
-  await authService.logout()
+  await authStore.logout()
   // Router push is handled by the logout method
 }
 
 const fetchClients = async () => {
   try {
-    const token = authService.getToken()
-    const response = await fetch('http://localhost:5000/api/Client?page=1&pageSize=100', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      clients.value = data.data
-    }
+    const response = await clientApi.getClients(1, 100)
+    clients.value = response.data || []
   } catch (error) {
     console.error('Failed to fetch clients:', error)
   }
 }
 
-const toggleNewDropdown = () => {
-  showNewDropdown.value = !showNewDropdown.value
-}
-
-const handleClickOutside = (event: MouseEvent) => {
-  if (newDropdownRef.value && !newDropdownRef.value.contains(event.target as Node)) {
-    showNewDropdown.value = false
-  }
-}
-
-const openNewInvoiceModal = () => {
-  showNewInvoiceModal.value = true
-  showNewDropdown.value = false
-}
-
-const closeNewInvoiceModal = () => {
-  showNewInvoiceModal.value = false
-}
-
-const openNewQuoteModal = () => {
-  showNewQuoteModal.value = true
-  showNewDropdown.value = false
-}
-
-const closeNewQuoteModal = () => {
-  showNewQuoteModal.value = false
-}
-
 const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: string }) => {
   try {
-    const token = authService.getToken()
     const selectedClient = clients.value.find(c => c.id === data.clientId)
     
     if (!selectedClient) {
-      alert('Selected client not found')
+      uiStore.showError('Selected client not found')
       return
     }
 
@@ -129,38 +96,29 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
       }))
     }
 
-    const response = await fetch('http://localhost:5000/api/Invoice', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(invoice)
-    })
-
-    if (response.ok) {
-      closeNewInvoiceModal()
-      // Emit event or refresh if on invoices page
-      if (route.path === '/invoices') {
-        window.location.reload()
-      }
-    } else {
-      const error = await response.json()
-      alert(error.message || 'Failed to create invoice')
+    await invoiceApi.createInvoice(invoice)
+    
+    uiStore.closeNewInvoiceModal()
+    uiStore.showSuccess('Invoice created successfully')
+    
+    // Navigate to invoices page to see the new invoice
+    if (route.path !== '/invoices') {
+      router.push('/invoices')
     }
-  } catch (error) {
+    // If already on invoices page, the component will refetch on next mount
+    // Better solution: use an invoices store or event bus for reactive updates
+  } catch (error: any) {
     console.error('Failed to save invoice:', error)
-    alert('Failed to save invoice')
+    uiStore.showError(error.response?.data?.message || 'Failed to save invoice')
   }
 }
 
 const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: string }) => {
   try {
-    const token = authService.getToken()
-    const selectedClient = clients.value.find(c => c.id === data.clientId)
+    const selectedClient = clients.value.find((c: any) => c.id === data.clientId)
     
     if (!selectedClient) {
-      alert('Selected client not found')
+      uiStore.showError('Selected client not found')
       return
     }
 
@@ -177,28 +135,20 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
       }))
     }
 
-    const response = await fetch('http://localhost:5000/api/Quote', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(quote)
-    })
-
-    if (response.ok) {
-      closeNewQuoteModal()
-      // Emit event or refresh if on quotes page
-      if (route.path === '/quotes') {
-        window.location.reload()
-      }
-    } else {
-      const error = await response.json()
-      alert(error.message || 'Failed to create quote')
+    await quoteApi.createQuote(quote)
+    
+    uiStore.closeNewQuoteModal()
+    uiStore.showSuccess('Quote created successfully')
+    
+    // Navigate to quotes page to see the new quote
+    if (route.path !== '/quotes') {
+      router.push('/quotes')
     }
-  } catch (error) {
+    // If already on quotes page, the component will refetch on next mount
+    // Better solution: use a quotes store or event bus for reactive updates
+  } catch (error: any) {
     console.error('Failed to save quote:', error)
-    alert('Failed to save quote')
+    uiStore.showError(error.response?.data?.message || 'Failed to save quote')
   }
 }
 </script>
@@ -208,14 +158,14 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
     <!-- Header -->
     <header
       class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 transition-all duration-300 ease-in-out"
-      :class="headerCollapsed ? '-translate-y-full' : 'translate-y-0'"
+      :class="uiStore.headerCollapsed ? '-translate-y-full' : 'translate-y-0'"
     >
       <div class="flex items-center justify-between px-6 h-16">
         <div class="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
-            @click="toggleSidebar"
+            @click="uiStore.toggleSidebar"
             class="lg:hidden"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +175,7 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
           <h1 class="text-xl font-semibold text-gray-900">Application Dashboard</h1>
           <div class="relative" ref="newDropdownRef">
             <Button
-              @click="toggleNewDropdown"
+              @click="uiStore.toggleNewDropdown"
               variant="default"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,11 +189,11 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
             
             <!-- Dropdown Menu -->
             <div
-              v-if="showNewDropdown"
+              v-if="uiStore.showNewDropdown"
               class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
             >
               <button
-                @click="openNewQuoteModal"
+                @click="uiStore.openNewQuoteModal"
                 class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-t-lg"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +202,7 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
                 New Quote
               </button>
               <button
-                @click="openNewInvoiceModal"
+                @click="uiStore.openNewInvoiceModal"
                 class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-b-lg"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +218,7 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
           <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
             <ServerStatus />
             <span>Welcome,</span>
-            <span class="font-medium text-gray-900">{{ username || 'User' }}</span>
+            <span class="font-medium text-gray-900">{{ authStore.username || 'User' }}</span>
           </div>
           <Button
             variant="ghost"
@@ -288,12 +238,12 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
     <!-- Sidebar -->
     <aside
       class="fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40"
-      :class="sidebarCollapsed ? 'w-16' : 'w-64'"
+      :class="uiStore.sidebarCollapsed ? 'w-16' : 'w-64'"
     >
       <div class="flex flex-col h-full">
         <div class="hidden lg:flex items-center justify-between px-4 py-4">
           <h2
-            v-if="!sidebarCollapsed"
+            v-if="!uiStore.sidebarCollapsed"
             class="text-sm font-semibold text-gray-700 transition-opacity duration-200"
           >
             Navigation
@@ -301,12 +251,12 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
           <Button
             variant="ghost"
             size="sm"
-            @click="toggleSidebar"
+            @click="uiStore.toggleSidebar"
             class=" transition-colors duration-50 active:bg-transparent"
           >
             <svg
               class="w-5 h-5 transition-transform duration-300"
-              :class="sidebarCollapsed ? 'rotate-180' : ''"
+              :class="uiStore.sidebarCollapsed ? 'rotate-180' : ''"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -324,76 +274,76 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
               to="/dashboard"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-left' : '',
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/dashboard' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
               </svg>
-              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Dashboard</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Dashboard</span>
             </router-link>
 
             <router-link
               to="/clients"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-left' : '',
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/clients' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
-              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Clients</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Clients</span>
             </router-link>
 
             <router-link
               to="/invoices"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-left' : '',
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/invoices' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
-              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Invoices</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Invoices</span>
             </router-link>
 
             <router-link
               to="/quotes"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-left' : '',
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/quotes' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
-              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Quotes</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Quotes</span>
             </router-link>
 
             <router-link
               to="/templates"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
-                sidebarCollapsed ? 'justify-left' : '',
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
                 route.path === '/templates' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
               </svg>
-              <span v-if="!sidebarCollapsed" class="transition-opacity duration-200">Templates</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Templates</span>
             </router-link>
           </nav>
         </ScrollArea>
 
         <div class="p-4 border-t border-gray-200">
-          <div v-if="!sidebarCollapsed" class="text-xs text-gray-500 text-center">
+          <div v-if="!uiStore.sidebarCollapsed" class="text-xs text-gray-500 text-center">
             v{{ packageJson.version }}
           </div>
         </div>
@@ -403,24 +353,24 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
     <!-- Main Content -->
     <main
       class="transition-all duration-300 ease-in-out pt-16 pl-16"
-      :class="sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'"
+      :class="uiStore.sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'"
     >
       <slot />
     </main>
 
     <!-- New Invoice Modal -->
     <NewInvoiceModal
-      :show="showNewInvoiceModal"
+      :show="uiStore.showNewInvoiceModal"
       :clients="clients"
-      @close="closeNewInvoiceModal"
+      @close="uiStore.closeNewInvoiceModal"
       @save="saveNewInvoice"
     />
 
     <!-- New Quote Modal -->
     <NewQuoteModal
-      :show="showNewQuoteModal"
+      :show="uiStore.showNewQuoteModal"
       :clients="clients"
-      @close="closeNewQuoteModal"
+      @close="uiStore.closeNewQuoteModal"
       @save="saveNewQuote"
     />
   </div>

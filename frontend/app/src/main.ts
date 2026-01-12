@@ -1,8 +1,9 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import './assets/index.css'
 import App from './App.vue'
 import router from './router'
-import { authService } from './services/auth'
+import { useAuthStore } from './stores/auth'
 
 // Vuetify
 // import 'vuetify/styles'
@@ -19,7 +20,20 @@ const vuetify = createVuetify({
   },
 })
 
-// Initialize token expiration check on app startup
-authService.initializeExpirationCheck()
+// Create Pinia instance
+const pinia = createPinia()
 
-createApp(App).use(router).use(vuetify).mount('#app')
+// Create app
+const app = createApp(App)
+
+// Use plugins
+app.use(pinia)
+app.use(router)
+app.use(vuetify)
+
+// Initialize auth store and token expiration check after pinia is registered
+const authStore = useAuthStore()
+authStore.initializeExpirationCheck()
+
+// Mount app
+app.mount('#app')
