@@ -29,13 +29,13 @@ const fetchTemplates = async () => {
   
   try {
     const response = await templateApi.getTemplates()
-    templates.value = response.data.map((template: any) => ({
-      id: template.id,
-      name: template.name,
-      version: template.version,
-      createdBy: template.createdBy,
-      created: new Date(template.created).toLocaleDateString(),
-      storageKey: template.storageKey
+    templates.value = (response.data || []).map((template) => ({
+      id: template.id ?? 0,
+      name: template.name ?? '',
+      version: template.version ?? 0,
+      createdBy: template.createdBy ?? '',
+      created: template.created ? new Date(template.created).toLocaleDateString() : '',
+      storageKey: template.storageKey ?? ''
     }))
   } catch (err: any) {
     console.error('Failed to fetch templates:', err)
@@ -53,7 +53,7 @@ const previewTemplateHandler = async (template: any) => {
   try {
     // Get preview URL from AuthApi
     const response = await templateApi.getPreviewUrl(template.id)
-    previewUrl.value = response.url
+    previewUrl.value = response.url ?? null
   } catch (err: any) {
     console.error('Failed to generate preview:', err)
     toast.error(err.response?.data?.message || 'Failed to generate preview')

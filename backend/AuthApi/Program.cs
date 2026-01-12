@@ -1,4 +1,5 @@
 using AuthApi.Extensions;
+using AuthApi.Middleware;
 using AuthApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,9 @@ builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
 // Add HttpClient
 builder.Services.AddHttpClient();
 
+// Add Middleware
+builder.Services.AddTransient<GlobalExceptionMiddleware>();
+
 // Add Controllers
 builder.Services.AddControllers();
 
@@ -44,19 +48,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Global exception handler middleware
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next();
-    }
-    catch (Exception ex)
-    {
-        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An unhandled exception occurred while processing the request.");
-        throw; // Re-throw to let the default exception handler deal with it
-    }
-});
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseCors("AllowFrontend");
 

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Button } from '../ui/index'
 import { quoteApi } from '@/services/api'
+import { toast } from 'vue-sonner'
 
 interface QuoteItem {
   description: string
@@ -103,6 +104,7 @@ const validateForm = () => {
 
 const handleSave = () => {
   if (!validateForm() || !selectedClientId.value) {
+    toast.error('Please fix the validation errors before submitting')
     return
   }
   

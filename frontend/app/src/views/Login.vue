@@ -42,6 +42,7 @@ const handleLogin = async (credentials: { username: string; password: string }) 
     const success = await authStore.login(credentials, isAdminMode.value)
 
     if (success) {
+      toast.success('Login successful!')
       if (isAdminMode.value) {
         router.push('/admin')
       } else {

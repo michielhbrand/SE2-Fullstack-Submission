@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Button } from '../ui/index'
+import { toast } from 'vue-sonner'
 
 interface ClientForm {
   id: number
@@ -63,6 +64,7 @@ const validateForm = () => {
 
 const handleSave = () => {
   if (!validateForm()) {
+    toast.error('Please fix the validation errors before submitting')
     return
   }
   emit('save', editClient.value)

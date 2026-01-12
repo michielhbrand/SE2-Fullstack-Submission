@@ -26,24 +26,18 @@ public static class AuthenticationServiceExtensions
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        Console.WriteLine($"Authentication failed: {context.Exception.Message}");
-                        Console.WriteLine($"Exception: {context.Exception}");
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
-                        Console.WriteLine("Token validated successfully");
-                        Console.WriteLine($"User: {context.Principal?.Identity?.Name}");
                         return Task.CompletedTask;
                     },
                     OnChallenge = context =>
                     {
-                        Console.WriteLine($"OnChallenge error: {context.Error}, {context.ErrorDescription}");
                         return Task.CompletedTask;
                     },
                     OnMessageReceived = context =>
                     {
-                        Console.WriteLine($"Token received: {context.Token?.Substring(0, Math.Min(50, context.Token?.Length ?? 0))}...");
                         return Task.CompletedTask;
                     }
                 };
