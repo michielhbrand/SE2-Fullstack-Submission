@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import apiClient from '../services/api'
+import { quoteApi } from '../services/api'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 
@@ -19,16 +19,11 @@ onMounted(async () => {
 const fetchQuotes = async () => {
   loading.value = true
   try {
-    const params = {
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }
-
-    const response = await apiClient.get('/api/Quote', { params })
+    const response = await quoteApi.getQuotes(currentPage.value, pageSize.value)
     
-    quotes.value = response.data.data
-    totalPages.value = response.data.pagination.totalPages
-    totalCount.value = response.data.pagination.totalCount
+    quotes.value = response.data || []
+    totalPages.value = response.pagination?.totalPages || 0
+    totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch quotes:', error)
   } finally {
@@ -66,11 +61,13 @@ const getTotalAmount = (quote: any) => {
 const previewPdf = async (quoteId: number) => {
   try {
     previewingPdf.value = quoteId
-    const response = await apiClient.get(`/api/Quote/${quoteId}/pdf-url`)
-    const pdfUrl = response.data.url
+    const response = await quoteApi.getPdfUrl(quoteId)
+    const pdfUrl = response.url
     
     // Open PDF in new tab
-    window.open(pdfUrl, '_blank')
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank')
+    }
   } catch (error: any) {
     console.error('Failed to preview PDF:', error)
     if (error.response?.status === 404) {

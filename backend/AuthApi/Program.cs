@@ -1,6 +1,5 @@
 using AuthApi.Extensions;
 using AuthApi.Services;
-using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,9 +37,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.MapScalarApiReference();
+    
+    // Use NSwag OpenAPI middleware
+    app.UseOpenApi(); // Serves the OpenAPI/Swagger document at /swagger/v1/swagger.json
+    app.UseSwaggerUi(); // Serves the Swagger UI at /swagger
 }
 
 // Global exception handler middleware

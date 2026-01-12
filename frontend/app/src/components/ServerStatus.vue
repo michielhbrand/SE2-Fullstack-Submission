@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import apiClient from '../services/api'
+import { healthApi } from '../services/api'
 
 const isOnline = ref<boolean | null>(null)
 const checkInterval = ref<number | null>(null)
 
 const checkServerStatus = async () => {
   try {
-    await apiClient.get('/api/Health', { timeout: 5000 })
+    await healthApi.getHealth()
     isOnline.value = true
   } catch (error) {
     isOnline.value = false

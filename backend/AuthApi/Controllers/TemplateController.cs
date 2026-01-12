@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AuthApi.Data;
 using AuthApi.Models;
+using AuthApi.DTOs;
 using System.Security.Claims;
 
 namespace AuthApi.Controllers;
@@ -29,8 +30,8 @@ public class TemplateController : ControllerBase
 
     // GET: api/Template
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Template>>> GetTemplates(
+    [ProducesResponseType(typeof(PaginatedResponse<TemplateDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PaginatedResponse<TemplateDto>>> GetTemplates(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -48,17 +49,27 @@ public class TemplateController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(new
+            var response = new PaginatedResponse<TemplateDto>
             {
-                data = templates,
-                pagination = new
+                Data = templates.Select(t => new TemplateDto
                 {
-                    currentPage = page,
-                    pageSize,
-                    totalPages,
-                    totalCount
+                    Id = t.Id,
+                    Name = t.Name,
+                    Version = t.Version,
+                    StorageKey = t.StorageKey,
+                    Created = t.Created,
+                    CreatedBy = t.CreatedBy
+                }).ToList(),
+                Pagination = new PaginationMetadata
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    TotalCount = totalCount
                 }
-            });
+            };
+
+            return Ok(response);
         }
         catch (Exception ex)
         {
@@ -189,9 +200,9 @@ public class TemplateController : ControllerBase
 
     // GET: api/Template/{id}/preview-url
     [HttpGet("{id}/preview-url")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TemplatePreviewUrlResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<object>> GetTemplatePreviewUrl(int id)
+    public async Task<ActionResult<TemplatePreviewUrlResponse>> GetTemplatePreviewUrl(int id)
     {
         try
         {
@@ -206,7 +217,7 @@ public class TemplateController : ControllerBase
             var templateName = template.StorageKey.Replace("templates/", "");
             var previewUrl = $"http://localhost:5001/api/Template/{Uri.EscapeDataString(templateName)}/preview";
 
-            return Ok(new { url = previewUrl });
+            return Ok(new TemplatePreviewUrlResponse { Url = previewUrl });
         }
         catch (Exception ex)
         {
@@ -215,6 +226,3 @@ public class TemplateController : ControllerBase
         }
     }
 }
-
-public record CreateTemplateRequest(string Name, int Version, string Content);
-public record UploadTemplateResponse(string Name);

@@ -1,4 +1,5 @@
-using Microsoft.OpenApi.Models;
+using NSwag;
+using NSwag.Generation.Processors.Security;
 
 namespace AuthApi.Extensions;
 
@@ -7,39 +8,29 @@ public static class SwaggerServiceExtensions
     public static IServiceCollection AddSwaggerServices(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(c =>
+        
+        // Add NSwag OpenAPI document generation
+        services.AddOpenApiDocument(config =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "Auth API",
-                Version = "v1",
-                Description = "Microservices Authentication API with Keycloak OAuth2.0"
-            });
+            config.DocumentName = "v1";
+            config.Title = "Auth API";
+            config.Version = "v1";
+            config.Description = "Microservices Authentication API with Keycloak OAuth2.0";
             
-            // Add JWT Authentication to Swagger
-            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            // Add JWT Bearer authentication
+            config.AddSecurity("Bearer", new OpenApiSecurityScheme
             {
-                Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
+                Type = OpenApiSecuritySchemeType.ApiKey,
                 Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = "Bearer"
+                In = OpenApiSecurityApiKeyLocation.Header,
+                Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token."
             });
             
-            c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
-            });
+            config.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("Bearer"));
+            
+            // Generate detailed schemas for better TypeScript types
+            config.SchemaSettings.GenerateAbstractSchemas = false;
+            config.SchemaSettings.GenerateExamples = true;
         });
 
         return services;

@@ -1,6 +1,7 @@
 using AuthApi.Data;
 using AuthApi.Models;
 using AuthApi.Services;
+using AuthApi.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -62,9 +63,9 @@ public class InvoiceController : ControllerBase
 
     // GET: api/Invoice
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<Invoice>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult> GetInvoices([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<Invoice>>> GetInvoices([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
@@ -81,15 +82,15 @@ public class InvoiceController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
         
-        var response = new
+        var response = new PaginatedResponse<Invoice>
         {
-            data = invoices,
-            pagination = new
+            Data = invoices,
+            Pagination = new PaginationMetadata
             {
-                currentPage = page,
-                pageSize,
-                totalCount,
-                totalPages
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
             }
         };
 
@@ -98,10 +99,10 @@ public class InvoiceController : ControllerBase
 
     // GET: api/Invoice/{id}/pdf-url
     [HttpGet("{id}/pdf-url")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PdfUrlResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<object>> GetInvoicePdfUrl(int id)
+    public async Task<ActionResult<PdfUrlResponse>> GetInvoicePdfUrl(int id)
     {
         var invoice = await _context.Invoices.FindAsync(id);
 
@@ -124,7 +125,7 @@ public class InvoiceController : ControllerBase
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                return Ok(new { url = result?["url"] ?? "" });
+                return Ok(new PdfUrlResponse { Url = result?["url"] ?? "" });
             }
             
             _logger.LogWarning("Failed to get presigned URL from PDF Generator Service. Status: {Status}", response.StatusCode);

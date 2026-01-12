@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Button } from '../ui/index'
-import apiClient from '@/services/api'
+import { invoiceApi } from '@/services/api'
 
 interface InvoiceItem {
   description: string
@@ -51,8 +51,8 @@ const clientSearchInputRef = ref<HTMLInputElement | null>(null)
 const fetchTemplates = async () => {
   loadingTemplates.value = true
   try {
-    const response = await apiClient.get('/api/invoice/templates')
-    templates.value = response.data || []
+    const templateList = await invoiceApi.getTemplates()
+    templates.value = templateList || []
     // Set default template if available
     if (templates.value.length > 0 && !selectedTemplateId.value) {
       selectedTemplateId.value = templates.value[0] || ''

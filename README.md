@@ -9,15 +9,16 @@ A complete full-stack microservices application with Vue.js frontend, .NET Web A
 - **Build Tool**: Vite
 - **UI Components**: shadcn-vue with Tailwind CSS
 - **Routing**: Vue Router
-- **HTTP Client**: Axios
+- **HTTP Client**: Axios with auto-generated TypeScript client (NSwag)
 - **Authentication**: OAuth2.0 via Keycloak
 
 ### Backend Services
 - **AuthApi**: Main .NET 8.0 Web API
   - JWT Bearer authentication with Keycloak
-  - Invoice management (CRUD operations)
+  - Invoice, Client, Quote, and Template management (CRUD operations)
   - Kafka event producer
-  - API Documentation: Scalar
+  - OpenAPI/Swagger documentation with NSwag
+  - Auto-generated TypeScript client
   - Health Checks: Built-in health endpoint
 
 - **PdfGeneratorService**: Dedicated PDF generation microservice
@@ -48,6 +49,9 @@ Minimal-FullStack-V1/
 ├── frontend/
 │   └── app/                    # Vue.js application
 │       ├── src/
+│       │   ├── api/
+│       │   │   ├── generated/  # Auto-generated TypeScript API client (NSwag)
+│       │   │   └── http-client.ts # Axios configuration
 │       │   ├── components/     # UI components
 │       │   │   └── ui/         # shadcn-vue components
 │       │   ├── views/          # Page components
@@ -56,15 +60,20 @@ Minimal-FullStack-V1/
 │       │   │   ├── Invoices.vue
 │       │   │   └── Clients.vue
 │       │   ├── router/         # Vue Router configuration
-│       │   ├── services/       # API services
+│       │   ├── services/       # Authentication service
 │       │   └── lib/            # Utility functions
 │       └── ...
 ├── backend/
 │   ├── AuthApi/                # Main .NET Web API
 │   │   ├── Controllers/        # API controllers
+│   │   ├── DTOs/               # Data Transfer Objects (API contracts)
+│   │   ├── Mappers/            # Model ↔ DTO mapping extensions
 │   │   ├── Services/           # Business services (Kafka producer)
-│   │   ├── Models/             # Data models
+│   │   ├── Models/             # Domain models
 │   │   ├── Data/               # Database context
+│   │   ├── Extensions/         # Service configuration extensions
+│   │   ├── nswag.json          # NSwag client generation config
+│   │   ├── generate-client.sh  # TypeScript client generation script
 │   │   ├── Program.cs          # Main application configuration
 │   │   └── appsettings.json    # Configuration settings
 │   └── PdfGeneratorService/    # PDF generation microservice
@@ -79,6 +88,7 @@ Minimal-FullStack-V1/
 │   ├── docker-compose.yml      # Container orchestration (Keycloak, Kafka, MinIO, PostgreSQL)
 │   └── keycloak-realm.json     # Keycloak realm configuration
 ├── docs/
+│   ├── API_CLIENT_GENERATION.md # API client generation guide
 │   └── PDF_GENERATION_SYSTEM.md # PDF generation system documentation
 └── README.md
 ```
@@ -203,9 +213,10 @@ The application comes with a pre-configured test user:
 - ✅ Responsive design with Tailwind CSS
 - ✅ Protected routes with Vue Router
 - ✅ OAuth2.0 authentication flow
-- ✅ Token-based API communication
-- ✅ Invoice management (CRUD operations)
-- ✅ Client management
+- ✅ **Auto-generated TypeScript API client** (NSwag)
+- ✅ **Strongly-typed API calls** with full IntelliSense
+- ✅ Token-based API communication with interceptors
+- ✅ Invoice, Quote, Client, and Template management
 - ✅ Login and Welcome pages
 
 ### Backend Features
@@ -213,8 +224,10 @@ The application comes with a pre-configured test user:
 - ✅ Keycloak integration
 - ✅ CORS configuration for frontend
 - ✅ Health check endpoints
-- ✅ Scalar API documentation
-- ✅ Invoice and Client APIs
+- ✅ **OpenAPI/Swagger with NSwag**
+- ✅ **DTO-based API contracts** (no domain model exposure)
+- ✅ **Auto-generated TypeScript client**
+- ✅ Invoice, Quote, Client, and Template APIs
 - ✅ **Asynchronous PDF generation**
 - ✅ **Kafka event-driven architecture**
 - ✅ **MinIO object storage integration**
@@ -238,6 +251,16 @@ The application comes with a pre-configured test user:
 - ✅ **Professional templates** - Customizable HTML invoice templates
 
 📖 **[View detailed PDF Generation System documentation](docs/PDF_GENERATION_SYSTEM.md)**
+
+### API Client Generation
+- ✅ **NSwag-based code generation** - TypeScript client from OpenAPI spec
+- ✅ **Single source of truth** - Backend DTOs define the contract
+- ✅ **Type safety** - Full TypeScript type checking
+- ✅ **Auto-completion** - IDE support for all endpoints
+- ✅ **No manual maintenance** - Client updates automatically
+- ✅ **Compile-time errors** - Catch API mismatches before runtime
+
+📖 **[View detailed API Client Generation guide](docs/API_CLIENT_GENERATION.md)**
 
 ## 🔧 Configuration
 
@@ -276,7 +299,32 @@ The realm configuration is in [`infrastructure/keycloak-realm.json`](infrastruct
 
 ## 🧪 Testing the Application
 
-### 1. Test Health Endpoints
+### Automated API Endpoint Testing
+
+A comprehensive test suite is available to verify all API endpoints integrated with the UI:
+
+**Quick Start:**
+```bash
+# Start all services, then navigate to:
+http://localhost:5173/test-runner.html
+```
+
+Click "Run All Tests" to execute the full test suite covering:
+- ✅ Health API (1 endpoint)
+- ✅ Client API (6 endpoints)
+- ✅ Template API (5 endpoints)
+- ✅ Invoice API (7 endpoints)
+- ✅ Quote API (7 endpoints)
+
+**Total Coverage**: 28 endpoints tested automatically
+
+📖 **[Quick Testing Guide](frontend/app/TESTING.md)**
+📖 **[Detailed Test Documentation](docs/API_ENDPOINT_TESTING.md)**
+📖 **[Test Coverage Summary](docs/TEST_COVERAGE_SUMMARY.md)**
+
+### Manual Testing
+
+#### 1. Test Health Endpoints
 
 ```bash
 # Backend health
@@ -286,7 +334,7 @@ curl http://localhost:5000/health
 curl http://localhost:9090/health
 ```
 
-### 2. Test Authentication Flow
+#### 2. Test Authentication Flow
 
 1. Open browser to `http://localhost:5173`
 2. You should see the login page
@@ -296,7 +344,7 @@ curl http://localhost:9090/health
 4. Click "Sign In"
 5. You should be redirected to the Welcome page showing "Welcome testuser!"
 
-### 3. Test API Endpoints
+#### 3. Test API Endpoints
 
 ```bash
 # Public endpoint (no auth required)
@@ -318,9 +366,31 @@ curl http://localhost:5000/api/user \
 
 ## 📚 API Documentation
 
-Access the Scalar API documentation at: `http://localhost:5000/scalar/v1`
+### Interactive Documentation
+Access the Swagger UI at: `http://localhost:5000/swagger`
 
-Scalar provides a modern, interactive API documentation interface as an alternative to Swagger UI.
+### OpenAPI Specification
+The OpenAPI/Swagger JSON is available at: `http://localhost:5000/swagger/v1/swagger.json`
+
+This specification is used to auto-generate the TypeScript API client.
+
+### Generating the TypeScript Client
+
+After starting the backend, generate the TypeScript client:
+
+```bash
+# From the frontend directory
+cd frontend/app
+npm run generate:api
+
+# Or from the backend directory
+cd backend/AuthApi
+./generate-client.sh
+```
+
+The generated client will be created at: `frontend/app/src/api/generated/api-client.ts`
+
+📖 **[Full API Client Generation Guide](docs/API_CLIENT_GENERATION.md)**
 
 ## 🛑 Stopping the Application
 

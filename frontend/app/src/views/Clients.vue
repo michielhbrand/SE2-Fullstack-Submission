@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import apiClient from '../services/api'
+import { clientApi } from '../services/api'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
@@ -26,20 +26,15 @@ onMounted(async () => {
 const fetchClients = async () => {
   loading.value = true
   try {
-    const params: any = {
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }
+    const response = await clientApi.getClients(
+      currentPage.value,
+      pageSize.value,
+      searchQuery.value || undefined
+    )
     
-    if (searchQuery.value) {
-      params.search = searchQuery.value
-    }
-
-    const response = await apiClient.get('/api/Client', { params })
-    
-    clients.value = response.data.data
-    totalPages.value = response.data.pagination.totalPages
-    totalCount.value = response.data.pagination.totalCount
+    clients.value = response.data || []
+    totalPages.value = response.pagination?.totalPages || 0
+    totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch clients:', error)
   } finally {
@@ -75,7 +70,7 @@ const closeEditClientModal = () => {
 
 const saveNewClient = async (client: any) => {
   try {
-    await apiClient.post('/api/Client', client)
+    await clientApi.createClient(client)
     closeNewClientModal()
     await fetchClients()
   } catch (error: any) {
@@ -86,7 +81,7 @@ const saveNewClient = async (client: any) => {
 
 const saveEditClient = async (client: any) => {
   try {
-    await apiClient.put(`/api/Client/${client.id}`, client)
+    await clientApi.updateClient(client.id, client)
     closeEditClientModal()
     await fetchClients()
   } catch (error: any) {

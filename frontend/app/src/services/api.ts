@@ -1,82 +1,34 @@
-import axios from 'axios'
-import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
-import { authService } from './auth'
+import { ApiClient } from '../api/generated/api-client'
+import { apiClient } from '../api/http-client'
 
-const API_URL = 'http://localhost:5000'
-
-// Create axios instance
-const apiClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = authService.getAccessToken()
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error)
-  }
-)
-
-// Response interceptor to handle 401 errors
-apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
-  (error: AxiosError) => {
-    // If we get a 401 Unauthorized response, the token is invalid or expired
-    if (error.response?.status === 401) {
-      console.log('Received 401 response, logging out...')
-      authService.logout(true)
-    }
-    return Promise.reject(error)
-  }
-)
+// Create a single instance of the generated API client with our configured axios instance
+const client = new ApiClient(undefined, apiClient)
 
 // Template API functions
 export const templateApi = {
   // Get all templates
   getTemplates: async (page: number = 1, pageSize: number = 100) => {
-    const response = await apiClient.get('/api/Template', {
-      params: { page, pageSize }
-    })
-    return response.data
+    return await client.template_GetTemplates(page, pageSize)
   },
 
   // Get a specific template
   getTemplate: async (id: number) => {
-    const response = await apiClient.get(`/api/Template/${id}`)
-    return response.data
+    return await client.template_GetTemplate(id)
   },
 
   // Create a new template
   createTemplate: async (name: string, version: number, content: string) => {
-    const response = await apiClient.post('/api/Template', {
-      name,
-      version,
-      content
-    })
-    return response.data
+    return await client.template_CreateTemplate({ name, version, content })
   },
 
   // Delete a template
   deleteTemplate: async (id: number) => {
-    const response = await apiClient.delete(`/api/Template/${id}`)
-    return response.data
+    return await client.template_DeleteTemplate(id)
   },
 
   // Get preview URL for a template
   getPreviewUrl: async (id: number) => {
-    const response = await apiClient.get(`/api/Template/${id}/preview-url`)
-    return response.data
+    return await client.template_GetTemplatePreviewUrl(id)
   }
 }
 
@@ -84,47 +36,116 @@ export const templateApi = {
 export const quoteApi = {
   // Get all quotes
   getQuotes: async (page: number = 1, pageSize: number = 10) => {
-    const response = await apiClient.get('/api/Quote', {
-      params: { page, pageSize }
-    })
-    return response.data
+    return await client.quote_GetQuotes(page, pageSize)
   },
 
   // Get a specific quote
   getQuote: async (id: number) => {
-    const response = await apiClient.get(`/api/Quote/${id}`)
-    return response.data
+    return await client.quote_GetQuote(id)
   },
 
   // Create a new quote
   createQuote: async (quoteData: any) => {
-    const response = await apiClient.post('/api/Quote', quoteData)
-    return response.data
+    return await client.quote_CreateQuote(quoteData)
   },
 
   // Update a quote
   updateQuote: async (id: number, quoteData: any) => {
-    const response = await apiClient.put(`/api/Quote/${id}`, quoteData)
-    return response.data
+    return await client.quote_UpdateQuote(id, quoteData)
   },
 
   // Delete a quote
   deleteQuote: async (id: number) => {
-    const response = await apiClient.delete(`/api/Quote/${id}`)
-    return response.data
+    return await client.quote_DeleteQuote(id)
   },
 
   // Get PDF URL for a quote
   getPdfUrl: async (id: number) => {
-    const response = await apiClient.get(`/api/Quote/${id}/pdf-url`)
-    return response.data
+    return await client.quote_GetQuotePdfUrl(id)
   },
 
   // Get quote templates
   getTemplates: async () => {
-    const response = await apiClient.get('/api/Quote/templates')
-    return response.data
+    return await client.quote_GetTemplates()
   }
 }
 
-export default apiClient
+// Client API functions
+export const clientApi = {
+  // Get all clients
+  getClients: async (page: number = 1, pageSize: number = 10, search?: string) => {
+    return await client.client_GetClients(page, pageSize, search)
+  },
+
+  // Get a specific client
+  getClient: async (id: number) => {
+    return await client.client_GetClient(id)
+  },
+
+  // Create a new client
+  createClient: async (clientData: any) => {
+    return await client.client_CreateClient(clientData)
+  },
+
+  // Update a client
+  updateClient: async (id: number, clientData: any) => {
+    return await client.client_UpdateClient(id, clientData)
+  },
+
+  // Delete a client
+  deleteClient: async (id: number) => {
+    return await client.client_DeleteClient(id)
+  }
+}
+
+// Invoice API functions
+export const invoiceApi = {
+  // Get all invoices
+  getInvoices: async (page: number = 1, pageSize: number = 10) => {
+    return await client.invoice_GetInvoices(page, pageSize)
+  },
+
+  // Get a specific invoice
+  getInvoice: async (id: number) => {
+    return await client.invoice_GetInvoice(id)
+  },
+
+  // Create a new invoice
+  createInvoice: async (invoiceData: any) => {
+    return await client.invoice_CreateInvoice(invoiceData)
+  },
+
+  // Update an invoice
+  updateInvoice: async (id: number, invoiceData: any) => {
+    return await client.invoice_UpdateInvoice(id, invoiceData)
+  },
+
+  // Delete an invoice
+  deleteInvoice: async (id: number) => {
+    return await client.invoice_DeleteInvoice(id)
+  },
+
+  // Get PDF URL for an invoice
+  getPdfUrl: async (id: number) => {
+    return await client.invoice_GetInvoicePdfUrl(id)
+  },
+
+  // Get invoice templates
+  getTemplates: async () => {
+    return await client.invoice_GetTemplates()
+  }
+}
+
+// Health API functions
+export const healthApi = {
+  // Get health status
+  getHealth: async () => {
+    return await client.health_GetHealth()
+  }
+}
+
+// Export the generated client instance for direct access if needed
+export { client as generatedClient }
+
+// Export the configured axios instance for backward compatibility
+export { apiClient as default } from '../api/http-client'

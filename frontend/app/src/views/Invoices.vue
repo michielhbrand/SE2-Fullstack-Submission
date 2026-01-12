@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import apiClient from '../services/api'
+import { invoiceApi } from '../services/api'
 import { Button, Spinner } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 
@@ -19,16 +19,11 @@ onMounted(async () => {
 const fetchInvoices = async () => {
   loading.value = true
   try {
-    const params = {
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }
-
-    const response = await apiClient.get('/api/Invoice', { params })
+    const response = await invoiceApi.getInvoices(currentPage.value, pageSize.value)
     
-    invoices.value = response.data.data
-    totalPages.value = response.data.pagination.totalPages
-    totalCount.value = response.data.pagination.totalCount
+    invoices.value = response.data || []
+    totalPages.value = response.pagination?.totalPages || 0
+    totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch invoices:', error)
   } finally {
@@ -66,11 +61,13 @@ const getTotalAmount = (invoice: any) => {
 const previewPdf = async (invoiceId: number) => {
   try {
     previewingPdf.value = invoiceId
-    const response = await apiClient.get(`/api/Invoice/${invoiceId}/pdf-url`)
-    const pdfUrl = response.data.url
+    const response = await invoiceApi.getPdfUrl(invoiceId)
+    const pdfUrl = response.url
     
     // Open PDF in new tab
-    window.open(pdfUrl, '_blank')
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank')
+    }
   } catch (error: any) {
     console.error('Failed to preview PDF:', error)
     if (error.response?.status === 404) {

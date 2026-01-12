@@ -1,11 +1,16 @@
 using AuthApi.Data;
 using AuthApi.Models;
+using AuthApi.DTOs;
+using AuthApi.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuthApi.Controllers;
 
+/// <summary>
+/// Client management endpoints
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -21,19 +26,27 @@ public class ClientController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/Client
+    /// <summary>
+    /// Get paginated list of clients with optional search
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
+    /// <param name="search">Optional search term for name, surname, email, or company</param>
+    /// <returns>Paginated list of clients</returns>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<ClientDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult> GetClients([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
+    public async Task<ActionResult<PaginatedResponse<ClientDto>>> GetClients(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10, 
+        [FromQuery] string? search = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
-        if (pageSize > 100) pageSize = 100; // Max page size limit
+        if (pageSize > 100) pageSize = 100;
 
         var query = _context.Clients.AsQueryable();
 
-        // Apply search filter if provided
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.ToLower();
@@ -54,27 +67,31 @@ public class ClientController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
         
-        var response = new
+        var response = new PaginatedResponse<ClientDto>
         {
-            data = clients,
-            pagination = new
+            Data = clients.Select(c => c.ToDto()).ToList(),
+            Pagination = new PaginationMetadata
             {
-                currentPage = page,
-                pageSize,
-                totalCount,
-                totalPages
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
             }
         };
 
         return Ok(response);
     }
 
-    // GET: api/Client/5
+    /// <summary>
+    /// Get a specific client by ID
+    /// </summary>
+    /// <param name="id">Client ID</param>
+    /// <returns>Client details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Client>> GetClient(int id)
+    public async Task<ActionResult<ClientDto>> GetClient(int id)
     {
         var client = await _context.Clients.FindAsync(id);
 
@@ -83,31 +100,33 @@ public class ClientController : ControllerBase
             return NotFound(new { message = $"Client with ID {id} not found" });
         }
 
-        return Ok(client);
+        return Ok(client.ToDto());
     }
 
-    // POST: api/Client
+    /// <summary>
+    /// Create a new client
+    /// </summary>
+    /// <param name="request">Client creation data</param>
+    /// <returns>Created client</returns>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Client>> CreateClient(Client client)
+    public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientRequest request)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        // Check if email already exists
-        if (await _context.Clients.AnyAsync(c => c.Email == client.Email))
+        if (await _context.Clients.AnyAsync(c => c.Email == request.Email))
         {
             return BadRequest(new { message = "A client with this email already exists" });
         }
 
-        // Set creation date
+        var client = request.ToModel();
         client.DateCreated = DateTime.UtcNow;
         
-        // Get user email from claims
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
@@ -120,22 +139,22 @@ public class ClientController : ControllerBase
 
         _logger.LogInformation("Client {ClientId} created by {User}", client.Id, userEmail);
 
-        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
+        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client.ToDto());
     }
 
-    // PUT: api/Client/5
+    /// <summary>
+    /// Update an existing client
+    /// </summary>
+    /// <param name="id">Client ID</param>
+    /// <param name="request">Updated client data</param>
+    /// <returns>Updated client</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateClient(int id, Client client)
+    public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientRequest request)
     {
-        if (id != client.Id)
-        {
-            return BadRequest(new { message = "Client ID mismatch" });
-        }
-
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
@@ -148,26 +167,23 @@ public class ClientController : ControllerBase
             return NotFound(new { message = $"Client with ID {id} not found" });
         }
 
-        // Check if email is being changed to one that already exists
-        if (existingClient.Email != client.Email && 
-            await _context.Clients.AnyAsync(c => c.Email == client.Email))
+        if (existingClient.Email != request.Email && 
+            await _context.Clients.AnyAsync(c => c.Email == request.Email))
         {
             return BadRequest(new { message = "A client with this email already exists" });
         }
 
-        // Get user email from claims
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
 
-        // Update properties
-        existingClient.Name = client.Name;
-        existingClient.Surname = client.Surname;
-        existingClient.Email = client.Email;
-        existingClient.Cellphone = client.Cellphone;
-        existingClient.Address = client.Address;
-        existingClient.Company = client.Company;
-        existingClient.KeycloakUserId = client.KeycloakUserId;
+        existingClient.Name = request.Name;
+        existingClient.Surname = request.Surname;
+        existingClient.Email = request.Email;
+        existingClient.Cellphone = request.Cellphone;
+        existingClient.Address = request.Address;
+        existingClient.Company = request.Company;
+        existingClient.KeycloakUserId = request.KeycloakUserId;
         existingClient.LastModifiedDate = DateTime.UtcNow;
         existingClient.ModifiedBy = userEmail;
 
@@ -185,10 +201,14 @@ public class ClientController : ControllerBase
             throw;
         }
 
-        return Ok(existingClient);
+        return Ok(existingClient.ToDto());
     }
 
-    // DELETE: api/Client/5
+    /// <summary>
+    /// Delete a client
+    /// </summary>
+    /// <param name="id">Client ID</param>
+    /// <returns>No content</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
