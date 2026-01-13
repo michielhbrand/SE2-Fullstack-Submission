@@ -1,10 +1,10 @@
-using AuthApi.Services;
+using AuthApi.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly IKeycloakAuthService _keycloakAuthService;

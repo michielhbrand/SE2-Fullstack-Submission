@@ -1,6 +1,12 @@
 using AuthApi.Extensions;
 using AuthApi.Middleware;
 using AuthApi.Services;
+using AuthApi.Services.Auth;
+using AuthApi.Services.Client;
+using AuthApi.Services.Invoice;
+using AuthApi.Services.Quote;
+using AuthApi.Services.Template;
+using AuthApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +25,18 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
 builder.Services.AddAuthenticationServices(builder.Configuration);
 builder.Services.AddHealthCheckServices();
+
+// Register Repositories (Data Access Layer)
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
+builder.Services.AddScoped<ITemplateRepository, TemplateRepository>();
+
+// Register Services (Business Logic Layer)
+builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IQuoteService, QuoteService>();
+builder.Services.AddScoped<ITemplateService, TemplateService>();
 
 // Add Kafka Producer Service
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();

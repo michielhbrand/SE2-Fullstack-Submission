@@ -1,10 +1,7 @@
-using AuthApi.Data;
-using AuthApi.Models;
 using AuthApi.DTOs;
-using AuthApi.Mappers;
+using AuthApi.Services.Client;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AuthApi.Controllers;
 
@@ -12,17 +9,17 @@ namespace AuthApi.Controllers;
 /// Client management endpoints
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/client")]
 [Produces("application/json")]
 [Authorize]
 public class ClientController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IClientService _clientService;
     private readonly ILogger<ClientController> _logger;
 
-    public ClientController(ApplicationDbContext context, ILogger<ClientController> logger)
+    public ClientController(IClientService clientService, ILogger<ClientController> logger)
     {
-        _context = context;
+        _clientService = clientService;
         _logger = logger;
     }
 
@@ -41,44 +38,7 @@ public class ClientController : ControllerBase
         [FromQuery] int pageSize = 10, 
         [FromQuery] string? search = null)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 10;
-        if (pageSize > 100) pageSize = 100;
-
-        var query = _context.Clients.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            search = search.ToLower();
-            query = query.Where(c => 
-                c.Name.ToLower().Contains(search) ||
-                c.Surname.ToLower().Contains(search) ||
-                c.Email.ToLower().Contains(search) ||
-                c.Company != null && c.Company.ToLower().Contains(search));
-        }
-
-        var totalCount = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var clients = await query
-            .OrderBy(c => c.Surname)
-            .ThenBy(c => c.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-        
-        var response = new PaginatedResponse<ClientDto>
-        {
-            Data = clients.Select(c => c.ToDto()).ToList(),
-            Pagination = new PaginationMetadata
-            {
-                CurrentPage = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages
-            }
-        };
-
+        var response = await _clientService.GetClientsAsync(page, pageSize, search);
         return Ok(response);
     }
 
@@ -93,14 +53,8 @@ public class ClientController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ClientDto>> GetClient(int id)
     {
-        var client = await _context.Clients.FindAsync(id);
-
-        if (client == null)
-        {
-            return NotFound(new { message = $"Client with ID {id} not found" });
-        }
-
-        return Ok(client.ToDto());
+        var client = await _clientService.GetClientByIdAsync(id);
+        return Ok(client);
     }
 
     /// <summary>
@@ -119,27 +73,13 @@ public class ClientController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        if (await _context.Clients.AnyAsync(c => c.Email == request.Email))
-        {
-            return BadRequest(new { message = "A client with this email already exists" });
-        }
-
-        var client = request.ToModel();
-        client.DateCreated = DateTime.UtcNow;
-        
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
-        
-        client.ModifiedBy = userEmail;
-        client.LastModifiedDate = DateTime.UtcNow;
 
-        _context.Clients.Add(client);
-        await _context.SaveChangesAsync();
+        var client = await _clientService.CreateClientAsync(request, userEmail);
 
-        _logger.LogInformation("Client {ClientId} created by {User}", client.Id, userEmail);
-
-        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client.ToDto());
+        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
     }
 
     /// <summary>
@@ -160,48 +100,13 @@ public class ClientController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var existingClient = await _context.Clients.FindAsync(id);
-
-        if (existingClient == null)
-        {
-            return NotFound(new { message = $"Client with ID {id} not found" });
-        }
-
-        if (existingClient.Email != request.Email && 
-            await _context.Clients.AnyAsync(c => c.Email == request.Email))
-        {
-            return BadRequest(new { message = "A client with this email already exists" });
-        }
-
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
 
-        existingClient.Name = request.Name;
-        existingClient.Surname = request.Surname;
-        existingClient.Email = request.Email;
-        existingClient.Cellphone = request.Cellphone;
-        existingClient.Address = request.Address;
-        existingClient.Company = request.Company;
-        existingClient.KeycloakUserId = request.KeycloakUserId;
-        existingClient.LastModifiedDate = DateTime.UtcNow;
-        existingClient.ModifiedBy = userEmail;
+        var client = await _clientService.UpdateClientAsync(id, request, userEmail);
 
-        try
-        {
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Client {ClientId} updated by {User}", id, userEmail);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!ClientExists(id))
-            {
-                return NotFound(new { message = $"Client with ID {id} not found" });
-            }
-            throw;
-        }
-
-        return Ok(existingClient.ToDto());
+        return Ok(client);
     }
 
     /// <summary>
@@ -215,27 +120,7 @@ public class ClientController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> DeleteClient(int id)
     {
-        var client = await _context.Clients.FindAsync(id);
-
-        if (client == null)
-        {
-            return NotFound(new { message = $"Client with ID {id} not found" });
-        }
-
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
-
-        _context.Clients.Remove(client);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Client {ClientId} deleted by {User}", id, userEmail);
-
+        await _clientService.DeleteClientAsync(id);
         return NoContent();
-    }
-
-    private bool ClientExists(int id)
-    {
-        return _context.Clients.Any(e => e.Id == id);
     }
 }

@@ -1,3 +1,7 @@
+using System.Net;
+using System.Text.Json;
+using AuthApi.Exceptions;
+
 namespace AuthApi.Middleware;
 
 public class GlobalExceptionMiddleware : IMiddleware
@@ -17,8 +21,32 @@ public class GlobalExceptionMiddleware : IMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred while processing the request.");
-            throw; // Re-throw to let the default exception handler deal with it
+            _logger.LogError(ex, "An exception occurred while processing the request.");
+            await HandleExceptionAsync(context, ex);
         }
+    }
+
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+
+        var (statusCode, message) = exception switch
+        {
+            NotFoundException notFoundEx => (HttpStatusCode.NotFound, notFoundEx.Message),
+            DuplicateEntityException duplicateEx => (HttpStatusCode.Conflict, duplicateEx.Message),
+            BusinessRuleException businessEx => (HttpStatusCode.BadRequest, businessEx.Message),
+            _ => (HttpStatusCode.InternalServerError, "An internal server error occurred")
+        };
+
+        context.Response.StatusCode = (int)statusCode;
+
+        var response = new
+        {
+            message,
+            statusCode = (int)statusCode
+        };
+
+        var jsonResponse = JsonSerializer.Serialize(response);
+        await context.Response.WriteAsync(jsonResponse);
     }
 }

@@ -76,23 +76,13 @@ const fetchClients = async () => {
 
 const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: string }) => {
   try {
-    const selectedClient = clients.value.find(c => c.id === data.clientId)
-    
-    if (!selectedClient) {
-      uiStore.showError('Selected client not found')
-      return
-    }
-
     const invoice = {
-      clientName: selectedClient.name,
-      clientSurname: selectedClient.surname,
-      clientAddress: selectedClient.address || '',
-      clientCellphone: selectedClient.cellphone,
+      clientId: data.clientId,
       templateId: data.templateId,
       items: data.items.map(item => ({
         description: item.description,
-        amount: item.amount,
-        pricePerUnit: item.pricePerUnit
+        quantity: item.amount,
+        unitPrice: item.pricePerUnit
       }))
     }
 
@@ -115,23 +105,13 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
 
 const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: string }) => {
   try {
-    const selectedClient = clients.value.find((c: any) => c.id === data.clientId)
-    
-    if (!selectedClient) {
-      uiStore.showError('Selected client not found')
-      return
-    }
-
     const quote = {
-      clientName: selectedClient.name,
-      clientSurname: selectedClient.surname,
-      clientAddress: selectedClient.address || '',
-      clientCellphone: selectedClient.cellphone,
+      clientId: data.clientId,
       templateId: data.templateId,
       items: data.items.map(item => ({
         description: item.description,
-        amount: item.amount,
-        pricePerUnit: item.pricePerUnit
+        quantity: item.amount,
+        unitPrice: item.pricePerUnit
       }))
     }
 

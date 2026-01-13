@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 
-namespace AuthApi.Services;
+namespace AuthApi.Services.Auth;
 
 public class KeycloakAuthService : IKeycloakAuthService
 {

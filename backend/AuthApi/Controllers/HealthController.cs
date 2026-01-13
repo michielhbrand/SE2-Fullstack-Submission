@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuthApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/health")]
 [Produces("application/json")]
 public class HealthController : ControllerBase
 {

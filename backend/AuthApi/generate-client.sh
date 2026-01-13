@@ -24,10 +24,6 @@ if [ $? -eq 0 ]; then
     echo "✅ TypeScript API client generated successfully!"
     echo "   Location: frontend/app/src/api/generated/api-client.ts"
     echo ""
-    echo "📝 Next steps:"
-    echo "   1. Review the generated client"
-    echo "   2. Update your frontend code to use the generated client"
-    echo "   3. Remove old manual API service files"
 else
     echo ""
     echo "❌ Failed to generate TypeScript client"

@@ -24,7 +24,7 @@ export class ApiClient {
     }
 
     auth_Login(request: LoginRequest, cancelToken?: CancelToken): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Auth/login";
+        let url_ = this.baseUrl + "/api/auth/login";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -81,7 +81,7 @@ export class ApiClient {
     }
 
     auth_AdminLogin(request: LoginRequest, cancelToken?: CancelToken): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Auth/admin/login";
+        let url_ = this.baseUrl + "/api/auth/admin/login";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -138,7 +138,7 @@ export class ApiClient {
     }
 
     auth_Logout(request: LogoutRequest, cancelToken?: CancelToken): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Auth/logout";
+        let url_ = this.baseUrl + "/api/auth/logout";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -195,7 +195,7 @@ export class ApiClient {
     }
 
     auth_GetAllUsers( cancelToken?: CancelToken): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Auth/admin/users";
+        let url_ = this.baseUrl + "/api/auth/admin/users";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -248,7 +248,7 @@ export class ApiClient {
     }
 
     auth_UpdateUserRole(userId: string, request: UpdateRoleRequest, cancelToken?: CancelToken): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/Auth/admin/users/{userId}/role";
+        let url_ = this.baseUrl + "/api/auth/admin/users/{userId}/role";
         if (userId === undefined || userId === null)
             throw new globalThis.Error("The parameter 'userId' must be defined.");
         url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
@@ -308,7 +308,7 @@ export class ApiClient {
     }
 
     client_GetClients(page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfClientDto> {
-        let url_ = this.baseUrl + "/api/Client?";
+        let url_ = this.baseUrl + "/api/client?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -373,7 +373,7 @@ export class ApiClient {
     }
 
     client_CreateClient(request: CreateClientRequest, cancelToken?: CancelToken): Promise<ClientDto> {
-        let url_ = this.baseUrl + "/api/Client";
+        let url_ = this.baseUrl + "/api/client";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -439,7 +439,7 @@ export class ApiClient {
     }
 
     client_GetClient(id: number, cancelToken?: CancelToken): Promise<ClientDto> {
-        let url_ = this.baseUrl + "/api/Client/{id}";
+        let url_ = this.baseUrl + "/api/client/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -504,7 +504,7 @@ export class ApiClient {
     }
 
     client_UpdateClient(id: number, request: UpdateClientRequest, cancelToken?: CancelToken): Promise<ClientDto> {
-        let url_ = this.baseUrl + "/api/Client/{id}";
+        let url_ = this.baseUrl + "/api/client/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -580,7 +580,7 @@ export class ApiClient {
     }
 
     client_DeleteClient(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Client/{id}";
+        let url_ = this.baseUrl + "/api/client/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -641,7 +641,7 @@ export class ApiClient {
     }
 
     health_GetHealth( cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Health";
+        let url_ = this.baseUrl + "/api/health";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -685,7 +685,7 @@ export class ApiClient {
     }
 
     invoice_GetTemplates( cancelToken?: CancelToken): Promise<string[]> {
-        let url_ = this.baseUrl + "/api/Invoice/templates";
+        let url_ = this.baseUrl + "/api/invoice/templates";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -737,7 +737,7 @@ export class ApiClient {
     }
 
     invoice_GetInvoices(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoice> {
-        let url_ = this.baseUrl + "/api/Invoice?";
+        let url_ = this.baseUrl + "/api/invoice?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -799,11 +799,11 @@ export class ApiClient {
         return Promise.resolve<PaginatedResponseOfInvoice>(null as any);
     }
 
-    invoice_CreateInvoice(invoice: Invoice, cancelToken?: CancelToken): Promise<Invoice> {
-        let url_ = this.baseUrl + "/api/Invoice";
+    invoice_CreateInvoice(request: CreateInvoiceRequest, cancelToken?: CancelToken): Promise<Invoice> {
+        let url_ = this.baseUrl + "/api/invoice";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(invoice);
+        const content_ = JSON.stringify(request);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -866,7 +866,7 @@ export class ApiClient {
     }
 
     invoice_GetInvoicePdfUrl(id: number, cancelToken?: CancelToken): Promise<PdfUrlResponse> {
-        let url_ = this.baseUrl + "/api/Invoice/{id}/pdf-url";
+        let url_ = this.baseUrl + "/api/invoice/{id}/pdf-url";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -931,7 +931,7 @@ export class ApiClient {
     }
 
     invoice_GetInvoice(id: number, cancelToken?: CancelToken): Promise<Invoice> {
-        let url_ = this.baseUrl + "/api/Invoice/{id}";
+        let url_ = this.baseUrl + "/api/invoice/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -995,14 +995,14 @@ export class ApiClient {
         return Promise.resolve<Invoice>(null as any);
     }
 
-    invoice_UpdateInvoice(id: number, invoice: Invoice, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Invoice/{id}";
+    invoice_UpdateInvoice(id: number, request: UpdateInvoiceRequest, cancelToken?: CancelToken): Promise<Invoice> {
+        let url_ = this.baseUrl + "/api/invoice/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(invoice);
+        const content_ = JSON.stringify(request);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -1010,6 +1010,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -1025,7 +1026,7 @@ export class ApiClient {
         });
     }
 
-    protected processInvoice_UpdateInvoice(response: AxiosResponse): Promise<void> {
+    protected processInvoice_UpdateInvoice(response: AxiosResponse): Promise<Invoice> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1037,7 +1038,10 @@ export class ApiClient {
         }
         if (status === 200) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<Invoice>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1064,11 +1068,11 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<Invoice>(null as any);
     }
 
     invoice_DeleteInvoice(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Invoice/{id}";
+        let url_ = this.baseUrl + "/api/invoice/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1129,7 +1133,7 @@ export class ApiClient {
     }
 
     quote_GetTemplates( cancelToken?: CancelToken): Promise<string[]> {
-        let url_ = this.baseUrl + "/api/Quote/templates";
+        let url_ = this.baseUrl + "/api/quote/templates";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -1181,7 +1185,7 @@ export class ApiClient {
     }
 
     quote_GetQuotes(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuote> {
-        let url_ = this.baseUrl + "/api/Quote?";
+        let url_ = this.baseUrl + "/api/quote?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -1243,11 +1247,11 @@ export class ApiClient {
         return Promise.resolve<PaginatedResponseOfQuote>(null as any);
     }
 
-    quote_CreateQuote(quote: Quote, cancelToken?: CancelToken): Promise<Quote> {
-        let url_ = this.baseUrl + "/api/Quote";
+    quote_CreateQuote(request: CreateQuoteRequest, cancelToken?: CancelToken): Promise<Quote> {
+        let url_ = this.baseUrl + "/api/quote";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(quote);
+        const content_ = JSON.stringify(request);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -1310,7 +1314,7 @@ export class ApiClient {
     }
 
     quote_GetQuotePdfUrl(id: number, cancelToken?: CancelToken): Promise<PdfUrlResponse> {
-        let url_ = this.baseUrl + "/api/Quote/{id}/pdf-url";
+        let url_ = this.baseUrl + "/api/quote/{id}/pdf-url";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1375,7 +1379,7 @@ export class ApiClient {
     }
 
     quote_GetQuote(id: number, cancelToken?: CancelToken): Promise<Quote> {
-        let url_ = this.baseUrl + "/api/Quote/{id}";
+        let url_ = this.baseUrl + "/api/quote/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1439,14 +1443,14 @@ export class ApiClient {
         return Promise.resolve<Quote>(null as any);
     }
 
-    quote_UpdateQuote(id: number, quote: Quote, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Quote/{id}";
+    quote_UpdateQuote(id: number, request: UpdateQuoteRequest, cancelToken?: CancelToken): Promise<Quote> {
+        let url_ = this.baseUrl + "/api/quote/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(quote);
+        const content_ = JSON.stringify(request);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -1454,6 +1458,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -1469,7 +1474,7 @@ export class ApiClient {
         });
     }
 
-    protected processQuote_UpdateQuote(response: AxiosResponse): Promise<void> {
+    protected processQuote_UpdateQuote(response: AxiosResponse): Promise<Quote> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1481,7 +1486,10 @@ export class ApiClient {
         }
         if (status === 200) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<Quote>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1508,11 +1516,11 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<Quote>(null as any);
     }
 
     quote_DeleteQuote(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Quote/{id}";
+        let url_ = this.baseUrl + "/api/quote/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1573,7 +1581,7 @@ export class ApiClient {
     }
 
     template_GetTemplates(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateDto> {
-        let url_ = this.baseUrl + "/api/Template?";
+        let url_ = this.baseUrl + "/api/template?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -1629,7 +1637,7 @@ export class ApiClient {
     }
 
     template_CreateTemplate(request: CreateTemplateRequest, cancelToken?: CancelToken): Promise<Template> {
-        let url_ = this.baseUrl + "/api/Template";
+        let url_ = this.baseUrl + "/api/template";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -1695,7 +1703,7 @@ export class ApiClient {
     }
 
     template_GetTemplate(id: number, cancelToken?: CancelToken): Promise<Template> {
-        let url_ = this.baseUrl + "/api/Template/{id}";
+        let url_ = this.baseUrl + "/api/template/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1753,7 +1761,7 @@ export class ApiClient {
     }
 
     template_DeleteTemplate(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/Template/{id}";
+        let url_ = this.baseUrl + "/api/template/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1807,7 +1815,7 @@ export class ApiClient {
     }
 
     template_GetTemplatePreviewUrl(id: number, cancelToken?: CancelToken): Promise<TemplatePreviewUrlResponse> {
-        let url_ = this.baseUrl + "/api/Template/{id}/preview-url";
+        let url_ = this.baseUrl + "/api/template/{id}/preview-url";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1979,6 +1987,25 @@ export interface PdfUrlResponse {
     url?: string;
 }
 
+export interface CreateInvoiceRequest {
+    clientId: number;
+    templateId?: string | null;
+    items: CreateInvoiceItemRequest[];
+}
+
+export interface CreateInvoiceItemRequest {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+}
+
+export interface UpdateInvoiceRequest {
+    clientId: number;
+    notificationSent?: boolean;
+    templateId?: string | null;
+    items: CreateInvoiceItemRequest[];
+}
+
 export interface PaginatedResponseOfQuote {
     data?: Quote[];
     pagination?: PaginationMetadata;
@@ -2004,6 +2031,25 @@ export interface QuoteItem {
     amount: number;
     pricePerUnit: number;
     totalPrice?: number;
+}
+
+export interface CreateQuoteRequest {
+    clientId: number;
+    templateId?: string | null;
+    items: CreateQuoteItemRequest[];
+}
+
+export interface CreateQuoteItemRequest {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+}
+
+export interface UpdateQuoteRequest {
+    clientId: number;
+    notificationSent?: boolean;
+    templateId?: string | null;
+    items: CreateQuoteItemRequest[];
 }
 
 export interface PaginatedResponseOfTemplateDto {

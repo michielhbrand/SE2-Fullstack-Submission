@@ -1,296 +1,156 @@
-using AuthApi.Data;
-using AuthApi.Models;
-using AuthApi.Services;
 using AuthApi.DTOs;
+using AuthApi.Models;
+using AuthApi.Services.Quote;
+using AuthApi.Services.Template;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AuthApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/quote")]
 [Produces("application/json")]
 [Authorize]
 public class QuoteController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IQuoteService _quoteService;
+    private readonly ITemplateService _templateService;
     private readonly ILogger<QuoteController> _logger;
-    private readonly IKafkaProducerService _kafkaProducer;
-    private readonly IConfiguration _configuration;
-    private readonly HttpClient _httpClient;
 
     public QuoteController(
-        ApplicationDbContext context,
-        ILogger<QuoteController> logger,
-        IKafkaProducerService kafkaProducer,
-        IConfiguration configuration,
-        IHttpClientFactory httpClientFactory)
+        IQuoteService quoteService,
+        ITemplateService templateService,
+        ILogger<QuoteController> logger)
     {
-        _context = context;
+        _quoteService = quoteService;
+        _templateService = templateService;
         _logger = logger;
-        _kafkaProducer = kafkaProducer;
-        _configuration = configuration;
-        _httpClient = httpClientFactory.CreateClient();
     }
 
-    // GET: api/Quote/templates
+    /// <summary>
+    /// Get available quote templates
+    /// </summary>
+    /// <returns>List of template names</returns>
     [HttpGet("templates")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<string>>> GetTemplates()
     {
-        try
-        {
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var response = await _httpClient.GetAsync($"{pdfServiceUrl}/api/Template/quote-templates");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var templates = await response.Content.ReadFromJsonAsync<List<string>>();
-                return Ok(templates ?? new List<string>());
-            }
-            
-            _logger.LogWarning("Failed to fetch quote templates from PDF Generator Service. Status: {Status}", response.StatusCode);
-            return Ok(new List<string>()); // Return empty list on failure
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching quote templates from PDF Generator Service");
-            return StatusCode(500, new { message = "Error fetching quote templates" });
-        }
+        var templates = await _templateService.GetQuoteTemplateNamesAsync();
+        return Ok(templates);
     }
 
-    // GET: api/Quote
+    /// <summary>
+    /// Get paginated list of quotes
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
+    /// <returns>Paginated list of quotes</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<Quote>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PaginatedResponse<Quote>>> GetQuotes([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<Quote>>> GetQuotes(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 10;
-        if (pageSize > 100) pageSize = 100; // Max page size limit
-
-        var totalCount = await _context.Quotes.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var quotes = await _context.Quotes
-            .Include(q => q.Items)
-            .Include(q => q.Client)
-            .OrderByDescending(q => q.DateCreated)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-        
-        var response = new PaginatedResponse<Quote>
-        {
-            Data = quotes,
-            Pagination = new PaginationMetadata
-            {
-                CurrentPage = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages
-            }
-        };
-
+        var response = await _quoteService.GetQuotesAsync(page, pageSize);
         return Ok(response);
     }
 
-    // GET: api/Quote/{id}/pdf-url
+    /// <summary>
+    /// Get presigned URL for quote PDF
+    /// </summary>
+    /// <param name="id">Quote ID</param>
+    /// <returns>Presigned URL for PDF download</returns>
     [HttpGet("{id}/pdf-url")]
     [ProducesResponseType(typeof(PdfUrlResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PdfUrlResponse>> GetQuotePdfUrl(int id)
     {
-        var quote = await _context.Quotes.FindAsync(id);
-
-        if (quote == null)
-        {
-            return NotFound(new { message = $"Quote with ID {id} not found" });
-        }
-
-        if (string.IsNullOrEmpty(quote.PdfStorageKey))
-        {
-            return NotFound(new { message = "PDF not yet generated for this quote" });
-        }
-
-        try
-        {
-            // Call PdfGeneratorService to get presigned URL
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var response = await _httpClient.GetAsync($"{pdfServiceUrl}/api/Pdf/presigned-url?storageKey={Uri.EscapeDataString(quote.PdfStorageKey)}");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                return Ok(new PdfUrlResponse { Url = result?["url"] ?? "" });
-            }
-            
-            _logger.LogWarning("Failed to get presigned URL from PDF Generator Service. Status: {Status}", response.StatusCode);
-            return StatusCode(500, new { message = "Failed to generate PDF URL" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting PDF URL for Quote {QuoteId}", id);
-            return StatusCode(500, new { message = "Error generating PDF URL" });
-        }
+        var url = await _quoteService.GetQuotePdfUrlAsync(id);
+        return Ok(new PdfUrlResponse { Url = url ?? "" });
     }
 
-    // GET: api/Quote/5
+    /// <summary>
+    /// Get a specific quote by ID
+    /// </summary>
+    /// <param name="id">Quote ID</param>
+    /// <returns>Quote details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Quote), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<Quote>> GetQuote(int id)
     {
-        var quote = await _context.Quotes
-            .Include(q => q.Items)
-            .Include(q => q.Client)
-            .FirstOrDefaultAsync(q => q.Id == id);
-
-        if (quote == null)
-        {
-            return NotFound(new { message = $"Quote with ID {id} not found" });
-        }
-
+        var quote = await _quoteService.GetQuoteByIdAsync(id);
         return Ok(quote);
     }
 
-    // POST: api/Quote
+    /// <summary>
+    /// Create a new quote
+    /// </summary>
+    /// <param name="request">Quote creation data</param>
+    /// <returns>Created quote</returns>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Quote), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Quote>> CreateQuote(Quote quote)
+    public async Task<ActionResult<Quote>> CreateQuote([FromBody] CreateQuoteRequest request)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        // Set creation date
-        quote.DateCreated = DateTime.UtcNow;
-        
-        // Get user email from claims
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
-        
-        quote.ModifiedBy = userEmail;
-        quote.LastModifiedDate = DateTime.UtcNow;
 
-        _context.Quotes.Add(quote);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Quote {QuoteId} created by {User}", quote.Id, userEmail);
-
-        // Publish Kafka event for PDF generation
-        try
-        {
-            await _kafkaProducer.PublishQuoteCreatedEventAsync(quote.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to publish Kafka event for Quote {QuoteId}", quote.Id);
-            // Continue - quote is created, PDF generation will be retried
-        }
+        var quote = await _quoteService.CreateQuoteAsync(request, userEmail);
 
         return CreatedAtAction(nameof(GetQuote), new { id = quote.Id }, quote);
     }
 
-    // PUT: api/Quote/5
+    /// <summary>
+    /// Update an existing quote
+    /// </summary>
+    /// <param name="id">Quote ID</param>
+    /// <param name="request">Updated quote data</param>
+    /// <returns>Updated quote</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Quote), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateQuote(int id, Quote quote)
+    public async Task<ActionResult<Quote>> UpdateQuote(int id, [FromBody] UpdateQuoteRequest request)
     {
-        if (id != quote.Id)
-        {
-            return BadRequest(new { message = "Quote ID mismatch" });
-        }
-
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var existingQuote = await _context.Quotes
-            .Include(q => q.Items)
-            .Include(q => q.Client)
-            .FirstOrDefaultAsync(q => q.Id == id);
-
-        if (existingQuote == null)
-        {
-            return NotFound(new { message = $"Quote with ID {id} not found" });
-        }
-
-        // Get user email from claims
         var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                        ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                        ?? "system";
 
-        // Update properties
-        existingQuote.ClientId = quote.ClientId;
-        existingQuote.NotificationSent = quote.NotificationSent;
-        existingQuote.LastModifiedDate = DateTime.UtcNow;
-        existingQuote.ModifiedBy = userEmail;
+        var quote = await _quoteService.UpdateQuoteAsync(id, request, userEmail);
 
-        // Update items - remove old items and add new ones
-        _context.QuoteItems.RemoveRange(existingQuote.Items);
-        existingQuote.Items = quote.Items;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Quote {QuoteId} updated by {User}", id, userEmail);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!QuoteExists(id))
-            {
-                return NotFound(new { message = $"Quote with ID {id} not found" });
-            }
-            throw;
-        }
-
-        return Ok(existingQuote);
+        return Ok(quote);
     }
 
-    // DELETE: api/Quote/5
+    /// <summary>
+    /// Delete a quote
+    /// </summary>
+    /// <param name="id">Quote ID</param>
+    /// <returns>No content</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> DeleteQuote(int id)
     {
-        var quote = await _context.Quotes
-            .Include(q => q.Items)
-            .Include(q => q.Client)
-            .FirstOrDefaultAsync(q => q.Id == id);
-
-        if (quote == null)
-        {
-            return NotFound(new { message = $"Quote with ID {id} not found" });
-        }
-
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
-
-        _context.Quotes.Remove(quote);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Quote {QuoteId} deleted by {User}", id, userEmail);
-
+        await _quoteService.DeleteQuoteAsync(id);
         return NoContent();
-    }
-
-    private bool QuoteExists(int id)
-    {
-        return _context.Quotes.Any(e => e.Id == id);
     }
 }
