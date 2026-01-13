@@ -1,9 +1,11 @@
 using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
+using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Quote;
+using InvoiceTrackerApi.Services.PdfStorage;
 using QuoteModel = InvoiceTrackerApi.Models.Quote;
 
 namespace InvoiceTrackerApi.Services.Quote;
@@ -16,27 +18,24 @@ public class QuoteService : IQuoteService
     private readonly IQuoteRepository _quoteRepository;
     private readonly IClientRepository _clientRepository;
     private readonly IKafkaProducerService _kafkaProducer;
-    private readonly IConfiguration _configuration;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPdfStorageService _pdfStorageService;
     private readonly ILogger<QuoteService> _logger;
 
     public QuoteService(
         IQuoteRepository quoteRepository,
         IClientRepository clientRepository,
         IKafkaProducerService kafkaProducer,
-        IConfiguration configuration,
-        IHttpClientFactory httpClientFactory,
+        IPdfStorageService pdfStorageService,
         ILogger<QuoteService> logger)
     {
         _quoteRepository = quoteRepository;
         _clientRepository = clientRepository;
         _kafkaProducer = kafkaProducer;
-        _configuration = configuration;
-        _httpClientFactory = httpClientFactory;
+        _pdfStorageService = pdfStorageService;
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<QuoteModel>> GetQuotesAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int page, int pageSize)
     {
         // Input validation
         if (page < 1) page = 1;
@@ -47,9 +46,9 @@ public class QuoteService : IQuoteService
         var totalCount = await _quoteRepository.GetTotalCountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        return new PaginatedResponse<QuoteModel>
+        return new PaginatedResponse<QuoteResponse>
         {
-            Data = quotes.ToList(),
+            Data = quotes.Select(q => q.ToDto()).ToList(),
             Pagination = new PaginationMetadata
             {
                 CurrentPage = page,
@@ -60,7 +59,7 @@ public class QuoteService : IQuoteService
         };
     }
 
-    public async Task<QuoteModel> GetQuoteByIdAsync(int id)
+    public async Task<QuoteResponse> GetQuoteByIdAsync(int id)
     {
         var quote = await _quoteRepository.GetByIdWithDetailsAsync(id);
 
@@ -69,10 +68,10 @@ public class QuoteService : IQuoteService
             throw new NotFoundException("Quote", id);
         }
 
-        return quote;
+        return quote.ToDto();
     }
 
-    public async Task<QuoteModel> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy)
+    public async Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy)
     {
         // Business rule validation: Check if client exists
         var clientExists = await _clientRepository.ExistsAsync(request.ClientId);
@@ -97,7 +96,7 @@ public class QuoteService : IQuoteService
             Items = request.Items.Select(item => new QuoteItem
             {
                 Description = item.Description,
-                Amount = (int)item.Quantity,
+                Quantity = (int)item.Quantity,
                 PricePerUnit = item.UnitPrice
             }).ToList()
         };
@@ -113,14 +112,27 @@ public class QuoteService : IQuoteService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish Kafka event for Quote {QuoteId}", createdQuote.Id);
-            // Continue - quote is created, PDF generation will be retried
+            _logger.LogError(ex, "Failed to publish Kafka event for Quote {QuoteId}. Rolling back quote creation.", createdQuote.Id);
+            
+            // Rollback: Delete the created quote to maintain data consistency
+            try
+            {
+                await _quoteRepository.DeleteAsync(createdQuote);
+                _logger.LogInformation("Successfully rolled back Quote {QuoteId}", createdQuote.Id);
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogError(rollbackEx, "Failed to rollback Quote {QuoteId} after Kafka publish failure", createdQuote.Id);
+            }
+            
+            // Throw exception to inform the API client
+            throw new BusinessRuleException("Failed to create quote: Unable to trigger PDF generation. Please try again.", ex);
         }
 
-        return createdQuote;
+        return createdQuote.ToDto();
     }
 
-    public async Task<QuoteModel> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy)
+    public async Task<QuoteResponse> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy)
     {
         var existingQuote = await _quoteRepository.GetByIdWithDetailsAsync(id);
 
@@ -155,7 +167,7 @@ public class QuoteService : IQuoteService
         {
             QuoteId = id,
             Description = item.Description,
-            Amount = (int)item.Quantity,
+            Quantity = (int)item.Quantity,
             PricePerUnit = item.UnitPrice
         }).ToList();
 
@@ -163,7 +175,7 @@ public class QuoteService : IQuoteService
 
         _logger.LogInformation("Quote {QuoteId} updated by {User}", id, modifiedBy);
 
-        return existingQuote;
+        return existingQuote.ToDto();
     }
 
     public async Task DeleteQuoteAsync(int id)
@@ -194,25 +206,6 @@ public class QuoteService : IQuoteService
             throw new BusinessRuleException("PDF not yet generated for this quote");
         }
 
-        try
-        {
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync($"{pdfServiceUrl}/api/Pdf/presigned-url?storageKey={Uri.EscapeDataString(quote.PdfStorageKey)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                return result?["url"];
-            }
-
-            _logger.LogWarning("Failed to get presigned URL from PDF Generator Service. Status: {Status}", response.StatusCode);
-            throw new BusinessRuleException("Failed to generate PDF URL");
-        }
-        catch (Exception ex) when (ex is not BusinessRuleException)
-        {
-            _logger.LogError(ex, "Error getting PDF URL for Quote {QuoteId}", id);
-            throw new BusinessRuleException("Error generating PDF URL");
-        }
+        return await _pdfStorageService.GetPresignedUrlAsync(quote.PdfStorageKey);
     }
 }

@@ -1,7 +1,7 @@
 using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
-using InvoiceTrackerApi.Models;
+using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Template;
 using TemplateModel = InvoiceTrackerApi.Models.Template;
 
@@ -42,15 +42,7 @@ public class TemplateService : ITemplateService
 
         return new PaginatedResponse<TemplateResponse>
         {
-            Data = templates.Select(t => new TemplateResponse
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Version = t.Version,
-                StorageKey = t.StorageKey,
-                Created = t.Created,
-                CreatedBy = t.CreatedBy
-            }).ToList(),
+            Data = templates.Select(t => t.ToDto()).ToList(),
             Pagination = new PaginationMetadata
             {
                 CurrentPage = page,
@@ -61,7 +53,7 @@ public class TemplateService : ITemplateService
         };
     }
 
-    public async Task<TemplateModel> GetTemplateByIdAsync(int id)
+    public async Task<TemplateResponse> GetTemplateByIdAsync(int id)
     {
         var template = await _templateRepository.GetByIdAsync(id);
 
@@ -70,10 +62,10 @@ public class TemplateService : ITemplateService
             throw new NotFoundException("Template", id);
         }
 
-        return template;
+        return template.ToDto();
     }
 
-    public async Task<TemplateModel> CreateTemplateAsync(CreateTemplateRequest request, string createdBy)
+    public async Task<TemplateResponse> CreateTemplateAsync(CreateTemplateRequest request, string createdBy)
     {
         // Business rule validation: Check for duplicate template name and version
         var existingTemplate = await _templateRepository.GetByNameAndVersionAsync(request.Name, request.Version);
@@ -115,7 +107,7 @@ public class TemplateService : ITemplateService
             _logger.LogInformation("Template created: {TemplateName} v{Version} by user {UserId}",
                 template.Name, template.Version, createdBy);
 
-            return createdTemplate;
+            return createdTemplate.ToDto();
         }
         catch (Exception ex) when (ex is not BusinessRuleException && ex is not DuplicateEntityException)
         {

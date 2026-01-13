@@ -9,18 +9,10 @@ namespace InvoiceTrackerApi.Repositories.Client;
 /// <summary>
 /// Repository implementation for Client data access
 /// </summary>
-public class ClientRepository : IClientRepository
+public class ClientRepository : Repository<ClientModel>, IClientRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public ClientRepository(ApplicationDbContext context)
+    public ClientRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
-    }
-
-    public async Task<ClientModel?> GetByIdAsync(int id)
-    {
-        return await _context.Clients.FindAsync(id);
     }
 
     public async Task<ClientModel?> GetByEmailAsync(string email)
@@ -66,29 +58,5 @@ public class ClientRepository : IClientRepository
         }
 
         return await query.CountAsync();
-    }
-
-    public async Task<ClientModel> AddAsync(ClientModel client)
-    {
-        _context.Clients.Add(client);
-        await _context.SaveChangesAsync();
-        return client;
-    }
-
-    public async Task UpdateAsync(ClientModel client)
-    {
-        _context.Clients.Update(client);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(ClientModel client)
-    {
-        _context.Clients.Remove(client);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Clients.AnyAsync(c => c.Id == id);
     }
 }

@@ -4,7 +4,6 @@ using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Template;
-using System.Security.Claims;
 
 namespace InvoiceTrackerApi.Controllers;
 
@@ -12,7 +11,7 @@ namespace InvoiceTrackerApi.Controllers;
 [ApiController]
 [Route("api/template")]
 [Produces("application/json")]
-public class TemplateController : ControllerBase
+public class TemplateController : AuthenticatedControllerBase
 {
     private readonly ITemplateService _templateService;
     private readonly ILogger<TemplateController> _logger;
@@ -71,9 +70,7 @@ public class TemplateController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-            ?? User.FindFirst("sub")?.Value 
-            ?? "unknown";
+        var userId = GetCurrentUserIdentifier();
 
         var template = await _templateService.CreateTemplateAsync(request, userId);
 

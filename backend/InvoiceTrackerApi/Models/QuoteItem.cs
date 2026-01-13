@@ -17,16 +17,12 @@ public class QuoteItem
     public string Description { get; set; } = string.Empty;
 
     [Required]
-    public int Amount { get; set; }
+    public int Quantity { get; set; }
 
     [Required]
     [Column(TypeName = "decimal(18,2)")]
     public decimal PricePerUnit { get; set; }
 
     [NotMapped]
-    public decimal TotalPrice => Amount * PricePerUnit;
-
-    // Navigation property - ignore during serialization to prevent circular references
-    // [JsonIgnore]
-    // public Quote Quote { get; set; } = null!;
+    public decimal TotalPrice => Quantity * PricePerUnit;
 }

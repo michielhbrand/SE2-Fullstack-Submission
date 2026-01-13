@@ -1,9 +1,11 @@
 using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
+using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
+using InvoiceTrackerApi.Services.PdfStorage;
 using InvoiceModel = InvoiceTrackerApi.Models.Invoice;
 
 namespace InvoiceTrackerApi.Services.Invoice;
@@ -16,27 +18,24 @@ public class InvoiceService : IInvoiceService
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IClientRepository _clientRepository;
     private readonly IKafkaProducerService _kafkaProducer;
-    private readonly IConfiguration _configuration;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPdfStorageService _pdfStorageService;
     private readonly ILogger<InvoiceService> _logger;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
         IClientRepository clientRepository,
         IKafkaProducerService kafkaProducer,
-        IConfiguration configuration,
-        IHttpClientFactory httpClientFactory,
+        IPdfStorageService pdfStorageService,
         ILogger<InvoiceService> logger)
     {
         _invoiceRepository = invoiceRepository;
         _clientRepository = clientRepository;
         _kafkaProducer = kafkaProducer;
-        _configuration = configuration;
-        _httpClientFactory = httpClientFactory;
+        _pdfStorageService = pdfStorageService;
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<InvoiceModel>> GetInvoicesAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int page, int pageSize)
     {
         // Input validation
         if (page < 1) page = 1;
@@ -47,9 +46,9 @@ public class InvoiceService : IInvoiceService
         var totalCount = await _invoiceRepository.GetTotalCountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        return new PaginatedResponse<InvoiceModel>
+        return new PaginatedResponse<InvoiceResponse>
         {
-            Data = invoices.ToList(),
+            Data = invoices.Select(i => i.ToDto()).ToList(),
             Pagination = new PaginationMetadata
             {
                 CurrentPage = page,
@@ -60,7 +59,7 @@ public class InvoiceService : IInvoiceService
         };
     }
 
-    public async Task<InvoiceModel> GetInvoiceByIdAsync(int id)
+    public async Task<InvoiceResponse> GetInvoiceByIdAsync(int id)
     {
         var invoice = await _invoiceRepository.GetByIdWithDetailsAsync(id);
 
@@ -69,10 +68,10 @@ public class InvoiceService : IInvoiceService
             throw new NotFoundException("Invoice", id);
         }
 
-        return invoice;
+        return invoice.ToDto();
     }
 
-    public async Task<InvoiceModel> CreateInvoiceAsync(CreateInvoiceRequest request, string modifiedBy)
+    public async Task<InvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, string modifiedBy)
     {
         // Business rule validation: Check if client exists
         var clientExists = await _clientRepository.ExistsAsync(request.ClientId);
@@ -97,7 +96,7 @@ public class InvoiceService : IInvoiceService
             Items = request.Items.Select(item => new InvoiceItem
             {
                 Description = item.Description,
-                Amount = (int)item.Quantity,
+                Quantity = item.Quantity,
                 PricePerUnit = item.UnitPrice
             }).ToList()
         };
@@ -113,14 +112,27 @@ public class InvoiceService : IInvoiceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish Kafka event for Invoice {InvoiceId}", createdInvoice.Id);
-            // Continue - invoice is created, PDF generation will be retried
+            _logger.LogError(ex, "Failed to publish Kafka event for Invoice {InvoiceId}. Rolling back invoice creation.", createdInvoice.Id);
+            
+            // Rollback: Delete the created invoice to maintain data consistency
+            try
+            {
+                await _invoiceRepository.DeleteAsync(createdInvoice);
+                _logger.LogInformation("Successfully rolled back Invoice {InvoiceId}", createdInvoice.Id);
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogError(rollbackEx, "Failed to rollback Invoice {InvoiceId} after Kafka publish failure", createdInvoice.Id);
+            }
+            
+            // Throw exception to inform the API client
+            throw new BusinessRuleException("Failed to create invoice: Unable to trigger PDF generation. Please try again.", ex);
         }
 
-        return createdInvoice;
+        return createdInvoice.ToDto();
     }
 
-    public async Task<InvoiceModel> UpdateInvoiceAsync(int id, UpdateInvoiceRequest request, string modifiedBy)
+    public async Task<InvoiceResponse> UpdateInvoiceAsync(int id, UpdateInvoiceRequest request, string modifiedBy)
     {
         var existingInvoice = await _invoiceRepository.GetByIdWithDetailsAsync(id);
 
@@ -155,7 +167,7 @@ public class InvoiceService : IInvoiceService
         {
             InvoiceId = id,
             Description = item.Description,
-            Amount = (int)item.Quantity,
+            Quantity = item.Quantity,
             PricePerUnit = item.UnitPrice
         }).ToList();
 
@@ -163,7 +175,7 @@ public class InvoiceService : IInvoiceService
 
         _logger.LogInformation("Invoice {InvoiceId} updated by {User}", id, modifiedBy);
 
-        return existingInvoice;
+        return existingInvoice.ToDto();
     }
 
     public async Task DeleteInvoiceAsync(int id)
@@ -194,25 +206,6 @@ public class InvoiceService : IInvoiceService
             throw new BusinessRuleException("PDF not yet generated for this invoice");
         }
 
-        try
-        {
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync($"{pdfServiceUrl}/api/Pdf/presigned-url?storageKey={Uri.EscapeDataString(invoice.PdfStorageKey)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                return result?["url"];
-            }
-
-            _logger.LogWarning("Failed to get presigned URL from PDF Generator Service. Status: {Status}", response.StatusCode);
-            throw new BusinessRuleException("Failed to generate PDF URL");
-        }
-        catch (Exception ex) when (ex is not BusinessRuleException)
-        {
-            _logger.LogError(ex, "Error getting PDF URL for Invoice {InvoiceId}", id);
-            throw new BusinessRuleException("Error generating PDF URL");
-        }
+        return await _pdfStorageService.GetPresignedUrlAsync(invoice.PdfStorageKey);
     }
 }

@@ -35,6 +35,7 @@ public class GlobalExceptionMiddleware : IMiddleware
             NotFoundException notFoundEx => (HttpStatusCode.NotFound, notFoundEx.Message),
             DuplicateEntityException duplicateEx => (HttpStatusCode.Conflict, duplicateEx.Message),
             BusinessRuleException businessEx => (HttpStatusCode.BadRequest, businessEx.Message),
+            UnauthorizedException unauthorizedEx => (HttpStatusCode.Unauthorized, unauthorizedEx.Message),
             _ => (HttpStatusCode.InternalServerError, "An internal server error occurred")
         };
 

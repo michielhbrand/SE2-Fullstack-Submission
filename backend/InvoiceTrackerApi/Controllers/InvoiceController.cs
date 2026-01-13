@@ -1,6 +1,5 @@
 using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
-using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Invoice;
 using InvoiceTrackerApi.Services.Template;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +11,7 @@ namespace InvoiceTrackerApi.Controllers;
 [Route("api/invoice")]
 [Produces("application/json")]
 [Authorize]
-public class InvoiceController : ControllerBase
+public class InvoiceController : AuthenticatedControllerBase
 {
     private readonly IInvoiceService _invoiceService;
     private readonly ITemplateService _templateService;
@@ -48,9 +47,9 @@ public class InvoiceController : ControllerBase
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
     /// <returns>Paginated list of invoices</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedResponse<Invoice>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<InvoiceResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PaginatedResponse<Invoice>>> GetInvoices(
+    public async Task<ActionResult<PaginatedResponse<InvoiceResponse>>> GetInvoices(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10)
     {
@@ -104,9 +103,7 @@ public class InvoiceController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var invoice = await _invoiceService.CreateInvoiceAsync(request, userEmail);
 
@@ -131,9 +128,7 @@ public class InvoiceController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var invoice = await _invoiceService.UpdateInvoiceAsync(id, request, userEmail);
 

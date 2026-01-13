@@ -8,18 +8,10 @@ namespace InvoiceTrackerApi.Repositories.Quote;
 /// <summary>
 /// Repository implementation for Quote data access
 /// </summary>
-public class QuoteRepository : IQuoteRepository
+public class QuoteRepository : Repository<QuoteModel>, IQuoteRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public QuoteRepository(ApplicationDbContext context)
+    public QuoteRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
-    }
-
-    public async Task<QuoteModel?> GetByIdAsync(int id)
-    {
-        return await _context.Quotes.FindAsync(id);
     }
 
     public async Task<QuoteModel?> GetByIdWithDetailsAsync(int id)
@@ -44,29 +36,5 @@ public class QuoteRepository : IQuoteRepository
     public async Task<int> GetTotalCountAsync()
     {
         return await _context.Quotes.CountAsync();
-    }
-
-    public async Task<QuoteModel> AddAsync(QuoteModel quote)
-    {
-        _context.Quotes.Add(quote);
-        await _context.SaveChangesAsync();
-        return quote;
-    }
-
-    public async Task UpdateAsync(QuoteModel quote)
-    {
-        _context.Quotes.Update(quote);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(QuoteModel quote)
-    {
-        _context.Quotes.Remove(quote);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Quotes.AnyAsync(q => q.Id == id);
     }
 }

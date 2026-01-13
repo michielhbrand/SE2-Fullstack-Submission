@@ -1,7 +1,5 @@
 using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.DTOs.Responses;
-using InvoiceTrackerApi.Models;
-using QuoteModel = InvoiceTrackerApi.Models.Quote;
 
 namespace InvoiceTrackerApi.Services.Quote;
 
@@ -10,10 +8,10 @@ namespace InvoiceTrackerApi.Services.Quote;
 /// </summary>
 public interface IQuoteService
 {
-    Task<PaginatedResponse<QuoteModel>> GetQuotesAsync(int page, int pageSize);
-    Task<QuoteModel> GetQuoteByIdAsync(int id);
-    Task<QuoteModel> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy);
-    Task<QuoteModel> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy);
+    Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int page, int pageSize);
+    Task<QuoteResponse> GetQuoteByIdAsync(int id);
+    Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy);
+    Task<QuoteResponse> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy);
     Task DeleteQuoteAsync(int id);
     Task<string?> GetQuotePdfUrlAsync(int id);
 }

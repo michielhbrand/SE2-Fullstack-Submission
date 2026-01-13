@@ -4,6 +4,7 @@ using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.Client;
 using InvoiceTrackerApi.Services.Invoice;
+using InvoiceTrackerApi.Services.PdfStorage;
 using InvoiceTrackerApi.Services.Quote;
 using InvoiceTrackerApi.Services.Template;
 using InvoiceTrackerApi.Repositories.Client;
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
+builder.Services.AddScoped<IPdfStorageService, PdfStorageService>();
 
 // Add Kafka Producer Service
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();

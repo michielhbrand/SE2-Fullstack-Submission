@@ -8,18 +8,10 @@ namespace InvoiceTrackerApi.Repositories.Template;
 /// <summary>
 /// Repository implementation for Template data access
 /// </summary>
-public class TemplateRepository : ITemplateRepository
+public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public TemplateRepository(ApplicationDbContext context)
+    public TemplateRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
-    }
-
-    public async Task<TemplateModel?> GetByIdAsync(int id)
-    {
-        return await _context.Templates.FindAsync(id);
     }
 
     public async Task<TemplateModel?> GetByNameAndVersionAsync(string name, int version)
@@ -40,23 +32,5 @@ public class TemplateRepository : ITemplateRepository
     public async Task<int> GetTotalCountAsync()
     {
         return await _context.Templates.CountAsync();
-    }
-
-    public async Task<TemplateModel> AddAsync(TemplateModel template)
-    {
-        _context.Templates.Add(template);
-        await _context.SaveChangesAsync();
-        return template;
-    }
-
-    public async Task DeleteAsync(TemplateModel template)
-    {
-        _context.Templates.Remove(template);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Templates.AnyAsync(t => t.Id == id);
     }
 }

@@ -67,7 +67,7 @@ public static class MappingExtensions
             Id = item.Id,
             InvoiceId = item.InvoiceId,
             Description = item.Description,
-            Quantity = item.Amount,
+            Quantity = item.Quantity,
             UnitPrice = item.PricePerUnit,
             Total = item.TotalPrice
         };
@@ -82,7 +82,7 @@ public static class MappingExtensions
             Items = request.Items.Select(i => new InvoiceItem
             {
                 Description = i.Description,
-                Amount = (int)i.Quantity,
+                Quantity = i.Quantity,
                 PricePerUnit = i.UnitPrice
             }).ToList()
         };
@@ -113,7 +113,7 @@ public static class MappingExtensions
             Id = item.Id,
             QuoteId = item.QuoteId,
             Description = item.Description,
-            Quantity = item.Amount,
+            Quantity = item.Quantity,
             UnitPrice = item.PricePerUnit,
             Total = item.TotalPrice
         };
@@ -128,7 +128,7 @@ public static class MappingExtensions
             Items = request.Items.Select(i => new QuoteItem
             {
                 Description = i.Description,
-                Amount = (int)i.Quantity,
+                Quantity = i.Quantity,
                 PricePerUnit = i.UnitPrice
             }).ToList()
         };

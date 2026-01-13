@@ -41,9 +41,6 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasMany(e => e.Items);
-                // .WithOne(e => e.Invoice)
-                // .HasForeignKey(e => e.InvoiceId)
-                // .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure InvoiceItem entity
@@ -57,10 +54,7 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasMany(e => e.Items);
-                // .WithOne(e => e.Quote)
-                // .HasForeignKey(e => e.QuoteId)
-                // .OnDelete(DeleteBehavior.Cascade);
-        });
+         });
 
         // Configure QuoteItem entity
         modelBuilder.Entity<QuoteItem>(entity =>

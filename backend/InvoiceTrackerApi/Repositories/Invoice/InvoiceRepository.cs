@@ -8,18 +8,10 @@ namespace InvoiceTrackerApi.Repositories.Invoice;
 /// <summary>
 /// Repository implementation for Invoice data access
 /// </summary>
-public class InvoiceRepository : IInvoiceRepository
+public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public InvoiceRepository(ApplicationDbContext context)
+    public InvoiceRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
-    }
-
-    public async Task<InvoiceModel?> GetByIdAsync(int id)
-    {
-        return await _context.Invoices.FindAsync(id);
     }
 
     public async Task<InvoiceModel?> GetByIdWithDetailsAsync(int id)
@@ -44,29 +36,5 @@ public class InvoiceRepository : IInvoiceRepository
     public async Task<int> GetTotalCountAsync()
     {
         return await _context.Invoices.CountAsync();
-    }
-
-    public async Task<InvoiceModel> AddAsync(InvoiceModel invoice)
-    {
-        _context.Invoices.Add(invoice);
-        await _context.SaveChangesAsync();
-        return invoice;
-    }
-
-    public async Task UpdateAsync(InvoiceModel invoice)
-    {
-        _context.Invoices.Update(invoice);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(InvoiceModel invoice)
-    {
-        _context.Invoices.Remove(invoice);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Invoices.AnyAsync(i => i.Id == id);
     }
 }

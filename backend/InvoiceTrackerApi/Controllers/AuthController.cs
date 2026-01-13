@@ -1,11 +1,17 @@
+using InvoiceTrackerApi.DTOs.Requests;
 using InvoiceTrackerApi.Services.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceTrackerApi.Controllers;
 
+/// <summary>
+/// Controller for authentication and user management operations
+/// </summary>
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+[Produces("application/json")]
+public class AuthController : AuthenticatedControllerBase
 {
     private readonly IKeycloakAuthService _keycloakAuthService;
     private readonly ILogger<AuthController> _logger;
@@ -18,7 +24,16 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Authenticate a user and return access tokens
+    /// </summary>
+    /// <param name="request">Login credentials</param>
+    /// <returns>Access and refresh tokens</returns>
     [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -48,7 +63,16 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Authenticate an admin user and return access tokens
+    /// </summary>
+    /// <param name="request">Admin login credentials</param>
+    /// <returns>Access and refresh tokens</returns>
     [HttpPost("admin/login")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AdminLogin([FromBody] LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -78,7 +102,15 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Logout a user by invalidating their refresh token
+    /// </summary>
+    /// <param name="request">Logout request containing refresh token</param>
+    /// <returns>Success message</returns>
     [HttpPost("logout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
@@ -101,16 +133,18 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Logout successful" });
     }
 
+    /// <summary>
+    /// Get all users (admin only)
+    /// </summary>
+    /// <returns>List of all users</returns>
     [HttpGet("admin/users")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAllUsers()
     {
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
-        {
-            return Unauthorized(new { error = "Authorization token required" });
-        }
-
-        var token = authHeader.Substring("Bearer ".Length).Trim();
+        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
         
         _logger.LogInformation("Fetching all users");
 
@@ -119,16 +153,21 @@ public class AuthController : ControllerBase
         return Ok(users);
     }
 
+    /// <summary>
+    /// Update user role (admin only)
+    /// </summary>
+    /// <param name="userId">User ID to update</param>
+    /// <param name="request">Role update request</param>
+    /// <returns>Success message</returns>
     [HttpPut("admin/users/{userId}/role")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateUserRole(string userId, [FromBody] UpdateRoleRequest request)
     {
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
-        {
-            return Unauthorized(new { error = "Authorization token required" });
-        }
-
-        var token = authHeader.Substring("Bearer ".Length).Trim();
+        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
         
         _logger.LogInformation("Updating role for user: {UserId} to isAdmin: {IsAdmin}", userId, request.IsAdmin);
 
@@ -144,20 +183,4 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "User role updated successfully" });
     }
-}
-
-public class LoginRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public class LogoutRequest
-{
-    public string RefreshToken { get; set; } = string.Empty;
-}
-
-public class UpdateRoleRequest
-{
-    public bool IsAdmin { get; set; }
 }

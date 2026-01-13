@@ -13,7 +13,7 @@ namespace InvoiceTrackerApi.Controllers;
 [Route("api/client")]
 [Produces("application/json")]
 [Authorize]
-public class ClientController : ControllerBase
+public class ClientController : AuthenticatedControllerBase
 {
     private readonly IClientService _clientService;
     private readonly ILogger<ClientController> _logger;
@@ -74,9 +74,7 @@ public class ClientController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var client = await _clientService.CreateClientAsync(request, userEmail);
 
@@ -101,9 +99,7 @@ public class ClientController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var client = await _clientService.UpdateClientAsync(id, request, userEmail);
 

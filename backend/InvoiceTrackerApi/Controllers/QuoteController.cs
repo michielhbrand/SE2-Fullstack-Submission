@@ -12,7 +12,7 @@ namespace InvoiceTrackerApi.Controllers;
 [Route("api/quote")]
 [Produces("application/json")]
 [Authorize]
-public class QuoteController : ControllerBase
+public class QuoteController : AuthenticatedControllerBase
 {
     private readonly IQuoteService _quoteService;
     private readonly ITemplateService _templateService;
@@ -104,9 +104,7 @@ public class QuoteController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var quote = await _quoteService.CreateQuoteAsync(request, userEmail);
 
@@ -131,9 +129,7 @@ public class QuoteController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                       ?? User.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                       ?? "system";
+        var userEmail = GetCurrentUserIdentifier();
 
         var quote = await _quoteService.UpdateQuoteAsync(id, request, userEmail);
 
