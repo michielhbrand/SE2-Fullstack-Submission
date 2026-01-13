@@ -8,7 +8,7 @@ This system implements asynchronous PDF generation for invoices using a microser
 
 ```
 ┌─────────────┐      ┌──────────┐      ┌────────────────────┐      ┌────────┐
-│   Frontend  │─────▶│ AuthApi  │─────▶│  Kafka (invoice-   │─────▶│ MinIO  │
+│   Frontend  │─────▶│ InvoiceTrackerApi  │─────▶│  Kafka (invoice-   │─────▶│ MinIO  │
 │     (UI)    │      │          │      │  created topic)    │      │Storage │
 └─────────────┘      └──────────┘      └────────────────────┘      └────────┘
                            │                      │                      ▲
@@ -27,8 +27,8 @@ This system implements asynchronous PDF generation for invoices using a microser
 ## Workflow
 
 1. **Invoice Creation**: User creates an invoice through the UI
-2. **Database Storage**: AuthApi stores invoice details in PostgreSQL
-3. **Event Publishing**: AuthApi publishes an `invoice-created` event to Kafka
+2. **Database Storage**: InvoiceTrackerApi stores invoice details in PostgreSQL
+3. **Event Publishing**: InvoiceTrackerApi publishes an `invoice-created` event to Kafka
 4. **Event Consumption**: PdfGeneratorService consumes the event
 5. **PDF Generation**: Service generates PDF from HTML template using PuppeteerSharp
 6. **Storage**: PDF is uploaded to MinIO object storage
@@ -36,17 +36,17 @@ This system implements asynchronous PDF generation for invoices using a microser
 
 ## Components
 
-### 1. AuthApi (Port 5000)
+### 1. InvoiceTrackerApi (Port 5000)
 - Main API service handling invoice CRUD operations
 - Publishes Kafka events when invoices are created
 - **New Files**:
-  - [`Services/IKafkaProducerService.cs`](backend/AuthApi/Services/IKafkaProducerService.cs)
-  - [`Services/KafkaProducerService.cs`](backend/AuthApi/Services/KafkaProducerService.cs)
+  - [`Services/IKafkaProducerService.cs`](backend/InvoiceTrackerApi/Services/IKafkaProducerService.cs)
+  - [`Services/KafkaProducerService.cs`](backend/InvoiceTrackerApi/Services/KafkaProducerService.cs)
 - **Modified Files**:
-  - [`Models/Invoice.cs`](backend/AuthApi/Models/Invoice.cs) - Added `PdfStorageKey` field
-  - [`Controllers/InvoiceController.cs`](backend/AuthApi/Controllers/InvoiceController.cs) - Integrated Kafka producer
-  - [`Program.cs`](backend/AuthApi/Program.cs) - Registered Kafka service
-  - [`appsettings.json`](backend/AuthApi/appsettings.json) - Added Kafka configuration
+  - [`Models/Invoice.cs`](backend/InvoiceTrackerApi/Models/Invoice.cs) - Added `PdfStorageKey` field
+  - [`Controllers/InvoiceController.cs`](backend/InvoiceTrackerApi/Controllers/InvoiceController.cs) - Integrated Kafka producer
+  - [`Program.cs`](backend/InvoiceTrackerApi/Program.cs) - Registered Kafka service
+  - [`appsettings.json`](backend/InvoiceTrackerApi/appsettings.json) - Added Kafka configuration
 
 ### 2. PdfGeneratorService (Port 5001)
 - Microservice dedicated to PDF generation
@@ -86,14 +86,14 @@ This starts:
 ### 2. Apply Database Migrations
 
 ```bash
-cd backend/AuthApi
+cd backend/InvoiceTrackerApi
 dotnet ef database update
 ```
 
-### 3. Start AuthApi
+### 3. Start InvoiceTrackerApi
 
 ```bash
-cd backend/AuthApi
+cd backend/InvoiceTrackerApi
 dotnet run
 ```
 
@@ -120,7 +120,7 @@ The UI will be available at `http://localhost:5173`
 
 ## Configuration
 
-### AuthApi Configuration ([`appsettings.json`](backend/AuthApi/appsettings.json))
+### InvoiceTrackerApi Configuration ([`appsettings.json`](backend/InvoiceTrackerApi/appsettings.json))
 
 ```json
 {
@@ -161,7 +161,7 @@ The UI will be available at `http://localhost:5173`
 
 ### 2. Monitor the Process
 
-**Check AuthApi logs:**
+**Check InvoiceTrackerApi logs:**
 ```
 Invoice {InvoiceId} created by {User}
 Invoice created event published to Kafka...
@@ -195,7 +195,7 @@ WHERE PdfStorageKey IS NOT NULL;
 
 ## API Endpoints
 
-### AuthApi
+### InvoiceTrackerApi
 
 - `POST /api/Invoice` - Create new invoice (triggers PDF generation)
 - `GET /api/Invoice` - List all invoices
@@ -227,7 +227,7 @@ Added new column:
 
 ## Dependencies
 
-### AuthApi
+### InvoiceTrackerApi
 - `Confluent.Kafka` (2.13.0) - Kafka producer
 
 ### PdfGeneratorService

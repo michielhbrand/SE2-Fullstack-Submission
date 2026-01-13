@@ -13,7 +13,7 @@ A complete full-stack microservices application with Vue.js frontend, .NET Web A
 - **Authentication**: OAuth2.0 via Keycloak
 
 ### Backend Services
-- **AuthApi**: Main .NET 8.0 Web API
+- **InvoiceTrackerApi**: Main .NET 8.0 Web API
   - JWT Bearer authentication with Keycloak
   - Invoice, Client, Quote, and Template management (CRUD operations)
   - Kafka event producer
@@ -36,7 +36,7 @@ A complete full-stack microservices application with Vue.js frontend, .NET Web A
 ### Message Broker & Storage
 - **Message Broker**: Apache Kafka with Zookeeper
 - **Object Storage**: MinIO (S3-compatible)
-- **Database**: PostgreSQL (shared by AuthApi and PdfGeneratorService)
+- **Database**: PostgreSQL (shared by InvoiceTrackerApi and PdfGeneratorService)
 
 ### Infrastructure
 - **Container Runtime**: Rancher Desktop (instead of Docker Desktop)
@@ -64,7 +64,7 @@ Minimal-FullStack-V1/
 │       │   └── lib/            # Utility functions
 │       └── ...
 ├── backend/
-│   ├── AuthApi/                # Main .NET Web API
+│   ├── InvoiceTrackerApi/                # Main .NET Web API
 │   │   ├── Controllers/        # API controllers
 │   │   ├── DTOs/               # Data Transfer Objects (API contracts)
 │   │   ├── Mappers/            # Model ↔ DTO mapping extensions
@@ -143,15 +143,15 @@ curl http://localhost:9001          # MinIO Console
 ### 3. Apply Database Migrations
 
 ```bash
-cd backend/AuthApi
+cd backend/InvoiceTrackerApi
 dotnet ef database update
 ```
 
 ### 4. Start Backend Services
 
-**Start AuthApi (Main API):**
+**Start InvoiceTrackerApi (Main API):**
 ```bash
-cd backend/AuthApi
+cd backend/InvoiceTrackerApi
 dotnet restore
 dotnet run
 ```
@@ -276,7 +276,7 @@ VITE_KEYCLOAK_CLIENT_ID=frontend-app
 
 ### Backend Configuration
 
-Edit [`backend/AuthApi/appsettings.json`](backend/AuthApi/appsettings.json):
+Edit [`backend/InvoiceTrackerApi/appsettings.json`](backend/InvoiceTrackerApi/appsettings.json):
 ```json
 {
   "Keycloak": {
@@ -384,7 +384,7 @@ cd frontend/app
 npm run generate:api
 
 # Or from the backend directory
-cd backend/AuthApi
+cd backend/InvoiceTrackerApi
 ./generate-client.sh
 ```
 
@@ -431,7 +431,7 @@ docker-compose down -v
 
 ### Port Configuration
 - Frontend: 5173 (Vite default)
-- AuthApi: 5000 (.NET default)
+- InvoiceTrackerApi: 5000 (.NET default)
 - PdfGeneratorService: 5001
 - Keycloak: 9090 (custom, not default 9000)
 - PostgreSQL: 5432

@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthApi", "backend\AuthApi\AuthApi.csproj", "{30028432-F7ED-EC51-BC88-73EB527A3153}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceTrackerApi", "backend\InvoiceTrackerApi\InvoiceTrackerApi.csproj", "{30028432-F7ED-EC51-BC88-73EB527A3153}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfGeneratorService", "backend\PdfGeneratorService\PdfGeneratorService.csproj", "{8B4C9D7E-2A3F-4E5D-9C1B-6F8A3D2E5C4A}"
 EndProject

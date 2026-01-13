@@ -1,0 +1,32 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+
+namespace InvoiceTrackerApi.Models;
+
+public class QuoteItem
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    public int QuoteId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Description { get; set; } = string.Empty;
+
+    [Required]
+    public int Amount { get; set; }
+
+    [Required]
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PricePerUnit { get; set; }
+
+    [NotMapped]
+    public decimal TotalPrice => Amount * PricePerUnit;
+
+    // Navigation property - ignore during serialization to prevent circular references
+    // [JsonIgnore]
+    // public Quote Quote { get; set; } = null!;
+}

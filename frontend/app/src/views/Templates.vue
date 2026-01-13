@@ -51,7 +51,7 @@ const previewTemplateHandler = async (template: any) => {
   previewUrl.value = null
   
   try {
-    // Get preview URL from AuthApi
+    // Get preview URL from InvoiceTrackerApi
     const response = await templateApi.getPreviewUrl(template.id)
     previewUrl.value = response.url ?? null
   } catch (err: any) {
