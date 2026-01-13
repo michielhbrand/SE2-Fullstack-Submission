@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Services.Client;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,9 +32,9 @@ public class ClientController : ControllerBase
     /// <param name="search">Optional search term for name, surname, email, or company</param>
     /// <returns>Paginated list of clients</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedResponse<ClientDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<ClientResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PaginatedResponse<ClientDto>>> GetClients(
+    public async Task<ActionResult<PaginatedResponse<ClientResponse>>> GetClients(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10, 
         [FromQuery] string? search = null)
@@ -48,10 +49,10 @@ public class ClientController : ControllerBase
     /// <param name="id">Client ID</param>
     /// <returns>Client details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ClientDto>> GetClient(int id)
+    public async Task<ActionResult<ClientResponse>> GetClient(int id)
     {
         var client = await _clientService.GetClientByIdAsync(id);
         return Ok(client);
@@ -63,10 +64,10 @@ public class ClientController : ControllerBase
     /// <param name="request">Client creation data</param>
     /// <returns>Created client</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientRequest request)
+    public async Task<ActionResult<ClientResponse>> CreateClient([FromBody] CreateClientRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -89,11 +90,11 @@ public class ClientController : ControllerBase
     /// <param name="request">Updated client data</param>
     /// <returns>Updated client</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientRequest request)
+    public async Task<ActionResult<ClientResponse>> UpdateClient(int id, [FromBody] UpdateClientRequest request)
     {
         if (!ModelState.IsValid)
         {

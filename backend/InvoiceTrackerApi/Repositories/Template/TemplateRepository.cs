@@ -1,8 +1,9 @@
 using InvoiceTrackerApi.Data;
 using InvoiceTrackerApi.Models;
 using Microsoft.EntityFrameworkCore;
+using TemplateModel = InvoiceTrackerApi.Models.Template;
 
-namespace InvoiceTrackerApi.Repositories;
+namespace InvoiceTrackerApi.Repositories.Template;
 
 /// <summary>
 /// Repository implementation for Template data access
@@ -16,18 +17,18 @@ public class TemplateRepository : ITemplateRepository
         _context = context;
     }
 
-    public async Task<Template?> GetByIdAsync(int id)
+    public async Task<TemplateModel?> GetByIdAsync(int id)
     {
         return await _context.Templates.FindAsync(id);
     }
 
-    public async Task<Template?> GetByNameAndVersionAsync(string name, int version)
+    public async Task<TemplateModel?> GetByNameAndVersionAsync(string name, int version)
     {
         return await _context.Templates
             .FirstOrDefaultAsync(t => t.Name == name && t.Version == version);
     }
 
-    public async Task<IEnumerable<Template>> GetAllAsync(int page, int pageSize)
+    public async Task<IEnumerable<TemplateModel>> GetAllAsync(int page, int pageSize)
     {
         return await _context.Templates
             .OrderByDescending(t => t.Created)
@@ -41,14 +42,14 @@ public class TemplateRepository : ITemplateRepository
         return await _context.Templates.CountAsync();
     }
 
-    public async Task<Template> AddAsync(Template template)
+    public async Task<TemplateModel> AddAsync(TemplateModel template)
     {
         _context.Templates.Add(template);
         await _context.SaveChangesAsync();
         return template;
     }
 
-    public async Task DeleteAsync(Template template)
+    public async Task DeleteAsync(TemplateModel template)
     {
         _context.Templates.Remove(template);
         await _context.SaveChangesAsync();

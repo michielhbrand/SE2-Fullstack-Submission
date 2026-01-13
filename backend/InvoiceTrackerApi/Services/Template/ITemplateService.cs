@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
 using TemplateModel = InvoiceTrackerApi.Models.Template;
 
@@ -9,7 +10,7 @@ namespace InvoiceTrackerApi.Services.Template;
 /// </summary>
 public interface ITemplateService
 {
-    Task<PaginatedResponse<TemplateDto>> GetTemplatesAsync(int page, int pageSize);
+    Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int page, int pageSize);
     Task<TemplateModel> GetTemplateByIdAsync(int id);
     Task<TemplateModel> CreateTemplateAsync(CreateTemplateRequest request, string createdBy);
     Task DeleteTemplateAsync(int id);

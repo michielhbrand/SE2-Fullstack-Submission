@@ -1,7 +1,8 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
-using InvoiceTrackerApi.Repositories;
+using InvoiceTrackerApi.Repositories.Client;
 
 namespace InvoiceTrackerApi.Services.Client;
 
@@ -19,7 +20,7 @@ public class ClientService : IClientService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<ClientDto>> GetClientsAsync(int page, int pageSize, string? search = null)
+    public async Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int page, int pageSize, string? search = null)
     {
         // Input validation
         if (page < 1) page = 1;
@@ -30,7 +31,7 @@ public class ClientService : IClientService
         var totalCount = await _clientRepository.GetTotalCountAsync(search);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        return new PaginatedResponse<ClientDto>
+        return new PaginatedResponse<ClientResponse>
         {
             Data = clients.Select(c => c.ToDto()).ToList(),
             Pagination = new PaginationMetadata
@@ -43,7 +44,7 @@ public class ClientService : IClientService
         };
     }
 
-    public async Task<ClientDto> GetClientByIdAsync(int id)
+    public async Task<ClientResponse> GetClientByIdAsync(int id)
     {
         var client = await _clientRepository.GetByIdAsync(id);
 
@@ -55,7 +56,7 @@ public class ClientService : IClientService
         return client.ToDto();
     }
 
-    public async Task<ClientDto> CreateClientAsync(CreateClientRequest request, string modifiedBy)
+    public async Task<ClientResponse> CreateClientAsync(CreateClientRequest request, string modifiedBy)
     {
         // Business rule validation: Check for duplicate email
         var existingClient = await _clientRepository.GetByEmailAsync(request.Email);
@@ -76,7 +77,7 @@ public class ClientService : IClientService
         return createdClient.ToDto();
     }
 
-    public async Task<ClientDto> UpdateClientAsync(int id, UpdateClientRequest request, string modifiedBy)
+    public async Task<ClientResponse> UpdateClientAsync(int id, UpdateClientRequest request, string modifiedBy)
     {
         var existingClient = await _clientRepository.GetByIdAsync(id);
 

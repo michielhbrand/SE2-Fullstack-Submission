@@ -1,7 +1,9 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Models;
-using InvoiceTrackerApi.Repositories;
+using InvoiceTrackerApi.Repositories.Client;
+using InvoiceTrackerApi.Repositories.Quote;
 using QuoteModel = InvoiceTrackerApi.Models.Quote;
 
 namespace InvoiceTrackerApi.Services.Quote;

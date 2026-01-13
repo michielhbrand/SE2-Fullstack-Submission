@@ -307,7 +307,7 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    client_GetClients(page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfClientDto> {
+    client_GetClients(page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfClientResponse> {
         let url_ = this.baseUrl + "/api/client?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
@@ -341,7 +341,7 @@ export class ApiClient {
         });
     }
 
-    protected processClient_GetClients(response: AxiosResponse): Promise<PaginatedResponseOfClientDto> {
+    protected processClient_GetClients(response: AxiosResponse): Promise<PaginatedResponseOfClientResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -356,7 +356,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<PaginatedResponseOfClientDto>(result200);
+            return Promise.resolve<PaginatedResponseOfClientResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -369,10 +369,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<PaginatedResponseOfClientDto>(null as any);
+        return Promise.resolve<PaginatedResponseOfClientResponse>(null as any);
     }
 
-    client_CreateClient(request: CreateClientRequest, cancelToken?: CancelToken): Promise<ClientDto> {
+    client_CreateClient(request: CreateClientRequest, cancelToken?: CancelToken): Promise<ClientResponse> {
         let url_ = this.baseUrl + "/api/client";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -400,7 +400,7 @@ export class ApiClient {
         });
     }
 
-    protected processClient_CreateClient(response: AxiosResponse): Promise<ClientDto> {
+    protected processClient_CreateClient(response: AxiosResponse): Promise<ClientResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -415,7 +415,7 @@ export class ApiClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = JSON.parse(resultData201);
-            return Promise.resolve<ClientDto>(result201);
+            return Promise.resolve<ClientResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -435,10 +435,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ClientDto>(null as any);
+        return Promise.resolve<ClientResponse>(null as any);
     }
 
-    client_GetClient(id: number, cancelToken?: CancelToken): Promise<ClientDto> {
+    client_GetClient(id: number, cancelToken?: CancelToken): Promise<ClientResponse> {
         let url_ = this.baseUrl + "/api/client/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -465,7 +465,7 @@ export class ApiClient {
         });
     }
 
-    protected processClient_GetClient(response: AxiosResponse): Promise<ClientDto> {
+    protected processClient_GetClient(response: AxiosResponse): Promise<ClientResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -480,7 +480,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<ClientDto>(result200);
+            return Promise.resolve<ClientResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -500,10 +500,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ClientDto>(null as any);
+        return Promise.resolve<ClientResponse>(null as any);
     }
 
-    client_UpdateClient(id: number, request: UpdateClientRequest, cancelToken?: CancelToken): Promise<ClientDto> {
+    client_UpdateClient(id: number, request: UpdateClientRequest, cancelToken?: CancelToken): Promise<ClientResponse> {
         let url_ = this.baseUrl + "/api/client/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -534,7 +534,7 @@ export class ApiClient {
         });
     }
 
-    protected processClient_UpdateClient(response: AxiosResponse): Promise<ClientDto> {
+    protected processClient_UpdateClient(response: AxiosResponse): Promise<ClientResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -549,7 +549,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<ClientDto>(result200);
+            return Promise.resolve<ClientResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -576,7 +576,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ClientDto>(null as any);
+        return Promise.resolve<ClientResponse>(null as any);
     }
 
     client_DeleteClient(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -799,7 +799,7 @@ export class ApiClient {
         return Promise.resolve<PaginatedResponseOfInvoice>(null as any);
     }
 
-    invoice_CreateInvoice(request: CreateInvoiceRequest, cancelToken?: CancelToken): Promise<Invoice> {
+    invoice_CreateInvoice(request: CreateInvoiceRequest, cancelToken?: CancelToken): Promise<InvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -827,7 +827,7 @@ export class ApiClient {
         });
     }
 
-    protected processInvoice_CreateInvoice(response: AxiosResponse): Promise<Invoice> {
+    protected processInvoice_CreateInvoice(response: AxiosResponse): Promise<InvoiceResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -842,7 +842,7 @@ export class ApiClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = JSON.parse(resultData201);
-            return Promise.resolve<Invoice>(result201);
+            return Promise.resolve<InvoiceResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -862,7 +862,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Invoice>(null as any);
+        return Promise.resolve<InvoiceResponse>(null as any);
     }
 
     invoice_GetInvoicePdfUrl(id: number, cancelToken?: CancelToken): Promise<PdfUrlResponse> {
@@ -930,7 +930,7 @@ export class ApiClient {
         return Promise.resolve<PdfUrlResponse>(null as any);
     }
 
-    invoice_GetInvoice(id: number, cancelToken?: CancelToken): Promise<Invoice> {
+    invoice_GetInvoice(id: number, cancelToken?: CancelToken): Promise<InvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -957,7 +957,7 @@ export class ApiClient {
         });
     }
 
-    protected processInvoice_GetInvoice(response: AxiosResponse): Promise<Invoice> {
+    protected processInvoice_GetInvoice(response: AxiosResponse): Promise<InvoiceResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -972,7 +972,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<Invoice>(result200);
+            return Promise.resolve<InvoiceResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -992,10 +992,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Invoice>(null as any);
+        return Promise.resolve<InvoiceResponse>(null as any);
     }
 
-    invoice_UpdateInvoice(id: number, request: UpdateInvoiceRequest, cancelToken?: CancelToken): Promise<Invoice> {
+    invoice_UpdateInvoice(id: number, request: UpdateInvoiceRequest, cancelToken?: CancelToken): Promise<InvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1026,7 +1026,7 @@ export class ApiClient {
         });
     }
 
-    protected processInvoice_UpdateInvoice(response: AxiosResponse): Promise<Invoice> {
+    protected processInvoice_UpdateInvoice(response: AxiosResponse): Promise<InvoiceResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1041,7 +1041,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<Invoice>(result200);
+            return Promise.resolve<InvoiceResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1068,7 +1068,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Invoice>(null as any);
+        return Promise.resolve<InvoiceResponse>(null as any);
     }
 
     invoice_DeleteInvoice(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -1184,7 +1184,7 @@ export class ApiClient {
         return Promise.resolve<string[]>(null as any);
     }
 
-    quote_GetQuotes(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuote> {
+    quote_GetQuotes(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
         let url_ = this.baseUrl + "/api/quote?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
@@ -1216,7 +1216,7 @@ export class ApiClient {
         });
     }
 
-    protected processQuote_GetQuotes(response: AxiosResponse): Promise<PaginatedResponseOfQuote> {
+    protected processQuote_GetQuotes(response: AxiosResponse): Promise<PaginatedResponseOfQuoteResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1231,7 +1231,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<PaginatedResponseOfQuote>(result200);
+            return Promise.resolve<PaginatedResponseOfQuoteResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -1244,10 +1244,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<PaginatedResponseOfQuote>(null as any);
+        return Promise.resolve<PaginatedResponseOfQuoteResponse>(null as any);
     }
 
-    quote_CreateQuote(request: CreateQuoteRequest, cancelToken?: CancelToken): Promise<Quote> {
+    quote_CreateQuote(request: CreateQuoteRequest, cancelToken?: CancelToken): Promise<QuoteResponse> {
         let url_ = this.baseUrl + "/api/quote";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1275,7 +1275,7 @@ export class ApiClient {
         });
     }
 
-    protected processQuote_CreateQuote(response: AxiosResponse): Promise<Quote> {
+    protected processQuote_CreateQuote(response: AxiosResponse): Promise<QuoteResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1290,7 +1290,7 @@ export class ApiClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = JSON.parse(resultData201);
-            return Promise.resolve<Quote>(result201);
+            return Promise.resolve<QuoteResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1310,7 +1310,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Quote>(null as any);
+        return Promise.resolve<QuoteResponse>(null as any);
     }
 
     quote_GetQuotePdfUrl(id: number, cancelToken?: CancelToken): Promise<PdfUrlResponse> {
@@ -1378,7 +1378,7 @@ export class ApiClient {
         return Promise.resolve<PdfUrlResponse>(null as any);
     }
 
-    quote_GetQuote(id: number, cancelToken?: CancelToken): Promise<Quote> {
+    quote_GetQuote(id: number, cancelToken?: CancelToken): Promise<QuoteResponse> {
         let url_ = this.baseUrl + "/api/quote/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1405,7 +1405,7 @@ export class ApiClient {
         });
     }
 
-    protected processQuote_GetQuote(response: AxiosResponse): Promise<Quote> {
+    protected processQuote_GetQuote(response: AxiosResponse): Promise<QuoteResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1420,7 +1420,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<Quote>(result200);
+            return Promise.resolve<QuoteResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -1440,10 +1440,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Quote>(null as any);
+        return Promise.resolve<QuoteResponse>(null as any);
     }
 
-    quote_UpdateQuote(id: number, request: UpdateQuoteRequest, cancelToken?: CancelToken): Promise<Quote> {
+    quote_UpdateQuote(id: number, request: UpdateQuoteRequest, cancelToken?: CancelToken): Promise<QuoteResponse> {
         let url_ = this.baseUrl + "/api/quote/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1474,7 +1474,7 @@ export class ApiClient {
         });
     }
 
-    protected processQuote_UpdateQuote(response: AxiosResponse): Promise<Quote> {
+    protected processQuote_UpdateQuote(response: AxiosResponse): Promise<QuoteResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1489,7 +1489,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<Quote>(result200);
+            return Promise.resolve<QuoteResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1516,7 +1516,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Quote>(null as any);
+        return Promise.resolve<QuoteResponse>(null as any);
     }
 
     quote_DeleteQuote(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -1580,7 +1580,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    template_GetTemplates(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateDto> {
+    template_GetTemplates(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateResponse> {
         let url_ = this.baseUrl + "/api/template?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
@@ -1612,7 +1612,7 @@ export class ApiClient {
         });
     }
 
-    protected processTemplate_GetTemplates(response: AxiosResponse): Promise<PaginatedResponseOfTemplateDto> {
+    protected processTemplate_GetTemplates(response: AxiosResponse): Promise<PaginatedResponseOfTemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1627,16 +1627,16 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<PaginatedResponseOfTemplateDto>(result200);
+            return Promise.resolve<PaginatedResponseOfTemplateResponse>(result200);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<PaginatedResponseOfTemplateDto>(null as any);
+        return Promise.resolve<PaginatedResponseOfTemplateResponse>(null as any);
     }
 
-    template_CreateTemplate(request: CreateTemplateRequest, cancelToken?: CancelToken): Promise<Template> {
+    template_CreateTemplate(request: CreateTemplateRequest, cancelToken?: CancelToken): Promise<TemplateResponse> {
         let url_ = this.baseUrl + "/api/template";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1664,7 +1664,7 @@ export class ApiClient {
         });
     }
 
-    protected processTemplate_CreateTemplate(response: AxiosResponse): Promise<Template> {
+    protected processTemplate_CreateTemplate(response: AxiosResponse): Promise<TemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1679,7 +1679,7 @@ export class ApiClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = JSON.parse(resultData201);
-            return Promise.resolve<Template>(result201);
+            return Promise.resolve<TemplateResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1699,10 +1699,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Template>(null as any);
+        return Promise.resolve<TemplateResponse>(null as any);
     }
 
-    template_GetTemplate(id: number, cancelToken?: CancelToken): Promise<Template> {
+    template_GetTemplate(id: number, cancelToken?: CancelToken): Promise<TemplateResponse> {
         let url_ = this.baseUrl + "/api/template/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1729,7 +1729,7 @@ export class ApiClient {
         });
     }
 
-    protected processTemplate_GetTemplate(response: AxiosResponse): Promise<Template> {
+    protected processTemplate_GetTemplate(response: AxiosResponse): Promise<TemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1744,7 +1744,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<Template>(result200);
+            return Promise.resolve<TemplateResponse>(result200);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -1757,7 +1757,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<Template>(null as any);
+        return Promise.resolve<TemplateResponse>(null as any);
     }
 
     template_DeleteTemplate(id: number, cancelToken?: CancelToken): Promise<void> {
@@ -1886,12 +1886,12 @@ export interface UpdateRoleRequest {
     isAdmin?: boolean;
 }
 
-export interface PaginatedResponseOfClientDto {
-    data?: ClientDto[];
+export interface PaginatedResponseOfClientResponse {
+    data?: ClientResponse[];
     pagination?: PaginationMetadata;
 }
 
-export interface ClientDto {
+export interface ClientResponse {
     id?: number;
     name?: string;
     surname?: string;
@@ -1987,6 +1987,28 @@ export interface PdfUrlResponse {
     url?: string;
 }
 
+export interface InvoiceResponse {
+    id?: number;
+    clientId?: number;
+    client?: ClientResponse | null;
+    dateCreated?: Date;
+    notificationSent?: boolean;
+    lastModifiedDate?: Date | null;
+    modifiedBy?: string | null;
+    pdfStorageKey?: string | null;
+    templateId?: string | null;
+    items?: InvoiceItemResponse[];
+}
+
+export interface InvoiceItemResponse {
+    id?: number;
+    invoiceId?: number;
+    description?: string;
+    quantity?: number;
+    unitPrice?: number;
+    total?: number;
+}
+
 export interface CreateInvoiceRequest {
     clientId: number;
     templateId?: string | null;
@@ -2006,31 +2028,31 @@ export interface UpdateInvoiceRequest {
     items: CreateInvoiceItemRequest[];
 }
 
-export interface PaginatedResponseOfQuote {
-    data?: Quote[];
+export interface PaginatedResponseOfQuoteResponse {
+    data?: QuoteResponse[];
     pagination?: PaginationMetadata;
 }
 
-export interface Quote {
+export interface QuoteResponse {
     id?: number;
-    clientId: number;
-    client?: Client | null;
-    dateCreated: Date;
+    clientId?: number;
+    client?: ClientResponse | null;
+    dateCreated?: Date;
     notificationSent?: boolean;
     lastModifiedDate?: Date | null;
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
     templateId?: string | null;
-    items?: QuoteItem[];
+    items?: QuoteItemResponse[];
 }
 
-export interface QuoteItem {
+export interface QuoteItemResponse {
     id?: number;
-    quoteId: number;
-    description: string;
-    amount: number;
-    pricePerUnit: number;
-    totalPrice?: number;
+    quoteId?: number;
+    description?: string;
+    quantity?: number;
+    unitPrice?: number;
+    total?: number;
 }
 
 export interface CreateQuoteRequest {
@@ -2052,27 +2074,18 @@ export interface UpdateQuoteRequest {
     items: CreateQuoteItemRequest[];
 }
 
-export interface PaginatedResponseOfTemplateDto {
-    data?: TemplateDto[];
+export interface PaginatedResponseOfTemplateResponse {
+    data?: TemplateResponse[];
     pagination?: PaginationMetadata;
 }
 
-export interface TemplateDto {
+export interface TemplateResponse {
     id?: number;
     name?: string;
     version?: number;
     storageKey?: string;
     created?: Date;
     createdBy?: string;
-}
-
-export interface Template {
-    id?: number;
-    createdBy: string;
-    created: Date;
-    version: number;
-    name: string;
-    storageKey: string;
 }
 
 export interface CreateTemplateRequest {

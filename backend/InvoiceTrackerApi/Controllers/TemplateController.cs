@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
-using InvoiceTrackerApi.DTOs;
 using InvoiceTrackerApi.Services.Template;
 using System.Security.Claims;
 
@@ -31,8 +32,8 @@ public class TemplateController : ControllerBase
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
     /// <returns>Paginated list of templates</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedResponse<TemplateDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PaginatedResponse<TemplateDto>>> GetTemplates(
+    [ProducesResponseType(typeof(PaginatedResponse<TemplateResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PaginatedResponse<TemplateResponse>>> GetTemplates(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -46,9 +47,9 @@ public class TemplateController : ControllerBase
     /// <param name="id">Template ID</param>
     /// <returns>Template details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Template), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TemplateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Template>> GetTemplate(int id)
+    public async Task<ActionResult<TemplateResponse>> GetTemplate(int id)
     {
         var template = await _templateService.GetTemplateByIdAsync(id);
         return Ok(template);
@@ -60,10 +61,10 @@ public class TemplateController : ControllerBase
     /// <param name="request">Template creation data</param>
     /// <returns>Created template</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(Template), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(TemplateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<Template>> CreateTemplate([FromBody] CreateTemplateRequest request)
+    public async Task<ActionResult<TemplateResponse>> CreateTemplate([FromBody] CreateTemplateRequest request)
     {
         if (!ModelState.IsValid)
         {

@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Quote;
 using InvoiceTrackerApi.Services.Template;
@@ -47,9 +48,9 @@ public class QuoteController : ControllerBase
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
     /// <returns>Paginated list of quotes</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedResponse<Quote>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<QuoteResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PaginatedResponse<Quote>>> GetQuotes(
+    public async Task<ActionResult<PaginatedResponse<QuoteResponse>>> GetQuotes(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10)
     {
@@ -78,10 +79,10 @@ public class QuoteController : ControllerBase
     /// <param name="id">Quote ID</param>
     /// <returns>Quote details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Quote), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(QuoteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Quote>> GetQuote(int id)
+    public async Task<ActionResult<QuoteResponse>> GetQuote(int id)
     {
         var quote = await _quoteService.GetQuoteByIdAsync(id);
         return Ok(quote);
@@ -93,10 +94,10 @@ public class QuoteController : ControllerBase
     /// <param name="request">Quote creation data</param>
     /// <returns>Created quote</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(Quote), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(QuoteResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Quote>> CreateQuote([FromBody] CreateQuoteRequest request)
+    public async Task<ActionResult<QuoteResponse>> CreateQuote([FromBody] CreateQuoteRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -119,11 +120,11 @@ public class QuoteController : ControllerBase
     /// <param name="request">Updated quote data</param>
     /// <returns>Updated quote</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(Quote), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(QuoteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Quote>> UpdateQuote(int id, [FromBody] UpdateQuoteRequest request)
+    public async Task<ActionResult<QuoteResponse>> UpdateQuote(int id, [FromBody] UpdateQuoteRequest request)
     {
         if (!ModelState.IsValid)
         {

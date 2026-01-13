@@ -6,7 +6,10 @@ using InvoiceTrackerApi.Services.Client;
 using InvoiceTrackerApi.Services.Invoice;
 using InvoiceTrackerApi.Services.Quote;
 using InvoiceTrackerApi.Services.Template;
-using InvoiceTrackerApi.Repositories;
+using InvoiceTrackerApi.Repositories.Client;
+using InvoiceTrackerApi.Repositories.Invoice;
+using InvoiceTrackerApi.Repositories.Quote;
+using InvoiceTrackerApi.Repositories.Template;
 
 var builder = WebApplication.CreateBuilder(args);
 

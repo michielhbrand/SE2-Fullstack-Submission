@@ -1,8 +1,9 @@
 using InvoiceTrackerApi.Data;
 using InvoiceTrackerApi.Models;
 using Microsoft.EntityFrameworkCore;
+using QuoteModel = InvoiceTrackerApi.Models.Quote;
 
-namespace InvoiceTrackerApi.Repositories;
+namespace InvoiceTrackerApi.Repositories.Quote;
 
 /// <summary>
 /// Repository implementation for Quote data access
@@ -16,12 +17,12 @@ public class QuoteRepository : IQuoteRepository
         _context = context;
     }
 
-    public async Task<Quote?> GetByIdAsync(int id)
+    public async Task<QuoteModel?> GetByIdAsync(int id)
     {
         return await _context.Quotes.FindAsync(id);
     }
 
-    public async Task<Quote?> GetByIdWithDetailsAsync(int id)
+    public async Task<QuoteModel?> GetByIdWithDetailsAsync(int id)
     {
         return await _context.Quotes
             .Include(q => q.Items)
@@ -29,7 +30,7 @@ public class QuoteRepository : IQuoteRepository
             .FirstOrDefaultAsync(q => q.Id == id);
     }
 
-    public async Task<IEnumerable<Quote>> GetAllAsync(int page, int pageSize)
+    public async Task<IEnumerable<QuoteModel>> GetAllAsync(int page, int pageSize)
     {
         return await _context.Quotes
             .Include(q => q.Items)
@@ -45,20 +46,20 @@ public class QuoteRepository : IQuoteRepository
         return await _context.Quotes.CountAsync();
     }
 
-    public async Task<Quote> AddAsync(Quote quote)
+    public async Task<QuoteModel> AddAsync(QuoteModel quote)
     {
         _context.Quotes.Add(quote);
         await _context.SaveChangesAsync();
         return quote;
     }
 
-    public async Task UpdateAsync(Quote quote)
+    public async Task UpdateAsync(QuoteModel quote)
     {
         _context.Quotes.Update(quote);
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Quote quote)
+    public async Task DeleteAsync(QuoteModel quote)
     {
         _context.Quotes.Remove(quote);
         await _context.SaveChangesAsync();

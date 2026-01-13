@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Invoice;
 using InvoiceTrackerApi.Services.Template;
@@ -78,10 +79,10 @@ public class InvoiceController : ControllerBase
     /// <param name="id">Invoice ID</param>
     /// <returns>Invoice details</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Invoice), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Invoice>> GetInvoice(int id)
+    public async Task<ActionResult<InvoiceResponse>> GetInvoice(int id)
     {
         var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
         return Ok(invoice);
@@ -93,10 +94,10 @@ public class InvoiceController : ControllerBase
     /// <param name="request">Invoice creation data</param>
     /// <returns>Created invoice</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(Invoice), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Invoice>> CreateInvoice([FromBody] CreateInvoiceRequest request)
+    public async Task<ActionResult<InvoiceResponse>> CreateInvoice([FromBody] CreateInvoiceRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -119,11 +120,11 @@ public class InvoiceController : ControllerBase
     /// <param name="request">Updated invoice data</param>
     /// <returns>Updated invoice</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(Invoice), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<Invoice>> UpdateInvoice(int id, [FromBody] UpdateInvoiceRequest request)
+    public async Task<ActionResult<InvoiceResponse>> UpdateInvoice(int id, [FromBody] UpdateInvoiceRequest request)
     {
         if (!ModelState.IsValid)
         {

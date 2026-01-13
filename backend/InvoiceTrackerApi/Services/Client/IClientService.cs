@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 
 namespace InvoiceTrackerApi.Services.Client;
 
@@ -7,9 +8,9 @@ namespace InvoiceTrackerApi.Services.Client;
 /// </summary>
 public interface IClientService
 {
-    Task<PaginatedResponse<ClientDto>> GetClientsAsync(int page, int pageSize, string? search = null);
-    Task<ClientDto> GetClientByIdAsync(int id);
-    Task<ClientDto> CreateClientAsync(CreateClientRequest request, string modifiedBy);
-    Task<ClientDto> UpdateClientAsync(int id, UpdateClientRequest request, string modifiedBy);
+    Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int page, int pageSize, string? search = null);
+    Task<ClientResponse> GetClientByIdAsync(int id);
+    Task<ClientResponse> CreateClientAsync(CreateClientRequest request, string modifiedBy);
+    Task<ClientResponse> UpdateClientAsync(int id, UpdateClientRequest request, string modifiedBy);
     Task DeleteClientAsync(int id);
 }

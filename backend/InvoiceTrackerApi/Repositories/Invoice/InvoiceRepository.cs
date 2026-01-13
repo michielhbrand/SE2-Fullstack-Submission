@@ -1,8 +1,9 @@
 using InvoiceTrackerApi.Data;
 using InvoiceTrackerApi.Models;
 using Microsoft.EntityFrameworkCore;
+using InvoiceModel = InvoiceTrackerApi.Models.Invoice;
 
-namespace InvoiceTrackerApi.Repositories;
+namespace InvoiceTrackerApi.Repositories.Invoice;
 
 /// <summary>
 /// Repository implementation for Invoice data access
@@ -16,12 +17,12 @@ public class InvoiceRepository : IInvoiceRepository
         _context = context;
     }
 
-    public async Task<Invoice?> GetByIdAsync(int id)
+    public async Task<InvoiceModel?> GetByIdAsync(int id)
     {
         return await _context.Invoices.FindAsync(id);
     }
 
-    public async Task<Invoice?> GetByIdWithDetailsAsync(int id)
+    public async Task<InvoiceModel?> GetByIdWithDetailsAsync(int id)
     {
         return await _context.Invoices
             .Include(i => i.Items)
@@ -29,7 +30,7 @@ public class InvoiceRepository : IInvoiceRepository
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
-    public async Task<IEnumerable<Invoice>> GetAllAsync(int page, int pageSize)
+    public async Task<IEnumerable<InvoiceModel>> GetAllAsync(int page, int pageSize)
     {
         return await _context.Invoices
             .Include(i => i.Items)
@@ -45,20 +46,20 @@ public class InvoiceRepository : IInvoiceRepository
         return await _context.Invoices.CountAsync();
     }
 
-    public async Task<Invoice> AddAsync(Invoice invoice)
+    public async Task<InvoiceModel> AddAsync(InvoiceModel invoice)
     {
         _context.Invoices.Add(invoice);
         await _context.SaveChangesAsync();
         return invoice;
     }
 
-    public async Task UpdateAsync(Invoice invoice)
+    public async Task UpdateAsync(InvoiceModel invoice)
     {
         _context.Invoices.Update(invoice);
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Invoice invoice)
+    public async Task DeleteAsync(InvoiceModel invoice)
     {
         _context.Invoices.Remove(invoice);
         await _context.SaveChangesAsync();

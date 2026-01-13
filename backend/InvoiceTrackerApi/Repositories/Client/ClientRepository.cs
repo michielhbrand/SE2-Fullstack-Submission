@@ -2,7 +2,9 @@ using InvoiceTrackerApi.Data;
 using InvoiceTrackerApi.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace InvoiceTrackerApi.Repositories;
+using ClientModel = InvoiceTrackerApi.Models.Client;
+
+namespace InvoiceTrackerApi.Repositories.Client;
 
 /// <summary>
 /// Repository implementation for Client data access
@@ -16,18 +18,18 @@ public class ClientRepository : IClientRepository
         _context = context;
     }
 
-    public async Task<Client?> GetByIdAsync(int id)
+    public async Task<ClientModel?> GetByIdAsync(int id)
     {
         return await _context.Clients.FindAsync(id);
     }
 
-    public async Task<Client?> GetByEmailAsync(string email)
+    public async Task<ClientModel?> GetByEmailAsync(string email)
     {
         return await _context.Clients
             .FirstOrDefaultAsync(c => c.Email == email);
     }
 
-    public async Task<IEnumerable<Client>> GetAllAsync(int page, int pageSize, string? search = null)
+    public async Task<IEnumerable<ClientModel>> GetAllAsync(int page, int pageSize, string? search = null)
     {
         var query = _context.Clients.AsQueryable();
 
@@ -66,20 +68,20 @@ public class ClientRepository : IClientRepository
         return await query.CountAsync();
     }
 
-    public async Task<Client> AddAsync(Client client)
+    public async Task<ClientModel> AddAsync(ClientModel client)
     {
         _context.Clients.Add(client);
         await _context.SaveChangesAsync();
         return client;
     }
 
-    public async Task UpdateAsync(Client client)
+    public async Task UpdateAsync(ClientModel client)
     {
         _context.Clients.Update(client);
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Client client)
+    public async Task DeleteAsync(ClientModel client)
     {
         _context.Clients.Remove(client);
         await _context.SaveChangesAsync();

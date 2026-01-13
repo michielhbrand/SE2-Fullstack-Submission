@@ -1,5 +1,6 @@
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Models;
-using InvoiceTrackerApi.DTOs;
 
 namespace InvoiceTrackerApi.Mappers;
 
@@ -9,9 +10,9 @@ namespace InvoiceTrackerApi.Mappers;
 public static class MappingExtensions
 {
     // Client mappings
-    public static ClientDto ToDto(this Client client)
+    public static ClientResponse ToDto(this Client client)
     {
-        return new ClientDto
+        return new ClientResponse
         {
             Id = client.Id,
             Name = client.Name,
@@ -42,9 +43,9 @@ public static class MappingExtensions
     }
 
     // Invoice mappings
-    public static InvoiceDto ToDto(this Invoice invoice)
+    public static InvoiceResponse ToDto(this Invoice invoice)
     {
-        return new InvoiceDto
+        return new InvoiceResponse
         {
             Id = invoice.Id,
             ClientId = invoice.ClientId,
@@ -59,9 +60,9 @@ public static class MappingExtensions
         };
     }
 
-    public static InvoiceItemDto ToDto(this InvoiceItem item)
+    public static InvoiceItemResponse ToDto(this InvoiceItem item)
     {
-        return new InvoiceItemDto
+        return new InvoiceItemResponse
         {
             Id = item.Id,
             InvoiceId = item.InvoiceId,
@@ -88,9 +89,9 @@ public static class MappingExtensions
     }
 
     // Quote mappings
-    public static QuoteDto ToDto(this Quote quote)
+    public static QuoteResponse ToDto(this Quote quote)
     {
-        return new QuoteDto
+        return new QuoteResponse
         {
             Id = quote.Id,
             ClientId = quote.ClientId,
@@ -105,9 +106,9 @@ public static class MappingExtensions
         };
     }
 
-    public static QuoteItemDto ToDto(this QuoteItem item)
+    public static QuoteItemResponse ToDto(this QuoteItem item)
     {
-        return new QuoteItemDto
+        return new QuoteItemResponse
         {
             Id = item.Id,
             QuoteId = item.QuoteId,
@@ -134,9 +135,9 @@ public static class MappingExtensions
     }
 
     // Template mappings
-    public static TemplateDto ToDto(this Template template)
+    public static TemplateResponse ToDto(this Template template)
     {
-        return new TemplateDto
+        return new TemplateResponse
         {
             Id = template.Id,
             Name = template.Name,

@@ -1,7 +1,8 @@
-using InvoiceTrackerApi.DTOs;
+using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Models;
-using InvoiceTrackerApi.Repositories;
+using InvoiceTrackerApi.Repositories.Template;
 using TemplateModel = InvoiceTrackerApi.Models.Template;
 
 namespace InvoiceTrackerApi.Services.Template;
@@ -28,7 +29,7 @@ public class TemplateService : ITemplateService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<TemplateDto>> GetTemplatesAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int page, int pageSize)
     {
         // Input validation
         if (page < 1) page = 1;
@@ -39,9 +40,9 @@ public class TemplateService : ITemplateService
         var totalCount = await _templateRepository.GetTotalCountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        return new PaginatedResponse<TemplateDto>
+        return new PaginatedResponse<TemplateResponse>
         {
-            Data = templates.Select(t => new TemplateDto
+            Data = templates.Select(t => new TemplateResponse
             {
                 Id = t.Id,
                 Name = t.Name,

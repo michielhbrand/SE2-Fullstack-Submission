@@ -1,4 +1,4 @@
-namespace InvoiceTrackerApi.DTOs;
+namespace InvoiceTrackerApi.DTOs.Responses;
 
 /// <summary>
 /// Generic paginated response wrapper
