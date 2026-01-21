@@ -1,4 +1,5 @@
 using InvoiceTrackerApi.DTOs.Requests;
+using InvoiceTrackerApi.DTOs.Responses;
 using InvoiceTrackerApi.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,17 +35,17 @@ public class AuthController : AuthenticatedControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
         var tokenResponse = await _keycloakAuthService.LoginAsync(request.Username, request.Password, false);
 
-        return Ok(new
+        return Ok(new LoginResponse
         {
-            access_token = tokenResponse.AccessToken,
-            refresh_token = tokenResponse.RefreshToken,
-            expires_in = tokenResponse.ExpiresIn,
-            token_type = tokenResponse.TokenType,
-            roles = tokenResponse.Roles
+            Access_token = tokenResponse.AccessToken,
+            Refresh_token = tokenResponse.RefreshToken,
+            Expires_in = tokenResponse.ExpiresIn,
+            Token_type = tokenResponse.TokenType,
+            Roles = tokenResponse.Roles
         });
     }
 
@@ -58,17 +59,41 @@ public class AuthController : AuthenticatedControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> AdminLogin([FromBody] LoginRequest request)
+    public async Task<ActionResult<LoginResponse>> AdminLogin([FromBody] LoginRequest request)
     {
         var tokenResponse = await _keycloakAuthService.LoginAsync(request.Username, request.Password, true);
 
-        return Ok(new
+        return Ok(new LoginResponse
         {
-            access_token = tokenResponse.AccessToken,
-            refresh_token = tokenResponse.RefreshToken,
-            expires_in = tokenResponse.ExpiresIn,
-            token_type = tokenResponse.TokenType,
-            roles = tokenResponse.Roles
+            Access_token = tokenResponse.AccessToken,
+            Refresh_token = tokenResponse.RefreshToken,
+            Expires_in = tokenResponse.ExpiresIn,
+            Token_type = tokenResponse.TokenType,
+            Roles = tokenResponse.Roles
+        });
+    }
+
+    /// <summary>
+    /// Refresh an access token using a refresh token
+    /// </summary>
+    /// <param name="request">Refresh token request</param>
+    /// <returns>New access and refresh tokens</returns>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> RefreshToken([FromBody] LogoutRequest request)
+    {
+        var tokenResponse = await _keycloakAuthService.RefreshTokenAsync(request.RefreshToken);
+
+        return Ok(new LoginResponse
+        {
+            Access_token = tokenResponse.AccessToken,
+            Refresh_token = tokenResponse.RefreshToken,
+            Expires_in = tokenResponse.ExpiresIn,
+            Token_type = tokenResponse.TokenType,
+            Roles = tokenResponse.Roles
         });
     }
 
@@ -93,7 +118,7 @@ public class AuthController : AuthenticatedControllerBase
     /// </summary>
     /// <returns>List of all users</returns>
     [HttpGet("admin/users")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -113,7 +138,7 @@ public class AuthController : AuthenticatedControllerBase
     /// <param name="request">Role update request</param>
     /// <returns>Success message</returns>
     [HttpPut("admin/users/{userId}/role")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -122,8 +147,49 @@ public class AuthController : AuthenticatedControllerBase
     {
         var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-        await _keycloakAuthService.UpdateUserRoleAsync(token, userId, request.IsAdmin);
+        await _keycloakAuthService.UpdateUserRoleAsync(token, userId, request.Role);
 
         return Ok(new { message = "User role updated successfully" });
+    }
+
+    /// <summary>
+    /// Create a new user (admin only)
+    /// </summary>
+    /// <param name="request">User creation request</param>
+    /// <returns>Created user ID</returns>
+    [HttpPost("admin/users")]
+    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+    {
+        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+        // Parse role string to UserRole enum
+        if (!UserRoleExtensions.TryParseRoleString(request.Role, out var role))
+        {
+            return BadRequest(new { message = $"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}" });
+        }
+
+        // Additional protection: Ensure systemAdmin cannot be created
+        if (role == UserRole.SystemAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Cannot create System Admin users through this endpoint" });
+        }
+
+        var userId = await _keycloakAuthService.CreateUserAsync(
+            token,
+            request.Username,
+            request.Email,
+            request.FirstName,
+            request.LastName,
+            request.Password,
+            role
+        );
+
+        return StatusCode(StatusCodes.Status201Created, new { userId, message = "User created successfully" });
     }
 }

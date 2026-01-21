@@ -45,7 +45,7 @@ public class KeycloakAuthService : IKeycloakAuthService
         // Validate input
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            throw new InvoiceTrackerApi.Exceptions.ValidationException("Username and password are required");
+            throw new Exceptions.ValidationException("Username and password are required");
         }
 
         try
@@ -72,7 +72,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Login failed for user: {Username}. Status: {Status}", username, response.StatusCode);
-                throw new InvoiceTrackerApi.Exceptions.UnauthorizedException("Invalid username or password");
+                throw new Exceptions.UnauthorizedException("Invalid username or password");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -84,17 +84,17 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (keycloakResponse == null)
             {
                 _logger.LogError("Failed to deserialize Keycloak token response");
-                throw new InvoiceTrackerApi.Exceptions.InfrastructureException("Authentication service returned invalid response");
+                throw new Exceptions.InfrastructureException("Authentication service returned invalid response");
             }
 
             // Extract roles from token
             var roles = ExtractRolesFromToken(keycloakResponse.Access_Token);
             
-            // If admin login, verify user has admin role
-            if (isAdminLogin && !roles.Contains("admin"))
+            // If admin login, verify user has orgAdmin or systemAdmin role
+            if (isAdminLogin && !roles.Contains(UserRole.OrgAdmin.ToRoleString()) && !roles.Contains(UserRole.SystemAdmin.ToRoleString()))
             {
                 _logger.LogWarning("User {Username} attempted admin login without admin role", username);
-                throw new InvoiceTrackerApi.Exceptions.ForbiddenException("User does not have admin privileges");
+                throw new Exceptions.ForbiddenException("User does not have admin privileges");
             }
 
             _logger.LogInformation("Login successful for user: {Username} with roles: {Roles}", username, string.Join(", ", roles));
@@ -108,7 +108,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                 Roles = roles
             };
         }
-        catch (InvoiceTrackerApi.Exceptions.AppException)
+        catch (Exceptions.AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -116,12 +116,87 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during login for user: {Username}", username);
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during login for user: {Username}", username);
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("An unexpected error occurred during authentication", ex);
+            throw new Exceptions.InfrastructureException("An unexpected error occurred during authentication", ex);
+        }
+    }
+
+    public async Task<TokenResponse> RefreshTokenAsync(string refreshToken)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            throw new Exceptions.ValidationException("Refresh token is required");
+        }
+
+        try
+        {
+            var tokenEndpoint = $"{_keycloakUrl}/realms/{_realm}/protocol/openid-connect/token";
+            
+            var requestData = new Dictionary<string, string>
+            {
+                { "client_id", _clientId },
+                { "grant_type", "refresh_token" },
+                { "refresh_token", refreshToken }
+            };
+
+            var content = new FormUrlEncodedContent(requestData);
+            
+            _logger.LogInformation("Attempting to refresh token");
+            
+            var response = await _httpClient.PostAsync(tokenEndpoint, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Token refresh failed. Status: {Status}", response.StatusCode);
+                throw new Exceptions.UnauthorizedException("Refresh token is invalid or expired");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var keycloakResponse = JsonSerializer.Deserialize<KeycloakTokenResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (keycloakResponse == null)
+            {
+                _logger.LogError("Failed to deserialize Keycloak token response");
+                throw new Exceptions.InfrastructureException("Authentication service returned invalid response");
+            }
+
+            // Extract roles from token
+            var roles = ExtractRolesFromToken(keycloakResponse.Access_Token);
+            
+            _logger.LogInformation("Token refresh successful with roles: {Roles}", string.Join(", ", roles));
+
+            return new TokenResponse
+            {
+                AccessToken = keycloakResponse.Access_Token,
+                RefreshToken = keycloakResponse.Refresh_Token,
+                ExpiresIn = keycloakResponse.Expires_In,
+                TokenType = keycloakResponse.Token_Type,
+                Roles = roles
+            };
+        }
+        catch (Exceptions.AppException)
+        {
+            // Re-throw application exceptions
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error during token refresh");
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during token refresh");
+            throw new Exceptions.InfrastructureException("An unexpected error occurred during token refresh", ex);
         }
     }
 
@@ -130,7 +205,7 @@ public class KeycloakAuthService : IKeycloakAuthService
         // Validate input
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            throw new InvoiceTrackerApi.Exceptions.ValidationException("Refresh token is required");
+            throw new Exceptions.ValidationException("Refresh token is required");
         }
 
         try
@@ -152,13 +227,22 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Logout failed. Status: {Status}", response.StatusCode);
-                throw new InvoiceTrackerApi.Exceptions.BusinessRuleException("Unable to logout. The refresh token may be invalid or expired.");
+                _logger.LogWarning("Logout failed. Status: {Status}, Error: {Error}", response.StatusCode, errorContent);
+                
+                // If the token is already invalid/expired, treat it as a successful logout
+                // since the session is already terminated on Keycloak's side
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogInformation("Refresh token already invalid/expired - treating as successful logout");
+                    return;
+                }
+                
+                throw new Exceptions.BusinessRuleException("Unable to logout. The refresh token may be invalid or expired.");
             }
 
             _logger.LogInformation("Logout successful");
         }
-        catch (InvoiceTrackerApi.Exceptions.AppException)
+        catch (Exceptions.AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -166,12 +250,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during logout");
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during logout");
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("An unexpected error occurred during logout", ex);
+            throw new Exceptions.InfrastructureException("An unexpected error occurred during logout", ex);
         }
     }
 
@@ -203,7 +287,22 @@ public class KeycloakAuthService : IKeycloakAuthService
             var users = new List<UserInfo>();
             foreach (var user in keycloakUsers)
             {
+                // Filter out service accounts and users without proper usernames
+                if (string.IsNullOrWhiteSpace(user.Username) ||
+                    user.Username.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                
                 var roles = await GetUserRolesAsync(adminToken, user.Id);
+                
+                // Only include users that have at least one of our application roles
+                var appRoles = UserRoleExtensions.GetAllRoleStrings();
+                if (!roles.Any(r => appRoles.Contains(r)))
+                {
+                    continue;
+                }
+                
                 users.Add(new UserInfo
                 {
                     Id = user.Id,
@@ -225,19 +324,38 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
-    public async Task UpdateUserRoleAsync(string adminToken, string userId, bool isAdmin)
+    public async Task UpdateUserRoleAsync(string adminToken, string userId, UserRole role)
     {
         try
         {
-            // Prevent self-demotion: Extract current user ID from token
-            var currentUserId = ExtractUserIdFromToken(adminToken);
-            if (!string.IsNullOrEmpty(currentUserId) && currentUserId == userId && !isAdmin)
+            // Prevent assignment of systemAdmin role
+            if (role == UserRole.SystemAdmin)
             {
-                _logger.LogWarning("User {UserId} attempted to demote themselves, which is not allowed", userId);
-                throw new InvoiceTrackerApi.Exceptions.ForbiddenException("You cannot demote yourself");
+                _logger.LogWarning("Attempt to assign systemAdmin role to user {UserId} was blocked", userId);
+                throw new Exceptions.ForbiddenException("Cannot assign System Admin role through this endpoint. System Admin role can only be managed directly in Keycloak.");
             }
 
-            // Get available realm roles to find the admin role
+            // Validate role - only OrgUser and OrgAdmin are assignable
+            if (role != UserRole.OrgUser && role != UserRole.OrgAdmin)
+            {
+                throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+            }
+
+            // Convert enum to string for Keycloak API
+            var roleString = role.ToRoleString();
+
+            // Prevent self-demotion: Extract current user ID from token
+            var currentUserId = ExtractUserIdFromToken(adminToken);
+            var currentUserRoles = await GetUserRolesAsync(adminToken, currentUserId ?? string.Empty);
+            var isCurrentUserAdmin = currentUserRoles.Contains(UserRole.OrgAdmin.ToRoleString()) || currentUserRoles.Contains(UserRole.SystemAdmin.ToRoleString());
+            
+            if (!string.IsNullOrEmpty(currentUserId) && currentUserId == userId && role == UserRole.OrgUser && isCurrentUserAdmin)
+            {
+                _logger.LogWarning("User {UserId} attempted to demote themselves, which is not allowed", userId);
+                throw new Exceptions.ForbiddenException("You cannot demote yourself");
+            }
+
+            // Get available realm roles
             var availableRolesEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/roles";
             
             var rolesRequest = new HttpRequestMessage(HttpMethod.Get, availableRolesEndpoint);
@@ -247,7 +365,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (!rolesResponse.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to get available roles. Status: {Status}", rolesResponse.StatusCode);
-                throw new InvoiceTrackerApi.Exceptions.BusinessRuleException($"Failed to retrieve available roles from authentication service");
+                throw new Exceptions.BusinessRuleException($"Failed to retrieve available roles from authentication service");
             }
             
             var rolesContent = await rolesResponse.Content.ReadAsStringAsync();
@@ -256,50 +374,61 @@ public class KeycloakAuthService : IKeycloakAuthService
                 PropertyNameCaseInsensitive = true
             });
             
-            var adminRole = allRoles?.FirstOrDefault(r => r.Name.Equals("admin", StringComparison.OrdinalIgnoreCase));
+            // Find the target role
+            var targetRole = allRoles?.FirstOrDefault(r => r.Name.Equals(roleString, StringComparison.OrdinalIgnoreCase));
             
-            if (adminRole == null)
+            if (targetRole == null)
             {
-                _logger.LogWarning("Admin role not found in available roles");
-                throw new InvoiceTrackerApi.Exceptions.BusinessRuleException("Admin role not found in realm");
+                _logger.LogWarning("Role {Role} not found in available roles", roleString);
+                throw new Exceptions.BusinessRuleException($"Role '{roleString}' not found in realm");
             }
             
-            _logger.LogInformation("Found admin role with ID: {RoleId}", adminRole.Id);
+            _logger.LogInformation("Found role {Role} with ID: {RoleId}", roleString, targetRole.Id);
             
-            // Add or remove admin role
+            // Get current user roles to remove
+            var currentRoles = await GetUserRolesAsync(adminToken, userId);
+            var validRoles = UserRoleExtensions.GetAssignableRoleStrings();
+            var rolesToRemove = currentRoles.Where(r => validRoles.Contains(r)).ToList();
+            
             var userRoleEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/role-mappings/realm";
-            var roleArray = new[] { new { id = adminRole.Id, name = adminRole.Name } };
+            
+            // Remove existing roles
+            if (rolesToRemove.Any())
+            {
+                var rolesToRemoveObjects = allRoles?
+                    .Where(r => rolesToRemove.Contains(r.Name))
+                    .Select(r => new { id = r.Id, name = r.Name })
+                    .ToArray();
+                
+                if (rolesToRemoveObjects != null && rolesToRemoveObjects.Any())
+                {
+                    var removeContent = new StringContent(JsonSerializer.Serialize(rolesToRemoveObjects), Encoding.UTF8, "application/json");
+                    var removeRequest = new HttpRequestMessage(HttpMethod.Delete, userRoleEndpoint);
+                    removeRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+                    removeRequest.Content = removeContent;
+                    await _httpClient.SendAsync(removeRequest);
+                }
+            }
+            
+            // Add new role
+            var roleArray = new[] { new { id = targetRole.Id, name = targetRole.Name } };
             var jsonContent = new StringContent(JsonSerializer.Serialize(roleArray), Encoding.UTF8, "application/json");
             
-            HttpResponseMessage roleResponse;
-            if (isAdmin)
-            {
-                // Add admin role
-                var addRequest = new HttpRequestMessage(HttpMethod.Post, userRoleEndpoint);
-                addRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
-                addRequest.Content = jsonContent;
-                roleResponse = await _httpClient.SendAsync(addRequest);
-            }
-            else
-            {
-                // Remove admin role
-                var removeRequest = new HttpRequestMessage(HttpMethod.Delete, userRoleEndpoint);
-                removeRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
-                removeRequest.Content = jsonContent;
-                roleResponse = await _httpClient.SendAsync(removeRequest);
-            }
+            var addRequest = new HttpRequestMessage(HttpMethod.Post, userRoleEndpoint);
+            addRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            addRequest.Content = jsonContent;
+            var roleResponse = await _httpClient.SendAsync(addRequest);
             
             if (!roleResponse.IsSuccessStatusCode)
             {
                 var errorContent = await roleResponse.Content.ReadAsStringAsync();
                 _logger.LogWarning("Failed to update user role. Status: {Status}", roleResponse.StatusCode);
-                throw new InvoiceTrackerApi.Exceptions.BusinessRuleException("Failed to update user role in Keycloak");
+                throw new Exceptions.BusinessRuleException("Failed to update user role in Keycloak");
             }
             
-            _logger.LogInformation("Successfully {Action} admin role for user {UserId}",
-                isAdmin ? "added" : "removed", userId);
+            _logger.LogInformation("Successfully updated user {UserId} to role {Role}", userId, roleString);
         }
-        catch (InvoiceTrackerApi.Exceptions.AppException)
+        catch (Exceptions.AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -307,12 +436,136 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error updating user role");
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error updating user role");
-            throw new InvoiceTrackerApi.Exceptions.InfrastructureException("An unexpected error occurred while updating user role", ex);
+            throw new Exceptions.InfrastructureException("An unexpected error occurred while updating user role", ex);
+        }
+    }
+
+    public async Task<string> CreateUserAsync(string adminToken, string username, string email, string firstName, string lastName, string password, UserRole role)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new Exceptions.ValidationException("Username is required");
+        }
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new Exceptions.ValidationException("Email is required");
+        }
+        if (string.IsNullOrWhiteSpace(firstName))
+        {
+            throw new Exceptions.ValidationException("First name is required");
+        }
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            throw new Exceptions.ValidationException("Last name is required");
+        }
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new Exceptions.ValidationException("Password is required");
+        }
+
+        // CRITICAL: Prevent creation of systemAdmin users
+        if (role == UserRole.SystemAdmin)
+        {
+            _logger.LogWarning("Attempt to create systemAdmin user '{Username}' was blocked", username);
+            throw new Exceptions.ForbiddenException("Cannot create System Admin users through this endpoint. System Admin role can only be managed directly in Keycloak.");
+        }
+
+        // Validate role - only OrgUser and OrgAdmin are allowed
+        if (role != UserRole.OrgUser && role != UserRole.OrgAdmin)
+        {
+            throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+        }
+
+        try
+        {
+            var createUserEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users";
+            
+            // Prepare user creation payload
+            var userPayload = new
+            {
+                username = username,
+                email = email,
+                firstName = firstName,
+                lastName = lastName,
+                enabled = true,
+                credentials = new[]
+                {
+                    new
+                    {
+                        type = "password",
+                        value = password,
+                        temporary = false
+                    }
+                }
+            };
+            
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(userPayload),
+                Encoding.UTF8,
+                "application/json"
+            );
+            
+            var request = new HttpRequestMessage(HttpMethod.Post, createUserEndpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            request.Content = jsonContent;
+            
+            _logger.LogInformation("Creating new user: {Username} with role: {Role}", username, role.ToRoleString());
+            
+            var response = await _httpClient.SendAsync(request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to create user {Username}. Status: {Status}, Error: {Error}",
+                    username, response.StatusCode, errorContent);
+                
+                // Check for conflict (user already exists)
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    throw new Exceptions.ConflictException("A user with this username or email already exists");
+                }
+                
+                throw new Exceptions.BusinessRuleException("Failed to create user in Keycloak");
+            }
+            
+            // Extract user ID from Location header
+            var locationHeader = response.Headers.Location?.ToString();
+            if (string.IsNullOrEmpty(locationHeader))
+            {
+                _logger.LogError("Failed to get user ID from Location header after creating user {Username}", username);
+                throw new Exceptions.BusinessRuleException("Failed to retrieve created user ID");
+            }
+            
+            var userId = locationHeader.Split('/').Last();
+            _logger.LogInformation("User {Username} created successfully with ID: {UserId}", username, userId);
+            
+            // Assign role to the newly created user
+            await UpdateUserRoleAsync(adminToken, userId, role);
+            
+            _logger.LogInformation("Successfully created user {Username} with role {Role}", username, role.ToRoleString());
+            
+            return userId;
+        }
+        catch (Exceptions.AppException)
+        {
+            // Re-throw application exceptions
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error creating user {Username}", username);
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating user {Username}", username);
+            throw new Exceptions.InfrastructureException("An unexpected error occurred while creating user", ex);
         }
     }
 

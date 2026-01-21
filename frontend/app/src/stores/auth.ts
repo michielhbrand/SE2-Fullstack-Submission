@@ -1,21 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import router from '../router'
-
-const API_URL = 'http://localhost:5000'
+import { authApi } from '../services/api'
+import { apiClient } from '../api/http-client'
+import { UserRole } from '../api/generated/api-client'
+import { toast } from 'vue-sonner'
 
 interface LoginCredentials {
   username: string
   password: string
-}
-
-interface TokenResponse {
-  access_token: string
-  refresh_token: string
-  expires_in: number
-  token_type: string
-  roles?: string[]
 }
 
 export interface UserInfo {
@@ -29,7 +22,6 @@ export interface UserInfo {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // State
   const accessToken = ref<string | null>(null)
   const refreshToken = ref<string | null>(null)
   const tokenExpirationTimer = ref<number | null>(null)
@@ -37,14 +29,11 @@ export const useAuthStore = defineStore('auth', () => {
   const username = ref<string>('')
   const userId = ref<string | null>(null)
   
-  // Constants
   const TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
   const IS_ADMIN_FLAG = 'is_admin_user'
 
-  // Computed
   const isAuthenticated = computed(() => {
     if (!accessToken.value) {
-      // Try to load from localStorage
       loadTokenFromStorage()
     }
     return !!accessToken.value && !isTokenExpired()
@@ -87,7 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
       )
       return JSON.parse(jsonPayload)
     } catch (error) {
-      console.error('Failed to decode JWT:', error)
+      // Silently fail JWT decoding - this is expected for invalid tokens
       return null
     }
   }
@@ -103,7 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
     const timeoutDuration = Math.max((expiresIn - 5) * 1000, 0)
     
     tokenExpirationTimer.value = window.setTimeout(() => {
-      console.log('Token expired, logging out...')
+      toast.info('Your session has expired. Please log in again.')
       logout(true)
     }, timeoutDuration)
   }
@@ -127,25 +116,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credentials: LoginCredentials, isAdminLogin: boolean = false): Promise<boolean> {
     try {
-      const endpoint = isAdminLogin ? '/api/auth/admin/login' : '/api/auth/login'
-      const response = await axios.post<TokenResponse>(
-        `${API_URL}${endpoint}`,
-        {
-          username: credentials.username,
-          password: credentials.password
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const loginFn = isAdminLogin ? authApi.adminLogin : authApi.login
+      const response = await loginFn(credentials.username, credentials.password)
 
-      accessToken.value = response.data.access_token
-      refreshToken.value = response.data.refresh_token
+      if (!response.access_token || !response.refresh_token || !response.expires_in) {
+        toast.error('Invalid response from server. Please try again.')
+        return false
+      }
+
+      accessToken.value = response.access_token
+      refreshToken.value = response.refresh_token
       
       // Calculate expiration time
-      const expirationTime = Date.now() + (response.data.expires_in * 1000)
+      const expirationTime = Date.now() + (response.expires_in * 1000)
       
       localStorage.setItem('access_token', accessToken.value)
       localStorage.setItem('refresh_token', refreshToken.value)
@@ -171,11 +154,17 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('sidebarCollapsed', 'false')
       
       // Set up automatic logout when token expires
-      setupTokenExpirationCheck(response.data.expires_in)
+      setupTokenExpirationCheck(response.expires_in)
 
       return true
-    } catch (error) {
-      console.error('Login failed:', error)
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Login failed. Please check your credentials and try again.'
+      
+      toast.error(errorMessage)
       return false
     }
   }
@@ -187,17 +176,16 @@ export const useAuthStore = defineStore('auth', () => {
     // Call AuthAPI logout endpoint if we have a refresh token
     if (currentRefreshToken) {
       try {
-        await axios.post(
-          `${API_URL}/api/auth/logout`,
-          { refreshToken: currentRefreshToken },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-      } catch (error) {
-        console.error('Logout request failed:', error)
+        await authApi.logout(currentRefreshToken)
+      } catch (error: any) {
+        // Extract error message from problem details response
+        const errorMessage = error?.response?.data?.detail
+          || error?.response?.data?.title
+          || error?.response?.data?.message
+        
+        if (errorMessage) {
+          toast.error(`Logout error: ${errorMessage}`)
+        }
         // Continue with local cleanup even if server logout fails
       }
     }
@@ -248,8 +236,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       const user = decodedToken.preferred_username || decodedToken.username || decodedToken.sub
       return { username: user }
-    } catch (error) {
-      console.error('Failed to get user info:', error)
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Failed to get user information'
+      
+      toast.error(errorMessage)
       return null
     }
   }
@@ -263,8 +257,14 @@ export const useAuthStore = defineStore('auth', () => {
       if (!decodedToken) return null
 
       return decodedToken.sub || null
-    } catch (error) {
-      console.error('Failed to get current user ID:', error)
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Failed to get current user ID'
+      
+      toast.error(errorMessage)
       return null
     }
   }
@@ -282,58 +282,122 @@ export const useAuthStore = defineStore('auth', () => {
       const token = getAccessToken()
       if (!token) return []
 
-      const response = await axios.get<UserInfo[]>(
-        `${API_URL}/api/auth/admin/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const response = await apiClient.get<UserInfo[]>('/api/auth/admin/users')
 
-      return response.data
-    } catch (error) {
-      console.error('Failed to get users:', error)
+      // Parse the response data if it's a string (due to transformResponse in apiClient)
+      const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+      
+      return data
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Failed to load users'
+      
+      toast.error(errorMessage)
       return []
     }
   }
 
-  async function updateUserRole(userId: string, isAdminRole: boolean): Promise<boolean> {
+  async function updateUserRole(userId: string, role: string): Promise<boolean> {
     try {
       const token = getAccessToken()
       if (!token) return false
 
-      await axios.put(
-        `${API_URL}/api/auth/admin/users/${userId}/role`,
-        { isAdmin: isAdminRole },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      // Convert string to UserRole enum
+      const userRole = role as UserRole
+      await authApi.updateUserRole(userId, userRole)
 
       return true
-    } catch (error) {
-      console.error('Failed to update user role:', error)
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Failed to update user role'
+      
+      toast.error(errorMessage)
       return false
     }
   }
 
+  async function createUser(userData: {
+    username: string
+    email: string
+    firstName: string
+    lastName: string
+    password: string
+    role: string
+  }): Promise<boolean> {
+    try {
+      const token = getAccessToken()
+      if (!token) return false
+
+      await authApi.createUser(userData)
+
+      return true
+    } catch (error: any) {
+      // Extract error message from problem details response
+      const errorMessage = error?.response?.data?.detail
+        || error?.response?.data?.title
+        || error?.response?.data?.message
+        || 'Failed to create user'
+      
+      toast.error(errorMessage)
+      throw error
+    }
+  }
+
+  async function refreshAccessToken(): Promise<string | null> {
+    try {
+      const currentRefreshToken = refreshToken.value || localStorage.getItem('refresh_token')
+      
+      if (!currentRefreshToken) {
+        return null
+      }
+
+      const response = await authApi.refreshToken(currentRefreshToken)
+
+      if (!response.access_token || !response.refresh_token || !response.expires_in) {
+        return null
+      }
+
+      accessToken.value = response.access_token
+      refreshToken.value = response.refresh_token
+      
+      // Calculate expiration time
+      const expirationTime = Date.now() + (response.expires_in * 1000)
+      
+      // Store tokens (we know they're not null at this point)
+      localStorage.setItem('access_token', response.access_token)
+      localStorage.setItem('refresh_token', response.refresh_token)
+      localStorage.setItem('token_expiration', expirationTime.toString())
+      
+      // Decode token to update user info
+      const decoded = decodeJWT(response.access_token)
+      if (decoded) {
+        username.value = decoded.preferred_username || decoded.username || decoded.sub
+        userId.value = decoded.sub || null
+      }
+      
+      // Set up automatic logout when token expires
+      setupTokenExpirationCheck(response.expires_in)
+
+      return response.access_token
+    } catch (error: any) {
+      // Don't show toast here - the http-client will handle it
+      return null
+    }
+  }
+
   return {
-    // State
     accessToken,
     refreshToken,
     isAdmin,
     username,
     userId,
-    
-    // Computed
     isAuthenticated,
-    
-    // Actions
     login,
     logout,
     getAccessToken,
@@ -344,6 +408,8 @@ export const useAuthStore = defineStore('auth', () => {
     clearExpirationFlag,
     getAllUsers,
     updateUserRole,
+    createUser,
     loadTokenFromStorage,
+    refreshAccessToken,
   }
 })

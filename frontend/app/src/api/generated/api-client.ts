@@ -23,7 +23,7 @@ export class ApiClient {
 
     }
 
-    auth_Login(request: LoginRequest, cancelToken?: CancelToken): Promise<void> {
+    auth_Login(request: LoginRequest, cancelToken?: CancelToken): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/login";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -35,6 +35,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -50,7 +51,7 @@ export class ApiClient {
         });
     }
 
-    protected processAuth_Login(response: AxiosResponse): Promise<void> {
+    protected processAuth_Login(response: AxiosResponse): Promise<LoginResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -62,7 +63,10 @@ export class ApiClient {
         }
         if (status === 200) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<LoginResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -82,10 +86,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<LoginResponse>(null as any);
     }
 
-    auth_AdminLogin(request: LoginRequest, cancelToken?: CancelToken): Promise<void> {
+    auth_AdminLogin(request: LoginRequest, cancelToken?: CancelToken): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/admin/login";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -97,6 +101,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -112,7 +117,7 @@ export class ApiClient {
         });
     }
 
-    protected processAuth_AdminLogin(response: AxiosResponse): Promise<void> {
+    protected processAuth_AdminLogin(response: AxiosResponse): Promise<LoginResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -124,7 +129,10 @@ export class ApiClient {
         }
         if (status === 200) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<LoginResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -144,7 +152,73 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<LoginResponse>(null as any);
+    }
+
+    auth_RefreshToken(request: LogoutRequest, cancelToken?: CancelToken): Promise<LoginResponse> {
+        let url_ = this.baseUrl + "/api/auth/refresh";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAuth_RefreshToken(_response);
+        });
+    }
+
+    protected processAuth_RefreshToken(response: AxiosResponse): Promise<LoginResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<LoginResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<LoginResponse>(null as any);
     }
 
     auth_Logout(request: LogoutRequest, cancelToken?: CancelToken): Promise<void> {
@@ -252,6 +326,82 @@ export class ApiClient {
             let resultData403  = _responseText;
             result403 = JSON.parse(resultData403);
             return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    auth_CreateUser(request: CreateUserRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/auth/admin/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAuth_CreateUser(_response);
+        });
+    }
+
+    protected processAuth_CreateUser(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1898,6 +2048,14 @@ export class ApiClient {
     }
 }
 
+export interface LoginResponse {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    roles?: string[] | null;
+}
+
 export interface ProblemDetails {
     type?: string | null;
     title?: string | null;
@@ -1918,7 +2076,22 @@ export interface LogoutRequest {
 }
 
 export interface UpdateRoleRequest {
-    isAdmin?: boolean;
+    role?: UserRole;
+}
+
+export enum UserRole {
+    OrgUser = "orgUser",
+    OrgAdmin = "orgAdmin",
+    SystemAdmin = "systemAdmin",
+}
+
+export interface CreateUserRequest {
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+    role: string;
 }
 
 export interface PaginatedResponseOfClientResponse {

@@ -23,16 +23,12 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        // Log the exception with appropriate severity
         LogException(exception);
 
-        // Build RFC 9457 compliant Problem Details response
         var problemDetails = CreateProblemDetails(httpContext, exception);
 
-        // Set response status code
         httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-        // Write Problem Details as JSON
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
@@ -43,7 +39,6 @@ public class GlobalExceptionHandler : IExceptionHandler
     /// </summary>
     private ProblemDetails CreateProblemDetails(HttpContext httpContext, Exception exception)
     {
-        // Handle our custom AppException hierarchy
         if (exception is AppException appException)
         {
             return new ProblemDetails
@@ -56,7 +51,6 @@ public class GlobalExceptionHandler : IExceptionHandler
             };
         }
 
-        // Handle unexpected exceptions (should be rare if architecture is followed)
         return new ProblemDetails
         {
             Status = StatusCodes.Status500InternalServerError,
@@ -75,7 +69,6 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         if (exception is AppException appException)
         {
-            // Application-level exceptions are expected and logged as warnings
             _logger.LogWarning(
                 exception,
                 "Application exception occurred: {ExceptionType} - {Message}",
@@ -84,7 +77,6 @@ public class GlobalExceptionHandler : IExceptionHandler
         }
         else
         {
-            // Unexpected exceptions are logged as errors
             _logger.LogError(
                 exception,
                 "Unexpected exception occurred: {ExceptionType} - {Message}",

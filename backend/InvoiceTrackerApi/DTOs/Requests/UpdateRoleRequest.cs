@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using InvoiceTrackerApi.Services.Auth;
+
 namespace InvoiceTrackerApi.DTOs.Requests;
 
 /// <summary>
@@ -6,7 +9,8 @@ namespace InvoiceTrackerApi.DTOs.Requests;
 public class UpdateRoleRequest
 {
     /// <summary>
-    /// Whether the user should have admin role
+    /// The role to assign to the user. Valid values: OrgUser, OrgAdmin (SystemAdmin can only be assigned in Keycloak)
     /// </summary>
-    public bool IsAdmin { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public UserRole Role { get; set; }
 }

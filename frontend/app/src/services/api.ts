@@ -1,8 +1,53 @@
-import { ApiClient } from '../api/generated/api-client'
+import { ApiClient, UserRole } from '../api/generated/api-client'
 import { apiClient } from '../api/http-client'
 
 // Create a single instance of the generated API client with our configured axios instance
 const client = new ApiClient(undefined, apiClient)
+
+// Auth API functions
+export const authApi = {
+  // User login
+  login: async (username: string, password: string) => {
+    return await client.auth_Login({ username, password })
+  },
+
+  // Admin login
+  adminLogin: async (username: string, password: string) => {
+    return await client.auth_AdminLogin({ username, password })
+  },
+
+  // Refresh token
+  refreshToken: async (refreshToken: string) => {
+    return await client.auth_RefreshToken({ refreshToken })
+  },
+
+  // Logout
+  logout: async (refreshToken: string) => {
+    return await client.auth_Logout({ refreshToken })
+  },
+
+  // Get all users (admin only)
+  getAllUsers: async () => {
+    return await client.auth_GetAllUsers()
+  },
+
+  // Update user role (admin only)
+  updateUserRole: async (userId: string, role: UserRole) => {
+    return await client.auth_UpdateUserRole(userId, { role })
+  },
+
+  // Create a new user (admin only)
+  createUser: async (userData: {
+    username: string
+    email: string
+    firstName: string
+    lastName: string
+    password: string
+    role: string
+  }) => {
+    return await client.auth_CreateUser(userData)
+  }
+}
 
 // Template API functions
 export const templateApi = {
