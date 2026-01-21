@@ -1,4 +1,3 @@
-using InvoiceTrackerApi.Models;
 using ClientModel = InvoiceTrackerApi.Models.Client;
 
 namespace InvoiceTrackerApi.Repositories.Client;

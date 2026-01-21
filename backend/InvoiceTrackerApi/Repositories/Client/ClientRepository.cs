@@ -1,5 +1,5 @@
 using InvoiceTrackerApi.Data;
-using InvoiceTrackerApi.Models;
+using InvoiceTrackerApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 using ClientModel = InvoiceTrackerApi.Models.Client;
@@ -7,7 +7,8 @@ using ClientModel = InvoiceTrackerApi.Models.Client;
 namespace InvoiceTrackerApi.Repositories.Client;
 
 /// <summary>
-/// Repository implementation for Client data access
+/// Repository implementation for Client data access.
+/// Wraps database exceptions into application-level exceptions.
 /// </summary>
 public class ClientRepository : Repository<ClientModel>, IClientRepository
 {
@@ -17,46 +18,67 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
 
     public async Task<ClientModel?> GetByEmailAsync(string email)
     {
-        return await _context.Clients
-            .FirstOrDefaultAsync(c => c.Email == email);
+        try
+        {
+            return await _context.Clients
+                .FirstOrDefaultAsync(c => c.Email == email);
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Failed to retrieve client by email from database", ex);
+        }
     }
 
     public async Task<IEnumerable<ClientModel>> GetAllAsync(int page, int pageSize, string? search = null)
     {
-        var query = _context.Clients.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
+        try
         {
-            search = search.ToLower();
-            query = query.Where(c =>
-                c.Name.ToLower().Contains(search) ||
-                c.Surname.ToLower().Contains(search) ||
-                c.Email.ToLower().Contains(search) ||
-                c.Company != null && c.Company.ToLower().Contains(search));
-        }
+            var query = _context.Clients.AsQueryable();
 
-        return await query
-            .OrderBy(c => c.Surname)
-            .ThenBy(c => c.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.ToLower();
+                query = query.Where(c =>
+                    c.Name.ToLower().Contains(search) ||
+                    c.Surname.ToLower().Contains(search) ||
+                    c.Email.ToLower().Contains(search) ||
+                    c.Company != null && c.Company.ToLower().Contains(search));
+            }
+
+            return await query
+                .OrderBy(c => c.Surname)
+                .ThenBy(c => c.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Failed to retrieve clients from database", ex);
+        }
     }
 
     public async Task<int> GetTotalCountAsync(string? search = null)
     {
-        var query = _context.Clients.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
+        try
         {
-            search = search.ToLower();
-            query = query.Where(c =>
-                c.Name.ToLower().Contains(search) ||
-                c.Surname.ToLower().Contains(search) ||
-                c.Email.ToLower().Contains(search) ||
-                c.Company != null && c.Company.ToLower().Contains(search));
-        }
+            var query = _context.Clients.AsQueryable();
 
-        return await query.CountAsync();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.ToLower();
+                query = query.Where(c =>
+                    c.Name.ToLower().Contains(search) ||
+                    c.Surname.ToLower().Contains(search) ||
+                    c.Email.ToLower().Contains(search) ||
+                    c.Company != null && c.Company.ToLower().Contains(search));
+            }
+
+            return await query.CountAsync();
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Failed to count clients in database", ex);
+        }
     }
 }

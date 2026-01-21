@@ -1,5 +1,4 @@
 using InvoiceTrackerApi.Data;
-using InvoiceTrackerApi.Models;
 using Microsoft.EntityFrameworkCore;
 using InvoiceModel = InvoiceTrackerApi.Models.Invoice;
 

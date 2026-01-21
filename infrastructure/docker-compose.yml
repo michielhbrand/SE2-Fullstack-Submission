@@ -91,6 +91,22 @@ services:
     networks:
       - microservices-network
 
+  invoice-tracker-kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: invoice-tracker-kafka-ui
+    depends_on:
+      - invoice-tracker-kafka
+      - invoice-tracker-zookeeper
+    ports:
+      - "8088:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: invoice-tracker-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: invoice-tracker-kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: invoice-tracker-zookeeper:2181
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - microservices-network
+
 volumes:
   keycloak_data:
   postgres_data:

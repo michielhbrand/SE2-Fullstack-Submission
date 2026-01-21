@@ -106,27 +106,21 @@ public class QuoteService : IQuoteService
         _logger.LogInformation("Quote {QuoteId} created by {User}", createdQuote.Id, modifiedBy);
 
         // Publish Kafka event for PDF generation
+        // Note: If Kafka publishing fails, we keep the quote in the database
+        // The PDF can be regenerated later via a retry mechanism or manual intervention
         try
         {
             await _kafkaProducer.PublishQuoteCreatedEventAsync(createdQuote.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish Kafka event for Quote {QuoteId}. Rolling back quote creation.", createdQuote.Id);
+            _logger.LogError(ex,
+                "Failed to publish Kafka event for Quote {QuoteId}. Quote saved but PDF generation not triggered. Manual intervention may be required.",
+                createdQuote.Id);
             
-            // Rollback: Delete the created quote to maintain data consistency
-            try
-            {
-                await _quoteRepository.DeleteAsync(createdQuote);
-                _logger.LogInformation("Successfully rolled back Quote {QuoteId}", createdQuote.Id);
-            }
-            catch (Exception rollbackEx)
-            {
-                _logger.LogError(rollbackEx, "Failed to rollback Quote {QuoteId} after Kafka publish failure", createdQuote.Id);
-            }
-            
-            // Throw exception to inform the API client
-            throw new BusinessRuleException("Failed to create quote: Unable to trigger PDF generation. Please try again.", ex);
+            // We do NOT delete the quote - it remains in the database without a PDF
+            // The PdfStorageKey will be null, indicating PDF generation is pending/failed
+            // This allows for retry mechanisms or manual PDF generation later
         }
 
         return createdQuote.ToDto();

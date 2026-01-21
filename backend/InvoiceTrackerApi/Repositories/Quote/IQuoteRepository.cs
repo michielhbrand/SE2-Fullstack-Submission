@@ -1,4 +1,3 @@
-using InvoiceTrackerApi.Models;
 using QuoteModel = InvoiceTrackerApi.Models.Quote;
 
 namespace InvoiceTrackerApi.Repositories.Quote;

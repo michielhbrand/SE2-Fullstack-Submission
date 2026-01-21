@@ -1,4 +1,3 @@
-using InvoiceTrackerApi.Models;
 using TemplateModel = InvoiceTrackerApi.Models.Template;
 
 namespace InvoiceTrackerApi.Repositories.Template;

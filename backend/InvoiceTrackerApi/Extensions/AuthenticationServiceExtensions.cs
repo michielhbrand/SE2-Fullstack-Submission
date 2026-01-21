@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace InvoiceTrackerApi.Extensions;
 
@@ -18,7 +20,8 @@ public static class AuthenticationServiceExtensions
                     ValidateIssuer = true,
                     ValidateAudience = false,
                     ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true
+                    ValidateIssuerSigningKey = true,
+                    RoleClaimType = ClaimTypes.Role // Map role claims to ClaimTypes.Role
                 };
                 
                 // Add detailed logging for authentication events
@@ -26,14 +29,54 @@ public static class AuthenticationServiceExtensions
                 {
                     OnAuthenticationFailed = context =>
                     {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(context.Exception, "Authentication failed");
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
+                        // Extract roles from Keycloak's realm_access claim and add them as role claims
+                        if (context.Principal?.Identity is ClaimsIdentity identity)
+                        {
+                            var realmAccessClaim = identity.FindFirst("realm_access");
+                            if (realmAccessClaim != null)
+                            {
+                                try
+                                {
+                                    var realmAccess = JsonSerializer.Deserialize<JsonElement>(realmAccessClaim.Value);
+                                    if (realmAccess.TryGetProperty("roles", out var rolesElement))
+                                    {
+                                        var roles = rolesElement.EnumerateArray()
+                                            .Select(r => r.GetString())
+                                            .Where(r => !string.IsNullOrEmpty(r))
+                                            .ToList();
+
+                                        foreach (var role in roles)
+                                        {
+                                            if (!string.IsNullOrEmpty(role))
+                                            {
+                                                identity.AddClaim(new Claim(ClaimTypes.Role, role));
+                                            }
+                                        }
+
+                                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                        logger.LogInformation("Token validated with roles: {Roles}", string.Join(", ", roles));
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                    logger.LogError(ex, "Error extracting roles from realm_access claim");
+                                }
+                            }
+                        }
                         return Task.CompletedTask;
                     },
                     OnChallenge = context =>
                     {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogWarning("Authentication challenge: {Error}, {ErrorDescription}",
+                            context.Error, context.ErrorDescription);
                         return Task.CompletedTask;
                     },
                     OnMessageReceived = context =>

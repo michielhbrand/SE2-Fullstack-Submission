@@ -1,11 +1,41 @@
 namespace InvoiceTrackerApi.Services.Auth;
 
+/// <summary>
+/// Service interface for Keycloak authentication operations.
+/// All methods throw exceptions on failure rather than returning null or false.
+/// </summary>
 public interface IKeycloakAuthService
 {
-    Task<TokenResponse?> LoginAsync(string username, string password, bool isAdminLogin = false);
-    Task<bool> LogoutAsync(string refreshToken);
+    /// <summary>
+    /// Authenticates a user and returns access tokens.
+    /// </summary>
+    /// <exception cref="Exceptions.ValidationException">When credentials are invalid</exception>
+    /// <exception cref="Exceptions.UnauthorizedException">When authentication fails</exception>
+    /// <exception cref="Exceptions.ForbiddenException">When admin login attempted without admin role</exception>
+    /// <exception cref="Exceptions.InfrastructureException">When authentication service is unavailable</exception>
+    Task<TokenResponse> LoginAsync(string username, string password, bool isAdminLogin = false);
+    
+    /// <summary>
+    /// Logs out a user by invalidating their refresh token.
+    /// </summary>
+    /// <exception cref="Exceptions.ValidationException">When refresh token is invalid</exception>
+    /// <exception cref="Exceptions.BusinessRuleException">When logout fails</exception>
+    /// <exception cref="Exceptions.InfrastructureException">When authentication service is unavailable</exception>
+    Task LogoutAsync(string refreshToken);
+    
+    /// <summary>
+    /// Gets all users from Keycloak (admin only).
+    /// </summary>
+    /// <exception cref="Exceptions.InfrastructureException">When authentication service is unavailable</exception>
     Task<List<UserInfo>> GetAllUsersAsync(string adminToken);
-    Task<UpdateRoleResult> UpdateUserRoleAsync(string adminToken, string userId, bool isAdmin);
+    
+    /// <summary>
+    /// Updates a user's role (admin only).
+    /// </summary>
+    /// <exception cref="Exceptions.ForbiddenException">When attempting self-demotion</exception>
+    /// <exception cref="Exceptions.BusinessRuleException">When role update fails</exception>
+    /// <exception cref="Exceptions.InfrastructureException">When authentication service is unavailable</exception>
+    Task UpdateUserRoleAsync(string adminToken, string userId, bool isAdmin);
 }
 
 public class TokenResponse
@@ -26,13 +56,4 @@ public class UserInfo
     public string LastName { get; set; } = string.Empty;
     public bool Enabled { get; set; }
     public List<string> Roles { get; set; } = new();
-}
-
-public class UpdateRoleResult
-{
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
-
-    public static UpdateRoleResult Successful() => new() { Success = true };
-    public static UpdateRoleResult Failed(string errorMessage) => new() { Success = false, ErrorMessage = errorMessage };
 }

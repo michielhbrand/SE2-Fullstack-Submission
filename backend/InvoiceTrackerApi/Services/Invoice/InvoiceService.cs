@@ -106,27 +106,21 @@ public class InvoiceService : IInvoiceService
         _logger.LogInformation("Invoice {InvoiceId} created by {User}", createdInvoice.Id, modifiedBy);
 
         // Publish Kafka event for PDF generation
+        // Note: If Kafka publishing fails, we keep the invoice in the database
+        // The PDF can be regenerated later via a retry mechanism or manual intervention
         try
         {
             await _kafkaProducer.PublishInvoiceCreatedEventAsync(createdInvoice.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish Kafka event for Invoice {InvoiceId}. Rolling back invoice creation.", createdInvoice.Id);
+            _logger.LogError(ex,
+                "Failed to publish Kafka event for Invoice {InvoiceId}. Invoice saved but PDF generation not triggered. Manual intervention may be required.",
+                createdInvoice.Id);
             
-            // Rollback: Delete the created invoice to maintain data consistency
-            try
-            {
-                await _invoiceRepository.DeleteAsync(createdInvoice);
-                _logger.LogInformation("Successfully rolled back Invoice {InvoiceId}", createdInvoice.Id);
-            }
-            catch (Exception rollbackEx)
-            {
-                _logger.LogError(rollbackEx, "Failed to rollback Invoice {InvoiceId} after Kafka publish failure", createdInvoice.Id);
-            }
-            
-            // Throw exception to inform the API client
-            throw new BusinessRuleException("Failed to create invoice: Unable to trigger PDF generation. Please try again.", ex);
+            // We do NOT delete the invoice - it remains in the database without a PDF
+            // The PdfStorageKey will be null, indicating PDF generation is pending/failed
+            // This allows for retry mechanisms or manual PDF generation later
         }
 
         return createdInvoice.ToDto();

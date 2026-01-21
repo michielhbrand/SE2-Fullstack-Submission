@@ -1,10 +1,12 @@
 using InvoiceTrackerApi.Data;
+using InvoiceTrackerApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceTrackerApi.Repositories;
 
 /// <summary>
-/// Base repository implementation providing common CRUD operations for all entities
+/// Base repository implementation providing common CRUD operations for all entities.
+/// Wraps infrastructure exceptions (database errors) into application-level exceptions.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>
 public abstract class Repository<T> : IRepository<T> where T : class
@@ -20,31 +22,82 @@ public abstract class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task<T?> GetByIdAsync(int id)
     {
-        return await _dbSet.FindAsync(id);
+        try
+        {
+            return await _dbSet.FindAsync(id);
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Failed to retrieve entity from database", ex);
+        }
     }
 
     public virtual async Task<T> AddAsync(T entity)
     {
-        _dbSet.Add(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        try
+        {
+            _dbSet.Add(entity);
+            await _context.SaveChangesAsync();
+            return entity;
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new InfrastructureException("Failed to add entity to database", ex);
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Database operation failed", ex);
+        }
     }
 
     public virtual async Task UpdateAsync(T entity)
     {
-        _dbSet.Update(entity);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _dbSet.Update(entity);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConflictException("The entity was modified or deleted by another user", ex);
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new InfrastructureException("Failed to update entity in database", ex);
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Database operation failed", ex);
+        }
     }
 
     public virtual async Task DeleteAsync(T entity)
     {
-        _dbSet.Remove(entity);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _dbSet.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new InfrastructureException("Failed to delete entity from database", ex);
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Database operation failed", ex);
+        }
     }
 
     public virtual async Task<bool> ExistsAsync(int id)
     {
-        var entity = await _dbSet.FindAsync(id);
-        return entity != null;
+        try
+        {
+            var entity = await _dbSet.FindAsync(id);
+            return entity != null;
+        }
+        catch (Exception ex) when (ex is not AppException)
+        {
+            throw new DatabaseUnavailableException("Failed to check entity existence in database", ex);
+        }
     }
 }

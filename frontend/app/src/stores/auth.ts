@@ -127,7 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credentials: LoginCredentials, isAdminLogin: boolean = false): Promise<boolean> {
     try {
-      const endpoint = isAdminLogin ? '/api/Auth/admin/login' : '/api/Auth/login'
+      const endpoint = isAdminLogin ? '/api/auth/admin/login' : '/api/auth/login'
       const response = await axios.post<TokenResponse>(
         `${API_URL}${endpoint}`,
         {
@@ -188,7 +188,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (currentRefreshToken) {
       try {
         await axios.post(
-          `${API_URL}/api/Auth/logout`,
+          `${API_URL}/api/auth/logout`,
           { refreshToken: currentRefreshToken },
           {
             headers: {
@@ -283,7 +283,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!token) return []
 
       const response = await axios.get<UserInfo[]>(
-        `${API_URL}/api/Auth/admin/users`,
+        `${API_URL}/api/auth/admin/users`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -305,7 +305,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!token) return false
 
       await axios.put(
-        `${API_URL}/api/Auth/admin/users/${userId}/role`,
+        `${API_URL}/api/auth/admin/users/${userId}/role`,
         { isAdmin: isAdminRole },
         {
           headers: {
