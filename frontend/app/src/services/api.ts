@@ -1,4 +1,4 @@
-import { ApiClient, UserRole } from '../api/generated/api-client'
+import { ApiClient, type UserRole } from '../api/generated/api-client'
 import { apiClient } from '../api/http-client'
 
 // Create a single instance of the generated API client with our configured axios instance

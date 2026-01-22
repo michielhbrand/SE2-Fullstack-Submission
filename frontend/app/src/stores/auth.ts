@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import router from '../router'
 import { authApi } from '../services/api'
 import { apiClient } from '../api/http-client'
-import { UserRole } from '../api/generated/api-client'
+import type { UserRole } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
 
 interface LoginCredentials {

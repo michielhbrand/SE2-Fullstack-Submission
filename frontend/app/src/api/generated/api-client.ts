@@ -1630,17 +1630,24 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    organization_GetUsersInOrganization(id: number, cancelToken?: CancelToken): Promise<UserResponse[]> {
-        let url_ = this.baseUrl + "/api/organization/{id}/users";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    organizationMember_AddMember(orgId: number, userId: string, request: AddOrganizationMemberRequest, cancelToken?: CancelToken): Promise<OrganizationMemberResponse> {
+        let url_ = this.baseUrl + "/api/organizations/{orgId}/members/{userId}";
+        if (orgId === undefined || orgId === null)
+            throw new globalThis.Error("The parameter 'orgId' must be defined.");
+        url_ = url_.replace("{orgId}", encodeURIComponent("" + orgId));
+        if (userId === undefined || userId === null)
+            throw new globalThis.Error("The parameter 'userId' must be defined.");
+        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: AxiosRequestConfig = {
-            method: "GET",
+            data: content_,
+            method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             cancelToken
@@ -1653,11 +1660,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processOrganization_GetUsersInOrganization(_response);
+            return this.processOrganizationMember_AddMember(_response);
         });
     }
 
-    protected processOrganization_GetUsersInOrganization(response: AxiosResponse): Promise<UserResponse[]> {
+    protected processOrganizationMember_AddMember(response: AxiosResponse): Promise<OrganizationMemberResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1667,76 +1674,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<UserResponse[]>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = JSON.parse(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<UserResponse[]>(null as any);
-    }
-
-    organization_AddUserToOrganization(id: number, userId: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/organization/{id}/users/{userId}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (userId === undefined || userId === null)
-            throw new globalThis.Error("The parameter 'userId' must be defined.");
-        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processOrganization_AddUserToOrganization(_response);
-        });
-    }
-
-    protected processOrganization_AddUserToOrganization(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<OrganizationMemberResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -1745,12 +1688,12 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("A server side error occurred.", status, _responseText, _headers, result400);
 
-        } else if (status === 401) {
+        } else if (status === 403) {
             const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -1759,18 +1702,25 @@ export class ApiClient {
             result404 = JSON.parse(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<OrganizationMemberResponse>(null as any);
     }
 
-    organization_RemoveUserFromOrganization(id: number, userId: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/organization/{id}/users/{userId}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    organizationMember_RemoveMember(orgId: number, userId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organizations/{orgId}/members/{userId}";
+        if (orgId === undefined || orgId === null)
+            throw new globalThis.Error("The parameter 'orgId' must be defined.");
+        url_ = url_.replace("{orgId}", encodeURIComponent("" + orgId));
         if (userId === undefined || userId === null)
             throw new globalThis.Error("The parameter 'userId' must be defined.");
         url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
@@ -1791,11 +1741,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processOrganization_RemoveUserFromOrganization(_response);
+            return this.processOrganizationMember_RemoveMember(_response);
         });
     }
 
-    protected processOrganization_RemoveUserFromOrganization(response: AxiosResponse): Promise<void> {
+    protected processOrganizationMember_RemoveMember(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1809,12 +1759,12 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 401) {
+        } else if (status === 403) {
             const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -1828,6 +1778,191 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    organizationMember_UpdateMemberRole(orgId: number, userId: string, request: UpdateMemberRoleRequest, cancelToken?: CancelToken): Promise<OrganizationMemberResponse> {
+        let url_ = this.baseUrl + "/api/organizations/{orgId}/members/{userId}/role";
+        if (orgId === undefined || orgId === null)
+            throw new globalThis.Error("The parameter 'orgId' must be defined.");
+        url_ = url_.replace("{orgId}", encodeURIComponent("" + orgId));
+        if (userId === undefined || userId === null)
+            throw new globalThis.Error("The parameter 'userId' must be defined.");
+        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganizationMember_UpdateMemberRole(_response);
+        });
+    }
+
+    protected processOrganizationMember_UpdateMemberRole(response: AxiosResponse): Promise<OrganizationMemberResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<OrganizationMemberResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OrganizationMemberResponse>(null as any);
+    }
+
+    organizationMember_GetOrganizationMembers(orgId: number, cancelToken?: CancelToken): Promise<OrganizationMemberResponse[]> {
+        let url_ = this.baseUrl + "/api/organizations/{orgId}/members";
+        if (orgId === undefined || orgId === null)
+            throw new globalThis.Error("The parameter 'orgId' must be defined.");
+        url_ = url_.replace("{orgId}", encodeURIComponent("" + orgId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganizationMember_GetOrganizationMembers(_response);
+        });
+    }
+
+    protected processOrganizationMember_GetOrganizationMembers(response: AxiosResponse): Promise<OrganizationMemberResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<OrganizationMemberResponse[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OrganizationMemberResponse[]>(null as any);
+    }
+
+    organizationMember_GetMyOrganizations( cancelToken?: CancelToken): Promise<OrganizationResponse[]> {
+        let url_ = this.baseUrl + "/api/users/me/organizations";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganizationMember_GetMyOrganizations(_response);
+        });
+    }
+
+    protected processOrganizationMember_GetMyOrganizations(response: AxiosResponse): Promise<OrganizationResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<OrganizationResponse[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<OrganizationResponse[]>(null as any);
     }
 
     quote_GetTemplates( cancelToken?: CancelToken): Promise<string[]> {
@@ -2569,206 +2704,6 @@ export class ApiClient {
         }
         return Promise.resolve<TemplatePreviewUrlResponse>(null as any);
     }
-
-    user_GetOrganizationsForUser(userId: string, cancelToken?: CancelToken): Promise<OrganizationResponse[]> {
-        let url_ = this.baseUrl + "/api/users/{userId}/organizations";
-        if (userId === undefined || userId === null)
-            throw new globalThis.Error("The parameter 'userId' must be defined.");
-        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUser_GetOrganizationsForUser(_response);
-        });
-    }
-
-    protected processUser_GetOrganizationsForUser(response: AxiosResponse): Promise<OrganizationResponse[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<OrganizationResponse[]>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = JSON.parse(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<OrganizationResponse[]>(null as any);
-    }
-
-    user_AddUserToOrganization(userId: string, organizationId: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/users/{userId}/organizations/{organizationId}";
-        if (userId === undefined || userId === null)
-            throw new globalThis.Error("The parameter 'userId' must be defined.");
-        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
-        if (organizationId === undefined || organizationId === null)
-            throw new globalThis.Error("The parameter 'organizationId' must be defined.");
-        url_ = url_.replace("{organizationId}", encodeURIComponent("" + organizationId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUser_AddUserToOrganization(_response);
-        });
-    }
-
-    protected processUser_AddUserToOrganization(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = JSON.parse(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    user_RemoveUserFromOrganization(userId: string, organizationId: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/users/{userId}/organizations/{organizationId}";
-        if (userId === undefined || userId === null)
-            throw new globalThis.Error("The parameter 'userId' must be defined.");
-        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
-        if (organizationId === undefined || organizationId === null)
-            throw new globalThis.Error("The parameter 'organizationId' must be defined.");
-        url_ = url_.replace("{organizationId}", encodeURIComponent("" + organizationId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "DELETE",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUser_RemoveUserFromOrganization(_response);
-        });
-    }
-
-    protected processUser_RemoveUserFromOrganization(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = JSON.parse(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
 }
 
 export interface LoginResponse {
@@ -2802,11 +2737,7 @@ export interface UpdateRoleRequest {
     role?: UserRole;
 }
 
-export enum UserRole {
-    OrgUser = "orgUser",
-    OrgAdmin = "orgAdmin",
-    SystemAdmin = "systemAdmin",
-}
+export type UserRole = "orgUser" | "orgAdmin" | "systemAdmin";
 
 export interface CreateUserRequest {
     username: string;
@@ -2917,7 +2848,6 @@ export interface OrganizationResponse {
     id?: number;
     name?: string;
     address?: AddressResponse;
-    users?: UserResponse[];
     bankAccounts?: BankAccountResponse[];
 }
 
@@ -2927,13 +2857,6 @@ export interface AddressResponse {
     secondLine?: string | null;
     city?: string;
     code?: string;
-}
-
-export interface UserResponse {
-    keycloakUserId?: string;
-    email?: string;
-    name?: string;
-    dateCreated?: Date;
 }
 
 export interface BankAccountResponse {
@@ -2961,6 +2884,20 @@ export interface UpdateOrganizationRequest {
     name?: string | null;
     addressId?: number | null;
     bankAccountIds?: number[] | null;
+}
+
+export interface OrganizationMemberResponse {
+    organizationId?: number;
+    userId?: string;
+    role?: string;
+}
+
+export interface AddOrganizationMemberRequest {
+    role?: string;
+}
+
+export interface UpdateMemberRoleRequest {
+    role?: string;
 }
 
 export interface PaginatedResponseOfQuoteResponse {
