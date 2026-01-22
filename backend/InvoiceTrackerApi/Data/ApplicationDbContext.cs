@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<Address> Addresses { get; set; }
     public DbSet<BankAccount> BankAccounts { get; set; }
+    public DbSet<OrganizationMember> OrganizationMembers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,15 +73,38 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.AddressId)
                 .OnDelete(DeleteBehavior.Restrict);
             
-            entity.Property(e => e.UserIds)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
-            
             entity.Property(e => e.BankAccountIds)
                 .HasConversion(
                     v => string.Join(',', v),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList());
+            
+            entity.HasMany(e => e.Members)
+                .WithOne(m => m.Organization)
+                .HasForeignKey(m => m.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure OrganizationMember entity (join table for Keycloak users)
+        modelBuilder.Entity<OrganizationMember>(entity =>
+        {
+            // Composite primary key
+            entity.HasKey(e => new { e.OrganizationId, e.UserId });
+            
+            // Index on UserId for efficient queries by user
+            entity.HasIndex(e => e.UserId);
+            
+            // Index on OrganizationId for efficient queries by organization
+            entity.HasIndex(e => e.OrganizationId);
+            
+            // UserId is a string reference to Keycloak - NO foreign key constraint
+            entity.Property(e => e.UserId)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            // Role field
+            entity.Property(e => e.Role)
+                .IsRequired()
+                .HasMaxLength(50);
         });
 
         // Configure BankAccount entity

@@ -4,6 +4,7 @@ using InvoiceTrackerApi.DTOs.Organization.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Organization;
+using InvoiceTrackerApi.Repositories.OrganizationMember;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceTrackerApi.Services.Organization;
@@ -14,15 +15,18 @@ namespace InvoiceTrackerApi.Services.Organization;
 public class OrganizationService : IOrganizationService
 {
     private readonly IOrganizationRepository _organizationRepository;
+    private readonly IOrganizationMemberRepository _memberRepository;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<OrganizationService> _logger;
 
     public OrganizationService(
         IOrganizationRepository organizationRepository,
+        IOrganizationMemberRepository memberRepository,
         ApplicationDbContext context,
         ILogger<OrganizationService> logger)
     {
         _organizationRepository = organizationRepository;
+        _memberRepository = memberRepository;
         _context = context;
         _logger = logger;
     }
@@ -112,11 +116,6 @@ public class OrganizationService : IOrganizationService
             existingOrganization.AddressId = request.AddressId.Value;
         }
 
-        if (request.UserIds != null)
-        {
-            existingOrganization.UserIds = request.UserIds;
-        }
-
         if (request.BankAccountIds != null)
         {
             // Verify all bank accounts exist and belong to this organization
@@ -170,9 +169,175 @@ public class OrganizationService : IOrganizationService
         
         _context.BankAccounts.RemoveRange(bankAccountsToDelete);
 
-        // Delete organization
+        // Delete organization (cascade will delete members)
         await _organizationRepository.DeleteAsync(organization);
 
         _logger.LogInformation("Organization {OrganizationId} deleted", id);
+    }
+
+    // Organization Membership Methods
+
+    public async Task<OrganizationMemberResponse> AddMemberToOrganizationAsync(
+        int organizationId,
+        string userId,
+        AddOrganizationMemberRequest request,
+        string requestingUserId)
+    {
+        // Verify organization exists
+        var organization = await _organizationRepository.GetByIdAsync(organizationId);
+        if (organization == null)
+        {
+            throw new NotFoundException("Organization", organizationId);
+        }
+
+        // Check if requesting user is an orgAdmin
+        var isAdmin = await _memberRepository.HasRoleAsync(organizationId, requestingUserId, "orgAdmin");
+        if (!isAdmin)
+        {
+            throw new ForbiddenException("Only organization administrators can add members");
+        }
+
+        // Check if user is already a member
+        var existingMembership = await _memberRepository.GetMembershipAsync(organizationId, userId);
+        if (existingMembership != null)
+        {
+            throw new ConflictException($"User {userId} is already a member of this organization");
+        }
+
+        // Add member
+        var member = new Models.OrganizationMember
+        {
+            OrganizationId = organizationId,
+            UserId = userId,
+            Role = request.Role
+        };
+
+        await _memberRepository.AddMemberAsync(member);
+
+        _logger.LogInformation(
+            "User {UserId} added to organization {OrganizationId} with role {Role}",
+            userId, organizationId, request.Role);
+
+        return new OrganizationMemberResponse
+        {
+            OrganizationId = organizationId,
+            UserId = userId,
+            Role = request.Role
+        };
+    }
+
+    public async Task RemoveMemberFromOrganizationAsync(
+        int organizationId,
+        string userId,
+        string requestingUserId)
+    {
+        // Verify organization exists
+        var organization = await _organizationRepository.GetByIdAsync(organizationId);
+        if (organization == null)
+        {
+            throw new NotFoundException("Organization", organizationId);
+        }
+
+        // Check if requesting user is an orgAdmin
+        var isAdmin = await _memberRepository.HasRoleAsync(organizationId, requestingUserId, "orgAdmin");
+        if (!isAdmin)
+        {
+            throw new ForbiddenException("Only organization administrators can remove members");
+        }
+
+        // Get membership
+        var membership = await _memberRepository.GetMembershipAsync(organizationId, userId);
+        if (membership == null)
+        {
+            throw new NotFoundException($"User {userId} is not a member of this organization");
+        }
+
+        // Remove member
+        await _memberRepository.RemoveMemberAsync(membership);
+
+        _logger.LogInformation(
+            "User {UserId} removed from organization {OrganizationId}",
+            userId, organizationId);
+    }
+
+    public async Task<OrganizationMemberResponse> UpdateMemberRoleAsync(
+        int organizationId,
+        string userId,
+        UpdateMemberRoleRequest request,
+        string requestingUserId)
+    {
+        // Verify organization exists
+        var organization = await _organizationRepository.GetByIdAsync(organizationId);
+        if (organization == null)
+        {
+            throw new NotFoundException("Organization", organizationId);
+        }
+
+        // Check if requesting user is an orgAdmin
+        var isAdmin = await _memberRepository.HasRoleAsync(organizationId, requestingUserId, "orgAdmin");
+        if (!isAdmin)
+        {
+            throw new ForbiddenException("Only organization administrators can update member roles");
+        }
+
+        // Get membership
+        var membership = await _memberRepository.GetMembershipAsync(organizationId, userId);
+        if (membership == null)
+        {
+            throw new NotFoundException($"User {userId} is not a member of this organization");
+        }
+
+        // Update role
+        membership.Role = request.Role;
+        await _memberRepository.UpdateMemberRoleAsync(membership);
+
+        _logger.LogInformation(
+            "User {UserId} role updated to {Role} in organization {OrganizationId}",
+            userId, request.Role, organizationId);
+
+        return new OrganizationMemberResponse
+        {
+            OrganizationId = organizationId,
+            UserId = userId,
+            Role = request.Role
+        };
+    }
+
+    public async Task<IEnumerable<OrganizationMemberResponse>> GetOrganizationMembersAsync(int organizationId)
+    {
+        // Verify organization exists
+        var organization = await _organizationRepository.GetByIdAsync(organizationId);
+        if (organization == null)
+        {
+            throw new NotFoundException("Organization", organizationId);
+        }
+
+        var members = await _memberRepository.GetMembersByOrganizationIdAsync(organizationId);
+
+        return members.Select(m => new OrganizationMemberResponse
+        {
+            OrganizationId = m.OrganizationId,
+            UserId = m.UserId,
+            Role = m.Role
+        });
+    }
+
+    public async Task<IEnumerable<OrganizationResponse>> GetUserOrganizationsAsync(string userId)
+    {
+        var organizations = await _memberRepository.GetOrganizationsByUserIdAsync(userId);
+
+        var responses = new List<OrganizationResponse>();
+        foreach (var org in organizations)
+        {
+            var bankAccounts = await _context.BankAccounts
+                .Where(a => org.BankAccountIds.Contains(a.Id))
+                .ToListAsync();
+
+            var response = org.ToDto();
+            response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
+            responses.Add(response);
+        }
+
+        return responses;
     }
 }

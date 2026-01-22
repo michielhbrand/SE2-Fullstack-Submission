@@ -237,15 +237,34 @@ namespace InvoiceTrackerApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("UserIds")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AddressId");
 
                     b.ToTable("Organizations");
+                });
+
+            modelBuilder.Entity("InvoiceTrackerApi.Models.OrganizationMember", b =>
+                {
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("OrganizationId", "UserId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("OrganizationMembers");
                 });
 
             modelBuilder.Entity("InvoiceTrackerApi.Models.Quote", b =>
@@ -388,6 +407,17 @@ namespace InvoiceTrackerApi.Migrations
                     b.Navigation("Address");
                 });
 
+            modelBuilder.Entity("InvoiceTrackerApi.Models.OrganizationMember", b =>
+                {
+                    b.HasOne("InvoiceTrackerApi.Models.Organization", "Organization")
+                        .WithMany("Members")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("InvoiceTrackerApi.Models.Quote", b =>
                 {
                     b.HasOne("InvoiceTrackerApi.Models.Client", "Client")
@@ -411,6 +441,11 @@ namespace InvoiceTrackerApi.Migrations
             modelBuilder.Entity("InvoiceTrackerApi.Models.Invoice", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("InvoiceTrackerApi.Models.Organization", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("InvoiceTrackerApi.Models.Quote", b =>

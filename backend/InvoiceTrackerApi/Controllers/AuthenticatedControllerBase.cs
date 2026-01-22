@@ -25,4 +25,22 @@ public abstract class AuthenticatedControllerBase : ControllerBase
 
         return userEmail;
     }
+
+    /// <summary>
+    /// Extracts the Keycloak user ID (sub claim) from JWT token.
+    /// This is the authoritative user identifier for organization membership.
+    /// </summary>
+    /// <returns>Keycloak user ID (sub claim)</returns>
+    /// <exception cref="UnauthorizedException">Thrown when sub claim cannot be found</exception>
+    protected string GetCurrentUserId()
+    {
+        var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new UnauthorizedException("User ID (sub claim) not found in token claims");
+        }
+
+        return userId;
+    }
 }

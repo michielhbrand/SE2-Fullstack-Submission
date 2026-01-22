@@ -11,6 +11,7 @@ using InvoiceTrackerApi.Services.Template;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
 using InvoiceTrackerApi.Repositories.Organization;
+using InvoiceTrackerApi.Repositories.OrganizationMember;
 using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Repositories.Template;
 
@@ -38,6 +39,7 @@ builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
 builder.Services.AddScoped<ITemplateRepository, TemplateRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<IOrganizationMemberRepository, OrganizationMemberRepository>();
 
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();

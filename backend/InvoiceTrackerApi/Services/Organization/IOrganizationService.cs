@@ -13,4 +13,11 @@ public interface IOrganizationService
     Task<OrganizationResponse> CreateOrganizationAsync(CreateOrganizationRequest request);
     Task<OrganizationResponse> UpdateOrganizationAsync(int id, UpdateOrganizationRequest request);
     Task DeleteOrganizationAsync(int id);
+    
+    // Organization Membership methods
+    Task<OrganizationMemberResponse> AddMemberToOrganizationAsync(int organizationId, string userId, AddOrganizationMemberRequest request, string requestingUserId);
+    Task RemoveMemberFromOrganizationAsync(int organizationId, string userId, string requestingUserId);
+    Task<OrganizationMemberResponse> UpdateMemberRoleAsync(int organizationId, string userId, UpdateMemberRoleRequest request, string requestingUserId);
+    Task<IEnumerable<OrganizationMemberResponse>> GetOrganizationMembersAsync(int organizationId);
+    Task<IEnumerable<OrganizationResponse>> GetUserOrganizationsAsync(string userId);
 }

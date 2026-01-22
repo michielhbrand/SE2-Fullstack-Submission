@@ -168,8 +168,7 @@ public static class MappingExtensions
                 FirstLine = "",
                 City = "",
                 Code = ""
-            },
-            UserIds = organization.UserIds
+            }
         };
     }
 
@@ -177,8 +176,7 @@ public static class MappingExtensions
     {
         return new Models.Organization
         {
-            Name = request.Name,
-            UserIds = request.UserIds
+            Name = request.Name
         };
     }
 
