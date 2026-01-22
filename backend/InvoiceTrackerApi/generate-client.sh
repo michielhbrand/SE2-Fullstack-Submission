@@ -6,6 +6,25 @@
 echo "🔧 Generating TypeScript API Client..."
 echo ""
 
+# Set DOTNET_ROOT if not already set (required for .NET tools on macOS)
+if [ -z "$DOTNET_ROOT" ]; then
+    if [ -d "/usr/local/share/dotnet" ]; then
+        export DOTNET_ROOT=/usr/local/share/dotnet
+    elif [ -d "/opt/homebrew/opt/dotnet/libexec" ]; then
+        export DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec
+    fi
+fi
+
+# Check if NSwag is installed
+NSWAG_PATH="$HOME/.dotnet/tools/nswag"
+if [ ! -f "$NSWAG_PATH" ]; then
+    echo "❌ Error: NSwag is not installed"
+    echo "   Install it globally with: dotnet tool install -g NSwag.ConsoleCore"
+    exit 1
+fi
+
+echo "✅ NSwag is installed"
+
 # Check if backend is running
 if ! curl -s http://localhost:5000/swagger/v1/swagger.json > /dev/null 2>&1; then
     echo "❌ Error: Backend API is not running at http://localhost:5000"
@@ -17,7 +36,7 @@ echo "✅ Backend API is running"
 echo "📥 Fetching OpenAPI specification..."
 
 # Generate the TypeScript client using NSwag
-nswag run nswag.json
+"$NSWAG_PATH" run nswag.json
 
 if [ $? -eq 0 ]; then
     echo ""

@@ -1,5 +1,6 @@
-using InvoiceTrackerApi.DTOs.Requests;
-using InvoiceTrackerApi.DTOs.Responses;
+using InvoiceTrackerApi.DTOs.Common;
+using InvoiceTrackerApi.DTOs.Invoice.Requests;
+using InvoiceTrackerApi.DTOs.Invoice.Responses;
 
 namespace InvoiceTrackerApi.Services.Invoice;
 

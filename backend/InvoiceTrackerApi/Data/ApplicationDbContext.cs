@@ -16,6 +16,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Quote> Quotes { get; set; }
     public DbSet<QuoteItem> QuoteItems { get; set; }
     public DbSet<Template> Templates { get; set; }
+    public DbSet<Organization> Organizations { get; set; }
+    public DbSet<Address> Addresses { get; set; }
+    public DbSet<BankAccount> BankAccounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +62,31 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => new { e.Name, e.Version }).IsUnique();
             entity.Property(e => e.Created).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        // Configure Organization entity
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.HasOne(e => e.Address)
+                .WithMany()
+                .HasForeignKey(e => e.AddressId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.Property(e => e.UserIds)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+            
+            entity.Property(e => e.BankAccountIds)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList());
+        });
+
+        // Configure BankAccount entity
+        modelBuilder.Entity<BankAccount>(entity =>
+        {
+            entity.HasIndex(e => e.OrganizationId);
         });
     }
 }

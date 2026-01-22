@@ -1,5 +1,12 @@
-using InvoiceTrackerApi.DTOs.Requests;
-using InvoiceTrackerApi.DTOs.Responses;
+using InvoiceTrackerApi.DTOs.Client.Requests;
+using InvoiceTrackerApi.DTOs.Client.Responses;
+using InvoiceTrackerApi.DTOs.Invoice.Requests;
+using InvoiceTrackerApi.DTOs.Invoice.Responses;
+using InvoiceTrackerApi.DTOs.Organization.Requests;
+using InvoiceTrackerApi.DTOs.Organization.Responses;
+using InvoiceTrackerApi.DTOs.Quote.Requests;
+using InvoiceTrackerApi.DTOs.Quote.Responses;
+using InvoiceTrackerApi.DTOs.Template.Responses;
 using InvoiceTrackerApi.Models;
 
 namespace InvoiceTrackerApi.Mappers;
@@ -145,6 +152,84 @@ public static class MappingExtensions
             StorageKey = template.StorageKey,
             Created = template.Created,
             CreatedBy = template.CreatedBy
+        };
+    }
+
+    // Organization mappings
+    public static OrganizationResponse ToDto(this Models.Organization organization)
+    {
+        return new OrganizationResponse
+        {
+            Id = organization.Id,
+            Name = organization.Name,
+            Address = organization.Address?.ToDto() ?? new AddressResponse
+            {
+                Id = 0,
+                FirstLine = "",
+                City = "",
+                Code = ""
+            },
+            UserIds = organization.UserIds
+        };
+    }
+
+    public static Models.Organization ToModel(this CreateOrganizationRequest request)
+    {
+        return new Models.Organization
+        {
+            Name = request.Name,
+            UserIds = request.UserIds
+        };
+    }
+
+    // Address mappings
+    public static AddressResponse ToDto(this Address address)
+    {
+        return new AddressResponse
+        {
+            Id = address.Id,
+            FirstLine = address.FirstLine,
+            SecondLine = address.SecondLine,
+            City = address.City,
+            Code = address.Code
+        };
+    }
+
+    public static Address ToModel(this CreateAddressRequest request)
+    {
+        return new Address
+        {
+            FirstLine = request.FirstLine,
+            SecondLine = request.SecondLine,
+            City = request.City,
+            Code = request.Code
+        };
+    }
+
+    // BankAccount mappings
+    public static BankAccountResponse ToDto(this BankAccount bankAccount)
+    {
+        return new BankAccountResponse
+        {
+            Id = bankAccount.Id,
+            BankName = bankAccount.BankName,
+            BranchCode = bankAccount.BranchCode,
+            AccountNumber = bankAccount.AccountNumber,
+            AccountType = bankAccount.AccountType,
+            Active = bankAccount.Active
+        };
+    }
+
+    public static BankAccount ToModel(this CreateBankAccountRequest request, int organizationId)
+    {
+        return new BankAccount
+        {
+            BankName = request.BankName,
+            BranchCode = request.BranchCode,
+            AccountNumber = request.AccountNumber,
+            AccountType = request.AccountType,
+            Active = request.Active,
+            OrganizationId = organizationId
         };
     }
 }

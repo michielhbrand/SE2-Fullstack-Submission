@@ -1,5 +1,5 @@
-using InvoiceTrackerApi.DTOs.Requests;
-using InvoiceTrackerApi.DTOs.Responses;
+using InvoiceTrackerApi.DTOs.Auth.Requests;
+using InvoiceTrackerApi.DTOs.Auth.Responses;
 using InvoiceTrackerApi.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

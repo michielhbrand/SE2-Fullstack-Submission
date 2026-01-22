@@ -4,11 +4,13 @@ using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.Client;
 using InvoiceTrackerApi.Services.Invoice;
+using InvoiceTrackerApi.Services.Organization;
 using InvoiceTrackerApi.Services.PdfStorage;
 using InvoiceTrackerApi.Services.Quote;
 using InvoiceTrackerApi.Services.Template;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
+using InvoiceTrackerApi.Repositories.Organization;
 using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Repositories.Template;
 
@@ -35,11 +37,13 @@ builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
 builder.Services.AddScoped<ITemplateRepository, TemplateRepository>();
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IPdfStorageService, PdfStorageService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
