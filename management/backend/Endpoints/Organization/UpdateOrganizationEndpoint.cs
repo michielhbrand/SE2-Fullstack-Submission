@@ -2,6 +2,7 @@ using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Exceptions.Application;
 using ManagementApi.Filters;
+using ManagementApi.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
@@ -52,6 +53,39 @@ public static class UpdateOrganizationEndpoint
             org.Phone = request.Phone;
         if (request.Website != null)
             org.Website = request.Website;
+        
+        if (request.Address != null)
+        {
+            if (org.Address == null)
+            {
+                // Create new address only if Street is provided (required field)
+                if (!string.IsNullOrWhiteSpace(request.Address.Street))
+                {
+                    org.Address = new Address
+                    {
+                        Street = request.Address.Street,
+                        City = request.Address.City,
+                        State = request.Address.State,
+                        PostalCode = request.Address.PostalCode,
+                        Country = request.Address.Country
+                    };
+                }
+            }
+            else
+            {
+                // Update existing address
+                if (!string.IsNullOrWhiteSpace(request.Address.Street))
+                    org.Address.Street = request.Address.Street;
+                if (request.Address.City != null)
+                    org.Address.City = request.Address.City;
+                if (request.Address.State != null)
+                    org.Address.State = request.Address.State;
+                if (request.Address.PostalCode != null)
+                    org.Address.PostalCode = request.Address.PostalCode;
+                if (request.Address.Country != null)
+                    org.Address.Country = request.Address.Country;
+            }
+        }
 
         org.UpdatedAt = DateTime.UtcNow;
 

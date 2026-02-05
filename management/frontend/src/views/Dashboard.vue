@@ -1,19 +1,78 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { toast } from "vue-sonner";
 import Button from "../components/ui/Button.vue";
 import Card from "../components/ui/Card.vue";
+import CreateOrganizationDialog from "../components/CreateOrganizationDialog.vue";
+import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
+import { organizationService } from "../services/organizations";
+import type { OrganizationResponse } from "../api/generated/api-client";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const isCreateDialogOpen = ref(false);
+const isEditDialogOpen = ref(false);
+const organizations = ref<OrganizationResponse[]>([]);
+const selectedOrganization = ref<OrganizationResponse | null>(null);
+const isLoading = ref(false);
 
 const handleLogout = async () => {
   await authStore.logout();
   toast.success("Logged out successfully");
   router.push("/login");
 };
+
+const openCreateDialog = () => {
+  isCreateDialogOpen.value = true;
+};
+
+const openEditDialog = (org: OrganizationResponse) => {
+  selectedOrganization.value = org;
+  isEditDialogOpen.value = true;
+};
+
+const fetchOrganizations = async () => {
+  isLoading.value = true;
+  try {
+    organizations.value = await organizationService.getAll();
+  } catch (error: any) {
+    console.error("Failed to fetch organizations:", error);
+    toast.error(error?.message || "Failed to fetch organizations");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const handleOrganizationCreated = () => {
+  fetchOrganizations();
+  toast.success("Organization created successfully");
+};
+
+const handleOrganizationUpdated = () => {
+  fetchOrganizations();
+  toast.success("Organization updated successfully");
+};
+
+const handleDeleteOrganization = async (id: number) => {
+  if (!confirm("Are you sure you want to delete this organization?")) {
+    return;
+  }
+
+  try {
+    await organizationService.delete(id);
+    toast.success("Organization deleted successfully");
+    fetchOrganizations();
+  } catch (error: any) {
+    console.error("Failed to delete organization:", error);
+    toast.error(error?.message || "Failed to delete organization");
+  }
+};
+
+onMounted(() => {
+  fetchOrganizations();
+});
 </script>
 
 <template>
@@ -57,7 +116,9 @@ const handleLogout = async () => {
               <p class="text-sm font-medium text-gray-600">
                 Total Organizations
               </p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">0</p>
+              <p class="text-3xl font-bold text-gray-900 mt-2">
+                {{ organizations.length }}
+              </p>
             </div>
             <div
               class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center"
@@ -136,7 +197,10 @@ const handleLogout = async () => {
       <div class="mb-8">
         <h3 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card class="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            class="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+            @click="openCreateDialog"
+          >
             <div class="text-center">
               <div
                 class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3"
@@ -244,7 +308,7 @@ const handleLogout = async () => {
       <div>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-xl font-semibold text-gray-900">Organizations</h3>
-          <Button>
+          <Button @click="openCreateDialog">
             <svg
               class="h-4 w-4 mr-2"
               fill="none"
@@ -261,7 +325,18 @@ const handleLogout = async () => {
             Add Organization
           </Button>
         </div>
-        <Card class="p-6">
+        <!-- Loading State -->
+        <Card v-if="isLoading" class="p-6">
+          <div class="text-center py-12">
+            <div
+              class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+            ></div>
+            <p class="mt-4 text-gray-600">Loading organizations...</p>
+          </div>
+        </Card>
+
+        <!-- Empty State -->
+        <Card v-else-if="organizations.length === 0" class="p-6">
           <div class="text-center py-12">
             <svg
               class="h-12 w-12 text-gray-400 mx-auto mb-4"
@@ -282,10 +357,167 @@ const handleLogout = async () => {
             <p class="text-gray-600 mb-4">
               Get started by creating your first organization
             </p>
-            <Button>Create Organization</Button>
+            <Button @click="openCreateDialog">Create Organization</Button>
+          </div>
+        </Card>
+
+        <!-- Organizations Table -->
+        <Card v-else class="overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Organization
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Contact
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Location
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Created
+                  </th>
+                  <th
+                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  v-for="org in organizations"
+                  :key="org.Id"
+                  class="hover:bg-gray-50 transition-colors cursor-pointer"
+                  @click="openEditDialog(org)"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div
+                        class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center"
+                      >
+                        <svg
+                          class="h-5 w-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          {{ org.Name }}
+                        </div>
+                        <div
+                          v-if="org.RegistrationNumber"
+                          class="text-sm text-gray-500"
+                        >
+                          Reg: {{ org.RegistrationNumber }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      {{ org.Email || "—" }}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {{ org.Phone || "—" }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      {{ org.Address?.City || "—" }}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {{ org.Address?.Country || "—" }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ new Date(org.CreatedAt!).toLocaleDateString() }}
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                  >
+                    <div class="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        @click.stop="openEditDialog(org)"
+                      >
+                        <svg
+                          class="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        <span class="ml-1">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        @click.stop="handleDeleteOrganization(org.Id!)"
+                        class="text-red-600 hover:text-red-700 hover:border-red-300"
+                      >
+                        <svg
+                          class="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        <span class="ml-1">Delete</span>
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </Card>
       </div>
     </main>
+
+    <!-- Create Organization Dialog -->
+    <CreateOrganizationDialog
+      v-model:open="isCreateDialogOpen"
+      @success="handleOrganizationCreated"
+    />
+
+    <!-- Edit Organization Dialog -->
+    <EditOrganizationDialog
+      v-model:open="isEditDialogOpen"
+      :organization="selectedOrganization"
+      @success="handleOrganizationUpdated"
+    />
   </div>
 </template>

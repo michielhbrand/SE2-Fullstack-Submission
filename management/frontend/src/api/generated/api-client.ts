@@ -683,6 +683,7 @@ export interface UpdateOrganizationRequest {
     Email?: string | null;
     Phone?: string | null;
     Website?: string | null;
+    Address?: CreateAddressRequest | null;
 }
 
 export class ApiException extends Error {
