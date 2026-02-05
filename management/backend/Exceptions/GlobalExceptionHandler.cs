@@ -5,14 +5,19 @@ namespace ManagementApi.Exceptions;
 
 /// <summary>
 /// Global exception handler that maps exceptions to RFC 9457 Problem Details responses.
+/// Implements standardized error responses across the API.
 /// </summary>
 public class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IHostEnvironment _environment;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
+        IHostEnvironment environment)
     {
         _logger = logger;
+        _environment = environment;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -24,7 +29,11 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var problemDetails = CreateProblemDetails(httpContext, exception);
 
+        // Set response status code
         httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+        
+        // Set content type for ProblemDetails
+        httpContext.Response.ContentType = "application/problem+json";
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
@@ -33,9 +42,10 @@ public class GlobalExceptionHandler : IExceptionHandler
 
     private ProblemDetails CreateProblemDetails(HttpContext httpContext, Exception exception)
     {
+        // Handle application-specific exceptions
         if (exception is AppException appException)
         {
-            return new ProblemDetails
+            var problemDetails = new ProblemDetails
             {
                 Status = appException.StatusCode,
                 Type = appException.Type,
@@ -43,30 +53,55 @@ public class GlobalExceptionHandler : IExceptionHandler
                 Detail = appException.Message,
                 Instance = httpContext.Request.Path
             };
+
+            // Add trace ID for correlation
+            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+            return problemDetails;
         }
 
-        return new ProblemDetails
+        // Handle unexpected exceptions
+        var detail = _environment.IsDevelopment()
+            ? exception.Message
+            : "An unexpected error occurred while processing your request.";
+
+        var internalError = new ProblemDetails
         {
             Status = StatusCodes.Status500InternalServerError,
             Type = "https://datatracker.ietf.org/doc/html/rfc9110#section-15.6.1",
             Title = "Internal Server Error",
-            Detail = "An unexpected error occurred while processing your request.",
+            Detail = detail,
             Instance = httpContext.Request.Path
         };
+
+        // Add trace ID for correlation
+        internalError.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        // In development, include stack trace
+        if (_environment.IsDevelopment())
+        {
+            internalError.Extensions["stackTrace"] = exception.StackTrace;
+            internalError.Extensions["exceptionType"] = exception.GetType().FullName;
+        }
+
+        return internalError;
     }
 
     private void LogException(Exception exception)
     {
-        if (exception is AppException)
+        if (exception is AppException appException)
         {
+            // Log application exceptions as warnings (expected errors)
             _logger.LogWarning(
                 exception,
-                "Application exception occurred: {ExceptionType} - {Message}",
+                "Application exception occurred: {ExceptionType} - Status: {StatusCode} - {Message}",
                 exception.GetType().Name,
+                appException.StatusCode,
                 exception.Message);
         }
         else
         {
+            // Log unexpected exceptions as errors
             _logger.LogError(
                 exception,
                 "Unexpected exception occurred: {ExceptionType} - {Message}",

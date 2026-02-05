@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ManagementApi.Filters;
 
@@ -30,10 +31,22 @@ public class ValidationFilter<T> : IEndpointFilter where T : class
         
         if (!validationResult.IsValid)
         {
+            // Create proper RFC 9457 ProblemDetails for validation errors
+            var problemDetails = new ValidationProblemDetails(validationResult.ToDictionary())
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Type = "https://datatracker.ietf.org/doc/html/rfc9110#section-15.5.1",
+                Title = "One or more validation errors occurred.",
+                Instance = context.HttpContext.Request.Path
+            };
+
             return Results.ValidationProblem(
-                validationResult.ToDictionary(),
-                title: "Validation Error",
-                statusCode: StatusCodes.Status400BadRequest
+                problemDetails.Errors,
+                detail: problemDetails.Detail,
+                instance: problemDetails.Instance,
+                title: problemDetails.Title,
+                type: problemDetails.Type,
+                statusCode: problemDetails.Status
             );
         }
 

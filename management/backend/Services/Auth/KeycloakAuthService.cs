@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
+using ManagementApi.Exceptions;
 using ManagementApi.Exceptions.Application;
 
 namespace ManagementApi.Services.Auth;
@@ -63,9 +64,9 @@ public class KeycloakAuthService : IKeycloakAuthService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Login failed for user: {Username}. Status: {Status}", 
+                _logger.LogWarning("Login failed for user: {Username}. Status: {Status}",
                     username, response.StatusCode);
-                throw new ValidationException("Invalid username or password");
+                throw new UnauthorizedException("Invalid username or password");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -75,7 +76,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (keycloakResponse == null)
             {
                 _logger.LogError("Failed to deserialize Keycloak token response");
-                throw new Exception("Authentication service returned invalid response");
+                throw new ServiceUnavailableException("Authentication service returned invalid response");
             }
 
             var roles = ExtractRolesFromToken(keycloakResponse.Access_Token);
@@ -84,7 +85,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (!roles.Contains("systemAdmin"))
             {
                 _logger.LogWarning("User {Username} attempted login without systemAdmin role", username);
-                throw new ValidationException("Access denied. System Administrator role required.");
+                throw new ForbiddenException("Access denied. System Administrator role required.");
             }
 
             _logger.LogInformation("Login successful for systemAdmin: {Username}", username);
@@ -105,7 +106,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during login for user: {Username}", username);
-            throw new Exception("Authentication service is unavailable", ex);
+            throw new ServiceUnavailableException("Authentication service is unavailable");
+        }
+        catch (AppException)
+        {
+            // Re-throw application exceptions as-is
+            throw;
         }
         catch (Exception ex)
         {
@@ -138,7 +144,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Token refresh failed. Status: {Status}", response.StatusCode);
-                throw new ValidationException("Refresh token is invalid or expired");
+                throw new UnauthorizedException("Refresh token is invalid or expired");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -147,7 +153,7 @@ public class KeycloakAuthService : IKeycloakAuthService
 
             if (keycloakResponse == null)
             {
-                throw new Exception("Authentication service returned invalid response");
+                throw new ServiceUnavailableException("Authentication service returned invalid response");
             }
 
             var roles = ExtractRolesFromToken(keycloakResponse.Access_Token);
@@ -161,9 +167,15 @@ public class KeycloakAuthService : IKeycloakAuthService
                 Roles = roles
             };
         }
-        catch (ValidationException)
+        catch (AppException)
         {
+            // Re-throw application exceptions as-is
             throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error during token refresh");
+            throw new ServiceUnavailableException("Authentication service is unavailable");
         }
         catch (Exception ex)
         {
