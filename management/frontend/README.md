@@ -66,12 +66,15 @@ npm run preview
 ```
 management/frontend/
 ├── src/
-│   ├── assets/          # Static assets and styles
-│   ├── components/      # Reusable Vue components
+│   ├── api/            # API client
+│   │   ├── generated/  # Auto-generated TypeScript API client
+│   │   └── client.ts   # Configured API client instance
+│   ├── assets/         # Static assets and styles
+│   ├── components/     # Reusable Vue components
 │   │   └── ui/         # UI components (Button, Input, Card, etc.)
 │   ├── lib/            # Utility functions
 │   ├── router/         # Vue Router configuration
-│   ├── services/       # API services
+│   ├── services/       # API service wrappers
 │   ├── stores/         # Pinia stores
 │   ├── views/          # Page components
 │   ├── App.vue         # Root component
@@ -83,9 +86,40 @@ management/frontend/
 └── tsconfig.json       # TypeScript configuration
 ```
 
+## API Client
+
+The frontend uses a **type-safe TypeScript API client** generated from the backend's OpenAPI specification. This provides:
+
+- Full TypeScript type definitions
+- IntelliSense support in your IDE
+- Automatic request/response validation
+- Built-in authentication with token refresh
+
+For detailed usage instructions, see [API_CLIENT_USAGE.md](./API_CLIENT_USAGE.md).
+
+### Quick Example
+
+```typescript
+import { apiClient } from './api/client'
+
+// Login
+const response = await apiClient.adminLogin({
+  Username: 'admin',
+  Password: 'password',
+})
+
+// Get organizations
+const organizations = await apiClient.getOrganizations()
+```
+
 ## Authentication
 
 The portal requires System Admin credentials to access. Only users with the `systemAdmin` role can log in.
+
+Authentication is handled automatically by the API client with:
+- JWT token storage in localStorage
+- Automatic token refresh on 401 errors
+- Request interceptors to add Authorization headers
 
 ## Development
 

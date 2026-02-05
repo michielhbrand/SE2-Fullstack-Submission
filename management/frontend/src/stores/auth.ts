@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import apiClient from '../services/api'
+import { apiClient } from '../api/client'
 
 interface User {
   id: string
@@ -75,12 +75,19 @@ export const useAuthStore = defineStore('auth', () => {
   // Login function for system admins
   const login = async (username: string, password: string) => {
     try {
-      const response = await apiClient.post('/api/auth/admin-login', {
-        username,
-        password,
+      const response = await apiClient.adminLogin({
+        Username: username,
+        Password: password,
       })
 
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data
+      const { AccessToken: newAccessToken, RefreshToken: newRefreshToken } = response
+
+      if (!newAccessToken || !newRefreshToken) {
+        return {
+          success: false,
+          error: 'Invalid response from server',
+        }
+      }
 
       accessToken.value = newAccessToken
       refreshToken.value = newRefreshToken
@@ -95,7 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Login error:', error)
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed',
+        error: error.message || 'Login failed',
       }
     }
   }
@@ -104,8 +111,8 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = async () => {
     try {
       if (refreshToken.value) {
-        await apiClient.post('/api/auth/logout', {
-          refreshToken: refreshToken.value,
+        await apiClient.logout({
+          RefreshToken: refreshToken.value,
         })
       }
     } catch (error) {

@@ -1,160 +1,129 @@
 # Management API
 
-ASP.NET Core Web API for managing organizations in the system. This API is designed for system administrators to manage organizations and their members.
+Backend API for managing organizations and system administration.
 
-## Tech Stack
-
-- **ASP.NET Core 8.0** - Web framework
-- **Entity Framework Core** - ORM
-- **PostgreSQL** - Database (shared with InvoiceTrackerApi)
-- **Keycloak** - Authentication and authorization
-- **NSwag** - OpenAPI/Swagger documentation
-- **Minimal APIs** - Lightweight API endpoints
-
-## Features
-
-- System Admin only access (role-based authorization)
-- Organization CRUD operations
-- Address management
-- Bank account management
-- Organization member management
-- Health checks
-- Global exception handling
-- JWT Bearer authentication
-
-## Architecture
-
-This API follows the same robust design patterns as the InvoiceTrackerApi:
-
-- **Minimal APIs** - Uses ASP.NET Core Minimal APIs instead of traditional controllers
-- **Extension Methods** - Service configuration organized in extension methods
-- **Global Exception Handling** - Centralized error handling with RFC 9457 Problem Details
-- **Repository Pattern** - Data access abstraction (implemented inline in minimal APIs for simplicity)
-- **DTOs** - Request/Response data transfer objects
-- **Database Integration** - Shares the same PostgreSQL database as InvoiceTrackerApi
-- **Keycloak Integration** - JWT token validation and role extraction
-
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - .NET 8.0 SDK
-- PostgreSQL (shared with InvoiceTrackerApi)
-- Keycloak instance running
+- PostgreSQL database
+- Keycloak for authentication
+- NSwag.ConsoleCore (for client generation)
 
-### Configuration
+## Running the API
 
-Update `appsettings.json` with your configuration:
+### Development Mode
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=authdb;Username=postgres;Password=postgres"
-  },
-  "Keycloak": {
-    "Authority": "http://localhost:9090/realms/microservices",
-    "Audience": "backend-api",
-    "ClientId": "management-portal"
-  }
-}
-```
-
-### Running the API
+To run the API in development mode (with Swagger/OpenAPI enabled):
 
 ```bash
-dotnet restore
+ASPNETCORE_ENVIRONMENT=Development dotnet run
+```
+
+Or simply:
+
+```bash
 dotnet run
 ```
 
 The API will be available at `http://localhost:5002`
 
-### API Documentation
+### Swagger UI
 
-When running in development mode, access the Swagger UI at:
+When running in Development mode, Swagger UI is available at:
 - Swagger UI: `http://localhost:5002/swagger`
-- OpenAPI spec: `http://localhost:5002/swagger/v1/swagger.json`
+- OpenAPI Spec: `http://localhost:5002/swagger/v1/swagger.json`
+
+## Generating TypeScript Client
+
+The TypeScript client is automatically generated from the OpenAPI specification using NSwag.
+
+### Prerequisites
+
+Install NSwag globally:
+
+```bash
+dotnet tool install -g NSwag.ConsoleCore
+```
+
+### Generate Client
+
+1. Ensure the Management API is running in Development mode
+2. Run the generation script:
+
+```bash
+cd management/backend
+./generate-client.sh
+```
+
+The generated TypeScript client will be created at:
+`management/frontend/src/api/generated/api-client.ts`
+
+### Troubleshooting
+
+If you get a 404 error when generating the client:
+
+1. Make sure the API is running: `curl http://localhost:5002/health`
+2. Verify OpenAPI is available: `curl http://localhost:5002/swagger/v1/swagger.json`
+3. If OpenAPI returns 404, ensure the API is running in Development mode:
+   ```bash
+   ASPNETCORE_ENVIRONMENT=Development dotnet run
+   ```
+
+## Configuration
+
+Configuration is managed through:
+- `appsettings.json` - Base configuration
+- `appsettings.Development.json` - Development overrides
+- Environment variables
+
+### Key Configuration
+
+- **Database**: Connection string in `appsettings.json`
+- **Keycloak**: Authentication settings in `appsettings.json`
+- **CORS**: Configured for the management portal frontend
 
 ## API Endpoints
 
+### Health Check
+- `GET /health` - Health check endpoint
+
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+
 ### Organizations
-
-All endpoints require `systemAdmin` role.
-
-- `GET /api/organizations` - Get all organizations
-- `GET /api/organizations/{id}` - Get organization by ID
-- `POST /api/organizations` - Create new organization
+- `GET /api/organizations` - List organizations
+- `POST /api/organizations` - Create organization
+- `GET /api/organizations/{id}` - Get organization details
 - `PUT /api/organizations/{id}` - Update organization
 - `DELETE /api/organizations/{id}` - Delete organization
 
-### Health
-
-- `GET /health` - Health check endpoint
-
-## Authentication
-
-All API endpoints (except `/health`) require a valid JWT token with the `systemAdmin` role.
-
-Include the token in the Authorization header:
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-## Database
-
-This API shares the same PostgreSQL database (`authdb`) with the InvoiceTrackerApi. It accesses the following tables:
-
-- `Organizations`
-- `Addresses`
-- `BankAccounts`
-- `OrganizationMembers`
-
-No migrations are needed as the database schema is managed by InvoiceTrackerApi.
-
-## Error Handling
-
-The API uses RFC 9457 Problem Details for error responses:
-
-```json
-{
-  "type": "https://datatracker.ietf.org/doc/html/rfc9110#section-15.5.5",
-  "title": "Resource Not Found",
-  "status": 404,
-  "detail": "Organization with identifier '123' was not found.",
-  "instance": "/api/organizations/123"
-}
-```
-
 ## Development
+
+### Database Migrations
+
+Create a new migration:
+```bash
+dotnet ef migrations add MigrationName
+```
+
+Apply migrations:
+```bash
+dotnet ef database update
+```
 
 ### Project Structure
 
 ```
 management/backend/
-├── Data/                   # Database context
-├── DTOs/                   # Data transfer objects
-├── Exceptions/             # Custom exceptions
-├── Extensions/             # Service extensions
-├── Models/                 # Entity models
-├── Program.cs              # Application entry point with minimal APIs
-├── appsettings.json        # Configuration
-└── ManagementApi.csproj    # Project file
+├── Controllers/          # API endpoints
+├── Data/                # Database context
+├── DTOs/                # Data transfer objects
+├── Endpoints/           # Minimal API endpoints
+├── Exceptions/          # Custom exceptions
+├── Extensions/          # Service extensions
+├── Models/              # Domain models
+├── Repositories/        # Data access layer
+├── Services/            # Business logic
+└── Properties/          # Launch settings
 ```
-
-### Adding New Endpoints
-
-Add new minimal API endpoints in `Program.cs`:
-
-```csharp
-app.MapGet("/api/example", async (ApplicationDbContext db) =>
-{
-    // Your logic here
-    return Results.Ok(data);
-})
-.RequireAuthorization("SystemAdminOnly")
-.WithName("ExampleEndpoint")
-.WithOpenApi();
-```
-
-## License
-
-Private - Internal use only

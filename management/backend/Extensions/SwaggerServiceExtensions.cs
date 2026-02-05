@@ -10,6 +10,7 @@ public static class SwaggerServiceExtensions
         services.AddEndpointsApiExplorer();
         services.AddOpenApiDocument(config =>
         {
+            config.DocumentName = "v1";
             config.Title = "Management API";
             config.Version = "v1";
             config.Description = "API for managing organizations and system administration";
@@ -23,6 +24,10 @@ public static class SwaggerServiceExtensions
             });
 
             config.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("Bearer"));
+            
+            // Generate detailed schemas for better TypeScript types
+            config.SchemaSettings.GenerateAbstractSchemas = false;
+            config.SchemaSettings.GenerateExamples = true;
         });
 
         return services;

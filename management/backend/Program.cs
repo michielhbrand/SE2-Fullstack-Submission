@@ -23,6 +23,12 @@ builder.Services.AddCorsServices();
 builder.Services.AddAuthenticationServices(builder.Configuration);
 builder.Services.AddHealthCheckServices(builder.Configuration);
 
+// Configure JSON serialization to use PascalCase (matching C# DTOs)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = null; // Use PascalCase (default C# naming)
+});
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
