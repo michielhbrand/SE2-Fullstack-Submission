@@ -6,28 +6,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
-/// <summary>
-/// Endpoint for retrieving all organizations
-/// </summary>
 public static class GetAllOrganizationsEndpoint
 {
-    /// <summary>
-    /// Maps the get all organizations endpoint
-    /// </summary>
     public static RouteHandlerBuilder MapGetAllOrganizations(this IEndpointRouteBuilder group)
     {
         return group.MapGet("/", Handle)
             .WithName("GetOrganizations")
-            .WithOpenApi();
+            .WithSummary("Get all organizations")
+            .WithDescription("Retrieves a list of all organizations including their addresses and members")
+            .WithOpenApi()
+            .Produces<List<OrganizationResponse>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
     }
 
-    /// <summary>
-    /// Handles retrieving all organizations
-    /// </summary>
-    /// <param name="db">Database context</param>
-    /// <param name="loggerFactory">Logger factory</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of organization responses</returns>
     private static async Task<Ok<List<OrganizationResponse>>> Handle(
         ApplicationDbContext db,
         ILoggerFactory loggerFactory,

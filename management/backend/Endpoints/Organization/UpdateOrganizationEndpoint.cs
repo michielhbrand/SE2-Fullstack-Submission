@@ -6,31 +6,23 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
 
-/// <summary>
-/// Endpoint for updating an existing organization
-/// </summary>
 public static class UpdateOrganizationEndpoint
 {
-    /// <summary>
-    /// Maps the update organization endpoint
-    /// </summary>
     public static RouteHandlerBuilder MapUpdateOrganization(this IEndpointRouteBuilder group)
     {
         return group.MapPut("/{id:int}", Handle)
             .WithName("UpdateOrganization")
+            .WithSummary("Update an organization")
+            .WithDescription("Updates an existing organization's details by its ID")
             .WithOpenApi()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .AddEndpointFilter<ValidationFilter<UpdateOrganizationRequest>>();
     }
 
-    /// <summary>
-    /// Handles updating an existing organization
-    /// </summary>
-    /// <param name="id">Organization ID</param>
-    /// <param name="request">Update request</param>
-    /// <param name="db">Database context</param>
-    /// <param name="loggerFactory">Logger factory</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>No content on success</returns>
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         int id,
         UpdateOrganizationRequest request,

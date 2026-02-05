@@ -7,29 +7,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
-/// <summary>
-/// Endpoint for retrieving a specific organization by ID
-/// </summary>
 public static class GetOrganizationByIdEndpoint
 {
-    /// <summary>
-    /// Maps the get organization by ID endpoint
-    /// </summary>
     public static RouteHandlerBuilder MapGetOrganizationById(this IEndpointRouteBuilder group)
     {
         return group.MapGet("/{id:int}", Handle)
             .WithName("GetOrganizationById")
-            .WithOpenApi();
+            .WithSummary("Get organization by ID")
+            .WithDescription("Retrieves a specific organization by its ID including address, members, and bank accounts")
+            .WithOpenApi()
+            .Produces<OrganizationResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
-    /// <summary>
-    /// Handles retrieving a specific organization by ID
-    /// </summary>
-    /// <param name="id">Organization ID</param>
-    /// <param name="db">Database context</param>
-    /// <param name="loggerFactory">Logger factory</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Organization response</returns>
     private static async Task<Results<Ok<OrganizationResponse>, ProblemHttpResult>> Handle(
         int id,
         ApplicationDbContext db,

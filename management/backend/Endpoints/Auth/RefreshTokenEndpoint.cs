@@ -11,8 +11,14 @@ public static class RefreshTokenEndpoint
     {
         return group.MapPost("/refresh", Handle)
             .WithName("RefreshToken")
+            .WithSummary("Refresh access token")
+            .WithDescription("Generates a new access token using a valid refresh token")
             .WithOpenApi()
             .AllowAnonymous()
+            .Produces<LoginResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .AddEndpointFilter<ValidationFilter<RefreshTokenRequest>>();
     }
 

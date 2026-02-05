@@ -4,29 +4,21 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
 
-/// <summary>
-/// Endpoint for deleting an organization
-/// </summary>
 public static class DeleteOrganizationEndpoint
 {
-    /// <summary>
-    /// Maps the delete organization endpoint
-    /// </summary>
     public static RouteHandlerBuilder MapDeleteOrganization(this IEndpointRouteBuilder group)
     {
         return group.MapDelete("/{id:int}", Handle)
             .WithName("DeleteOrganization")
-            .WithOpenApi();
+            .WithSummary("Delete an organization")
+            .WithDescription("Deletes an organization by its ID")
+            .WithOpenApi()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
-    /// <summary>
-    /// Handles deleting an organization
-    /// </summary>
-    /// <param name="id">Organization ID</param>
-    /// <param name="db">Database context</param>
-    /// <param name="loggerFactory">Logger factory</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>No content on success</returns>
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         int id,
         ApplicationDbContext db,

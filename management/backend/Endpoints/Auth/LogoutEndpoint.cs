@@ -11,7 +11,13 @@ public static class LogoutEndpoint
     {
         return group.MapPost("/logout", Handle)
             .WithName("Logout")
+            .WithSummary("User logout")
+            .WithDescription("Logs out a user by invalidating their refresh token")
             .WithOpenApi()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .AddEndpointFilter<ValidationFilter<LogoutRequest>>();
     }
 

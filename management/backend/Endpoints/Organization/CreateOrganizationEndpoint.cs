@@ -6,30 +6,22 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
 
-/// <summary>
-/// Endpoint for creating a new organization
-/// </summary>
 public static class CreateOrganizationEndpoint
 {
-    /// <summary>
-    /// Maps the create organization endpoint
-    /// </summary>
     public static RouteHandlerBuilder MapCreateOrganization(this IEndpointRouteBuilder group)
     {
         return group.MapPost("/", Handle)
             .WithName("CreateOrganization")
+            .WithSummary("Create a new organization")
+            .WithDescription("Creates a new organization with the provided details including optional address information")
             .WithOpenApi()
+            .Produces<OrganizationResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .AddEndpointFilter<ValidationFilter<CreateOrganizationRequest>>();
     }
 
-    /// <summary>
-    /// Handles the creation of a new organization
-    /// </summary>
-    /// <param name="request">The organization creation request</param>
-    /// <param name="db">Database context</param>
-    /// <param name="loggerFactory">Logger factory</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created organization response</returns>
     private static async Task<Results<Created<OrganizationResponse>, ProblemHttpResult>> Handle(
         CreateOrganizationRequest request,
         ApplicationDbContext db,
