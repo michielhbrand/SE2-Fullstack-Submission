@@ -25,7 +25,8 @@ public class ValidationFilter<T> : IEndpointFilter where T : class
             return await next(context);
         }
 
-        var validationResult = await _validator.ValidateAsync(requestObject);
+        var cancellationToken = context.HttpContext.RequestAborted;
+        var validationResult = await _validator.ValidateAsync(requestObject, cancellationToken);
         
         if (!validationResult.IsValid)
         {

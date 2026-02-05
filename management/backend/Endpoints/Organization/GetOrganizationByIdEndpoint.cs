@@ -15,12 +15,15 @@ public static class GetOrganizationByIdEndpoint
             .WithOpenApi();
     }
 
-    private static async Task<Results<Ok<OrganizationResponse>, ProblemHttpResult>> Handle(int id, ApplicationDbContext db)
+    private static async Task<Results<Ok<OrganizationResponse>, ProblemHttpResult>> Handle(
+        int id,
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
     {
         var org = await db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         if (org == null)
             throw new NotFoundException("Organization", id);
@@ -28,7 +31,7 @@ public static class GetOrganizationByIdEndpoint
         // Get bank accounts
         var bankAccounts = await db.BankAccounts
             .Where(ba => org.BankAccountIds.Contains(ba.Id))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var response = new OrganizationResponse
         {

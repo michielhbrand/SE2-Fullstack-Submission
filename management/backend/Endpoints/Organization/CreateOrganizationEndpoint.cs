@@ -18,7 +18,8 @@ public static class CreateOrganizationEndpoint
 
     private static async Task<Results<Created<OrganizationResponse>, ProblemHttpResult>> Handle(
         CreateOrganizationRequest request,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
     {
         var organization = new Models.Organization
         {
@@ -43,12 +44,12 @@ public static class CreateOrganizationEndpoint
                 Country = request.Address.Country
             };
             db.Addresses.Add(address);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             organization.AddressId = address.Id;
         }
 
         db.Organizations.Add(organization);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         var response = new OrganizationResponse
         {

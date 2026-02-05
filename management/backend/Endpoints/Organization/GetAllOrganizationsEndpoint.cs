@@ -14,12 +14,14 @@ public static class GetAllOrganizationsEndpoint
             .WithOpenApi();
     }
 
-    private static async Task<Ok<List<OrganizationResponse>>> Handle(ApplicationDbContext db)
+    private static async Task<Ok<List<OrganizationResponse>>> Handle(
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
     {
         var organizations = await db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var responses = organizations.Select(org => new OrganizationResponse
         {

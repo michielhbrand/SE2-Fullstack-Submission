@@ -18,9 +18,10 @@ public static class RefreshTokenEndpoint
 
     private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> Handle(
         RefreshTokenRequest request,
-        IKeycloakAuthService authService)
+        IKeycloakAuthService authService,
+        CancellationToken cancellationToken)
     {
-        var result = await authService.RefreshTokenAsync(request.RefreshToken);
+        var result = await authService.RefreshTokenAsync(request.RefreshToken, cancellationToken);
 
         var response = result.ToLoginResponse();
 

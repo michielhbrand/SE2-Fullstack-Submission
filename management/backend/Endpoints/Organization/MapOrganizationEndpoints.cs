@@ -4,7 +4,7 @@ public static class OrganizationEndpointsMapper
 {
     public static IEndpointRouteBuilder MapOrganizationEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/organizations")
+        var group = app.MapGroup("/api/v1/organizations")
             .RequireAuthorization("SystemAdminOnly")
             .WithTags("Organizations");
 

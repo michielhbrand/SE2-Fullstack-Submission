@@ -19,9 +19,10 @@ public static class UpdateOrganizationEndpoint
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         int id,
         UpdateOrganizationRequest request,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
     {
-        var org = await db.Organizations.FindAsync(id);
+        var org = await db.Organizations.FindAsync(new object[] { id }, cancellationToken);
         if (org == null)
             throw new NotFoundException("Organization", id);
 
@@ -40,7 +41,7 @@ public static class UpdateOrganizationEndpoint
 
         org.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
     }

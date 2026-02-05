@@ -36,7 +36,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             _keycloakUrl, _realm, _clientId);
     }
 
-    public async Task<TokenResponse> LoginAsync(string username, string password)
+    public async Task<TokenResponse> LoginAsync(string username, string password, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
@@ -59,7 +59,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             
             _logger.LogInformation("Attempting systemAdmin login for user: {Username}", username);
             
-            var response = await _httpClient.PostAsync(tokenEndpoint, content);
+            var response = await _httpClient.PostAsync(tokenEndpoint, content, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -68,7 +68,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                 throw new ValidationException("Invalid username or password");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             var keycloakResponse = JsonSerializer.Deserialize<KeycloakTokenResponse>(responseContent, 
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
@@ -114,7 +114,7 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
-    public async Task<TokenResponse> RefreshTokenAsync(string refreshToken)
+    public async Task<TokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -133,7 +133,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             };
 
             var content = new FormUrlEncodedContent(requestData);
-            var response = await _httpClient.PostAsync(tokenEndpoint, content);
+            var response = await _httpClient.PostAsync(tokenEndpoint, content, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -141,7 +141,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                 throw new ValidationException("Refresh token is invalid or expired");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             var keycloakResponse = JsonSerializer.Deserialize<KeycloakTokenResponse>(responseContent,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
@@ -172,7 +172,7 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
-    public async Task LogoutAsync(string refreshToken)
+    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -190,7 +190,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             };
 
             var content = new FormUrlEncodedContent(requestData);
-            var response = await _httpClient.PostAsync(logoutEndpoint, content);
+            var response = await _httpClient.PostAsync(logoutEndpoint, content, cancellationToken);
 
             if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.BadRequest)
             {

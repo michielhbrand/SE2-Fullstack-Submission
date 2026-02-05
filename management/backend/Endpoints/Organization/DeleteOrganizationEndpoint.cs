@@ -13,14 +13,17 @@ public static class DeleteOrganizationEndpoint
             .WithOpenApi();
     }
 
-    private static async Task<Results<NoContent, ProblemHttpResult>> Handle(int id, ApplicationDbContext db)
+    private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
+        int id,
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
     {
-        var org = await db.Organizations.FindAsync(id);
+        var org = await db.Organizations.FindAsync(new object[] { id }, cancellationToken);
         if (org == null)
             throw new NotFoundException("Organization", id);
 
         db.Organizations.Remove(org);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
     }

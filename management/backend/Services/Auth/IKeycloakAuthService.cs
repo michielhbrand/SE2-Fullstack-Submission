@@ -2,9 +2,9 @@ namespace ManagementApi.Services.Auth;
 
 public interface IKeycloakAuthService
 {
-    Task<TokenResponse> LoginAsync(string username, string password);
-    Task<TokenResponse> RefreshTokenAsync(string refreshToken);
-    Task LogoutAsync(string refreshToken);
+    Task<TokenResponse> LoginAsync(string username, string password, CancellationToken cancellationToken = default);
+    Task<TokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+    Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default);
 }
 
 public class TokenResponse

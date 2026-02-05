@@ -12,15 +12,15 @@ public static class LogoutEndpoint
         return group.MapPost("/logout", Handle)
             .WithName("Logout")
             .WithOpenApi()
-            .AllowAnonymous()
             .AddEndpointFilter<ValidationFilter<LogoutRequest>>();
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         LogoutRequest request,
-        IKeycloakAuthService authService)
+        IKeycloakAuthService authService,
+        CancellationToken cancellationToken)
     {
-        await authService.LogoutAsync(request.RefreshToken);
+        await authService.LogoutAsync(request.RefreshToken, cancellationToken);
         return TypedResults.NoContent();
     }
 }
