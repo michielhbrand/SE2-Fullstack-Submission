@@ -5,8 +5,6 @@ namespace ManagementApi.Validators.User;
 
 public class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
 {
-    private static readonly string[] ValidRoles = { "orgUser", "orgAdmin" };
-
     public CreateUserRequestValidator()
     {
         RuleFor(x => x.Email)
@@ -23,8 +21,6 @@ public class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
             .When(x => !string.IsNullOrEmpty(x.LastName));
 
         RuleFor(x => x.Role)
-            .NotEmpty().WithMessage("Role is required")
-            .Must(role => ValidRoles.Contains(role))
-            .WithMessage($"Role must be one of: {string.Join(", ", ValidRoles)}");
+            .IsInEnum().WithMessage("Role must be a valid UserRole");
     }
 }

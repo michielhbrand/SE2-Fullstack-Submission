@@ -1,3 +1,5 @@
+using ManagementApi.Models;
+
 namespace ManagementApi.DTOs.User;
 
 /// <summary>
@@ -36,7 +38,7 @@ public class OrganizationMembershipResponse
 {
     public int OrganizationId { get; set; }
     public required string OrganizationName { get; set; }
-    public required string Role { get; set; }
+    public required UserRole Role { get; set; }
     public DateTime JoinedAt { get; set; }
 }
 
@@ -50,6 +52,6 @@ public class OrganizationMemberResponse
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool Active { get; set; }
-    public required string Role { get; set; }
+    public required UserRole Role { get; set; }
     public DateTime JoinedAt { get; set; }
 }

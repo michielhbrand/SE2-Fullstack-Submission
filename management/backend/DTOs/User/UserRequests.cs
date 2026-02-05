@@ -1,3 +1,5 @@
+using ManagementApi.Models;
+
 namespace ManagementApi.DTOs.User;
 
 /// <summary>
@@ -9,7 +11,7 @@ public class CreateUserRequest
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool Active { get; set; } = true;
-    public required string Role { get; set; } = "orgUser";
+    public required UserRole Role { get; set; } = UserRole.OrgUser;
 }
 
 /// <summary>
@@ -29,7 +31,7 @@ public class AddUserToOrganizationRequest
 {
     public required string UserId { get; set; }
     public required int OrganizationId { get; set; }
-    public required string Role { get; set; } = "member"; // owner, admin, member
+    public required UserRole Role { get; set; } = UserRole.OrgUser;
 }
 
 /// <summary>
@@ -40,5 +42,5 @@ public class CreateOrganizationMemberRequest
     public required string Email { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
-    public required string Role { get; set; } = "orgUser";
+    public required UserRole Role { get; set; } = UserRole.OrgUser;
 }

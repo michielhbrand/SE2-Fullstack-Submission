@@ -1152,8 +1152,10 @@ export interface CreateUserRequest {
     FirstName?: string | null;
     LastName?: string | null;
     Active?: boolean;
-    Role?: string;
+    Role?: UserRole;
 }
+
+export type UserRole = "OrgUser" | "OrgAdmin";
 
 export interface UpdateUserRequest {
     FirstName?: string | null;
@@ -1167,7 +1169,7 @@ export interface OrganizationMemberResponse {
     FirstName?: string | null;
     LastName?: string | null;
     Active?: boolean;
-    Role?: string;
+    Role?: UserRole;
     JoinedAt?: Date;
 }
 
@@ -1175,7 +1177,7 @@ export interface CreateOrganizationMemberRequest {
     Email?: string;
     FirstName?: string | null;
     LastName?: string | null;
-    Role?: string;
+    Role?: UserRole;
 }
 
 export class ApiException extends Error {

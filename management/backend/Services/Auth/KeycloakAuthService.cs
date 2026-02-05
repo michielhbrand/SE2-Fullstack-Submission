@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using ManagementApi.Exceptions;
 using ManagementApi.Exceptions.Application;
+using ManagementApi.Models;
 
 namespace ManagementApi.Services.Auth;
 
@@ -292,18 +293,15 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
-    public async Task<KeycloakUserResponse> CreateUserAsync(string email, string? firstName, string? lastName, string password, string role, CancellationToken cancellationToken = default)
+    public async Task<KeycloakUserResponse> CreateUserAsync(string email, string? firstName, string? lastName, string password, UserRole role, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Validate role - only orgUser and orgAdmin can be created
-            if (role != "orgUser" && role != "orgAdmin")
-            {
-                throw new ValidationException($"Invalid role '{role}'. Only 'orgUser' and 'orgAdmin' can be created.");
-            }
-
             var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
             var usersEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users";
+
+            // Convert enum to string for Keycloak
+            var roleString = role.ToString();
 
             var userPayload = new
             {
@@ -322,7 +320,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                         temporary = false
                     }
                 },
-                realmRoles = new[] { role }
+                realmRoles = new[] { roleString }
             };
 
             var jsonContent = new StringContent(
