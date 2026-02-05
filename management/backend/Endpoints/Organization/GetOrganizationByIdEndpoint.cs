@@ -1,13 +1,20 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Exceptions.Application;
+using ManagementApi.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
+/// <summary>
+/// Endpoint for retrieving a specific organization by ID
+/// </summary>
 public static class GetOrganizationByIdEndpoint
 {
+    /// <summary>
+    /// Maps the get organization by ID endpoint
+    /// </summary>
     public static RouteHandlerBuilder MapGetOrganizationById(this IEndpointRouteBuilder group)
     {
         return group.MapGet("/{id:int}", Handle)
@@ -15,56 +22,42 @@ public static class GetOrganizationByIdEndpoint
             .WithOpenApi();
     }
 
+    /// <summary>
+    /// Handles retrieving a specific organization by ID
+    /// </summary>
+    /// <param name="id">Organization ID</param>
+    /// <param name="db">Database context</param>
+    /// <param name="loggerFactory">Logger factory</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Organization response</returns>
     private static async Task<Results<Ok<OrganizationResponse>, ProblemHttpResult>> Handle(
         int id,
         ApplicationDbContext db,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var logger = loggerFactory.CreateLogger("GetOrganizationById");
+        logger.LogInformation("Retrieving organization with ID: {OrganizationId}", id);
+
         var org = await db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         if (org == null)
+        {
+            logger.LogWarning("Organization with ID {OrganizationId} not found", id);
             throw new NotFoundException("Organization", id);
+        }
 
         // Get bank accounts
         var bankAccounts = await db.BankAccounts
             .Where(ba => org.BankAccountIds.Contains(ba.Id))
             .ToListAsync(cancellationToken);
 
-        var response = new OrganizationResponse
-        {
-            Id = org.Id,
-            Name = org.Name,
-            TaxNumber = org.TaxNumber,
-            RegistrationNumber = org.RegistrationNumber,
-            Email = org.Email,
-            Phone = org.Phone,
-            Website = org.Website,
-            Address = org.Address != null ? new AddressResponse
-            {
-                Id = org.Address.Id,
-                Street = org.Address.Street,
-                City = org.Address.City,
-                State = org.Address.State,
-                PostalCode = org.Address.PostalCode,
-                Country = org.Address.Country
-            } : null,
-            BankAccounts = bankAccounts.Select(ba => new BankAccountResponse
-            {
-                Id = ba.Id,
-                AccountName = ba.AccountName,
-                AccountNumber = ba.AccountNumber,
-                BankName = ba.BankName,
-                BranchCode = ba.BranchCode,
-                SwiftCode = ba.SwiftCode,
-                Active = ba.Active
-            }).ToList(),
-            MemberCount = org.Members.Count,
-            CreatedAt = org.CreatedAt,
-            UpdatedAt = org.UpdatedAt
-        };
+        logger.LogInformation("Successfully retrieved organization with ID: {OrganizationId}", id);
+
+        var response = org.ToResponse(bankAccounts);
 
         return TypedResults.Ok(response);
     }

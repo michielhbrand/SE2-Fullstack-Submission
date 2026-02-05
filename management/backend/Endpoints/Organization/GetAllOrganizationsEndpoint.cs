@@ -1,12 +1,19 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
+using ManagementApi.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
+/// <summary>
+/// Endpoint for retrieving all organizations
+/// </summary>
 public static class GetAllOrganizationsEndpoint
 {
+    /// <summary>
+    /// Maps the get all organizations endpoint
+    /// </summary>
     public static RouteHandlerBuilder MapGetAllOrganizations(this IEndpointRouteBuilder group)
     {
         return group.MapGet("/", Handle)
@@ -14,38 +21,29 @@ public static class GetAllOrganizationsEndpoint
             .WithOpenApi();
     }
 
+    /// <summary>
+    /// Handles retrieving all organizations
+    /// </summary>
+    /// <param name="db">Database context</param>
+    /// <param name="loggerFactory">Logger factory</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of organization responses</returns>
     private static async Task<Ok<List<OrganizationResponse>>> Handle(
         ApplicationDbContext db,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var logger = loggerFactory.CreateLogger("GetAllOrganizations");
+        logger.LogInformation("Retrieving all organizations");
+
         var organizations = await db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
             .ToListAsync(cancellationToken);
 
-        var responses = organizations.Select(org => new OrganizationResponse
-        {
-            Id = org.Id,
-            Name = org.Name,
-            TaxNumber = org.TaxNumber,
-            RegistrationNumber = org.RegistrationNumber,
-            Email = org.Email,
-            Phone = org.Phone,
-            Website = org.Website,
-            Address = org.Address != null ? new AddressResponse
-            {
-                Id = org.Address.Id,
-                Street = org.Address.Street,
-                City = org.Address.City,
-                State = org.Address.State,
-                PostalCode = org.Address.PostalCode,
-                Country = org.Address.Country
-            } : null,
-            BankAccounts = new List<BankAccountResponse>(),
-            MemberCount = org.Members.Count,
-            CreatedAt = org.CreatedAt,
-            UpdatedAt = org.UpdatedAt
-        }).ToList();
+        logger.LogInformation("Retrieved {Count} organizations", organizations.Count);
+
+        var responses = organizations.Select(org => org.ToResponse()).ToList();
 
         return TypedResults.Ok(responses);
     }

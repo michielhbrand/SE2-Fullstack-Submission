@@ -6,8 +6,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
 
+/// <summary>
+/// Endpoint for updating an existing organization
+/// </summary>
 public static class UpdateOrganizationEndpoint
 {
+    /// <summary>
+    /// Maps the update organization endpoint
+    /// </summary>
     public static RouteHandlerBuilder MapUpdateOrganization(this IEndpointRouteBuilder group)
     {
         return group.MapPut("/{id:int}", Handle)
@@ -16,15 +22,31 @@ public static class UpdateOrganizationEndpoint
             .AddEndpointFilter<ValidationFilter<UpdateOrganizationRequest>>();
     }
 
+    /// <summary>
+    /// Handles updating an existing organization
+    /// </summary>
+    /// <param name="id">Organization ID</param>
+    /// <param name="request">Update request</param>
+    /// <param name="db">Database context</param>
+    /// <param name="loggerFactory">Logger factory</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         int id,
         UpdateOrganizationRequest request,
         ApplicationDbContext db,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var logger = loggerFactory.CreateLogger("UpdateOrganization");
+        logger.LogInformation("Updating organization with ID: {OrganizationId}", id);
+
         var org = await db.Organizations.FindAsync(new object[] { id }, cancellationToken);
         if (org == null)
+        {
+            logger.LogWarning("Organization with ID {OrganizationId} not found", id);
             throw new NotFoundException("Organization", id);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Name))
             org.Name = request.Name;
@@ -42,6 +64,8 @@ public static class UpdateOrganizationEndpoint
         org.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Successfully updated organization with ID: {OrganizationId}", id);
 
         return TypedResults.NoContent();
     }

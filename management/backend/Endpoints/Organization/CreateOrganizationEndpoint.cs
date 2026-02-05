@@ -1,13 +1,19 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Exceptions.Application;
+using ManagementApi.Extensions;
 using ManagementApi.Filters;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ManagementApi.Endpoints.Organization;
 
+/// <summary>
+/// Endpoint for creating a new organization
+/// </summary>
 public static class CreateOrganizationEndpoint
 {
+    /// <summary>
+    /// Maps the create organization endpoint
+    /// </summary>
     public static RouteHandlerBuilder MapCreateOrganization(this IEndpointRouteBuilder group)
     {
         return group.MapPost("/", Handle)
@@ -16,11 +22,23 @@ public static class CreateOrganizationEndpoint
             .AddEndpointFilter<ValidationFilter<CreateOrganizationRequest>>();
     }
 
+    /// <summary>
+    /// Handles the creation of a new organization
+    /// </summary>
+    /// <param name="request">The organization creation request</param>
+    /// <param name="db">Database context</param>
+    /// <param name="loggerFactory">Logger factory</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created organization response</returns>
     private static async Task<Results<Created<OrganizationResponse>, ProblemHttpResult>> Handle(
         CreateOrganizationRequest request,
         ApplicationDbContext db,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var logger = loggerFactory.CreateLogger("CreateOrganization");
+        logger.LogInformation("Creating new organization: {OrganizationName}", request.Name);
+
         var organization = new Models.Organization
         {
             Name = request.Name,
@@ -35,7 +53,8 @@ public static class CreateOrganizationEndpoint
         // Create address if provided
         if (request.Address != null)
         {
-            var address = new Models.Address
+            logger.LogDebug("Creating address for organization: {OrganizationName}", request.Name);
+            organization.Address = new Models.Address
             {
                 Street = request.Address.Street,
                 City = request.Address.City,
@@ -43,37 +62,14 @@ public static class CreateOrganizationEndpoint
                 PostalCode = request.Address.PostalCode,
                 Country = request.Address.Country
             };
-            db.Addresses.Add(address);
-            await db.SaveChangesAsync(cancellationToken);
-            organization.AddressId = address.Id;
         }
 
         db.Organizations.Add(organization);
         await db.SaveChangesAsync(cancellationToken);
 
-        var response = new OrganizationResponse
-        {
-            Id = organization.Id,
-            Name = organization.Name,
-            TaxNumber = organization.TaxNumber,
-            RegistrationNumber = organization.RegistrationNumber,
-            Email = organization.Email,
-            Phone = organization.Phone,
-            Website = organization.Website,
-            Address = organization.Address != null ? new AddressResponse
-            {
-                Id = organization.Address.Id,
-                Street = organization.Address.Street,
-                City = organization.Address.City,
-                State = organization.Address.State,
-                PostalCode = organization.Address.PostalCode,
-                Country = organization.Address.Country
-            } : null,
-            BankAccounts = new List<BankAccountResponse>(),
-            MemberCount = 0,
-            CreatedAt = organization.CreatedAt,
-            UpdatedAt = organization.UpdatedAt
-        };
+        logger.LogInformation("Successfully created organization with ID: {OrganizationId}", organization.Id);
+
+        var response = organization.ToResponse();
 
         return TypedResults.Created($"/api/organizations/{organization.Id}", response);
     }
