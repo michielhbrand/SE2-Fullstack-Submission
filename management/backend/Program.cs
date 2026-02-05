@@ -1,9 +1,11 @@
 using FluentValidation;
 using ManagementApi.Endpoints.Auth;
 using ManagementApi.Endpoints.Organization;
+using ManagementApi.Endpoints.User;
 using ManagementApi.Exceptions;
 using ManagementApi.Extensions;
 using ManagementApi.Services.Auth;
+using ManagementApi.Services.User;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
@@ -59,5 +62,6 @@ app.MapHealthChecks("/health");
 // Map API endpoints
 app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
+app.MapUserEndpoints();
 
 app.Run();

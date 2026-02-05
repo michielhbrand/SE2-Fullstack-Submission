@@ -5,14 +5,19 @@ import { toast } from "vue-sonner";
 import Button from "../components/ui/Button.vue";
 import Card from "../components/ui/Card.vue";
 import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
+import AddMemberDialog from "../components/AddMemberDialog.vue";
 import { organizationService } from "../services/organizations";
-import type { OrganizationResponse } from "../api/generated/api-client";
+import { apiClient } from "../api/client";
+import type { OrganizationResponse, OrganizationMemberResponse } from "../api/generated/api-client";
 
 const router = useRouter();
 const route = useRoute();
 const organization = ref<OrganizationResponse | null>(null);
+const members = ref<OrganizationMemberResponse[]>([]);
 const isLoading = ref(false);
+const isLoadingMembers = ref(false);
 const isEditDialogOpen = ref(false);
+const isAddMemberDialogOpen = ref(false);
 
 const organizationId = computed(() => {
   const id = route.params.id;
@@ -44,12 +49,51 @@ const fetchOrganization = async () => {
   }
 };
 
+const fetchMembers = async () => {
+  if (!organizationId.value) return;
+
+  isLoadingMembers.value = true;
+  try {
+    members.value = await apiClient.getOrganizationMembers(organizationId.value);
+  } catch (error: any) {
+    console.error("Failed to fetch members:", error);
+    toast.error(error?.message || "Failed to fetch members");
+  } finally {
+    isLoadingMembers.value = false;
+  }
+};
+
 const openEditDialog = () => {
   isEditDialogOpen.value = true;
 };
 
+const openAddMemberDialog = () => {
+  isAddMemberDialogOpen.value = true;
+};
+
 const handleOrganizationUpdated = () => {
   fetchOrganization();
+};
+
+const handleMemberAdded = () => {
+  fetchMembers();
+};
+
+const handleRemoveMember = async (userId: string | undefined) => {
+  if (!organizationId.value || !userId) return;
+  
+  if (!confirm("Are you sure you want to remove this member?")) {
+    return;
+  }
+
+  try {
+    await apiClient.removeUserFromOrganization(organizationId.value, userId);
+    toast.success("Member removed successfully");
+    fetchMembers();
+  } catch (error: any) {
+    console.error("Failed to remove member:", error);
+    toast.error(error?.message || "Failed to remove member");
+  }
 };
 
 const goBack = () => {
@@ -58,6 +102,7 @@ const goBack = () => {
 
 onMounted(() => {
   fetchOrganization();
+  fetchMembers();
 });
 </script>
 
@@ -236,11 +281,11 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- Members Section (Placeholder) -->
+        <!-- Members Section -->
         <Card class="p-6">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Members</h2>
-            <Button size="sm">
+            <Button size="sm" @click="openAddMemberDialog">
               <svg
                 class="h-4 w-4 mr-2"
                 fill="none"
@@ -257,7 +302,110 @@ onMounted(() => {
               Add Member
             </Button>
           </div>
-          <div class="text-center py-8">
+
+          <!-- Loading State -->
+          <div v-if="isLoadingMembers" class="text-center py-8">
+            <div
+              class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+            ></div>
+            <p class="mt-4 text-gray-600">Loading members...</p>
+          </div>
+
+          <!-- Members List -->
+          <div v-else-if="members.length > 0" class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Member
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Email
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Role
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Joined
+                  </th>
+                  <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="member in members" :key="member.UserId">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">
+                      {{ member.FirstName || member.LastName
+                        ? `${member.FirstName || ''} ${member.LastName || ''}`.trim()
+                        : '—' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ member.Email }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span
+                      :class="[
+                        'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
+                        member.Role === 'orgAdmin'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800',
+                      ]"
+                    >
+                      {{ member.Role === 'orgAdmin' ? 'Admin' : 'User' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span
+                      :class="[
+                        'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
+                        member.Active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800',
+                      ]"
+                    >
+                      {{ member.Active ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ new Date(member.JoinedAt!).toLocaleDateString() }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      @click="handleRemoveMember(member.UserId)"
+                    >
+                      Remove
+                    </Button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else class="text-center py-8">
             <svg
               class="h-12 w-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -271,7 +419,8 @@ onMounted(() => {
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            <p class="text-gray-600">No members yet</p>
+            <p class="text-gray-600 mb-4">No members yet</p>
+            <Button size="sm" @click="openAddMemberDialog">Add your first member</Button>
           </div>
         </Card>
 
@@ -305,6 +454,14 @@ onMounted(() => {
       v-model:open="isEditDialogOpen"
       :organization="organization"
       @success="handleOrganizationUpdated"
+    />
+
+    <!-- Add Member Dialog -->
+    <AddMemberDialog
+      v-if="organizationId"
+      v-model:open="isAddMemberDialogOpen"
+      :organization-id="organizationId"
+      @success="handleMemberAdded"
     />
   </div>
 </template>

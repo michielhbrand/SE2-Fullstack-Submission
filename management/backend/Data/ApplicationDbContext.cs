@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<Address> Addresses { get; set; }
     public DbSet<BankAccount> BankAccounts { get; set; }
+    public DbSet<User> Users { get; set; }
     public DbSet<OrganizationMember> OrganizationMembers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,6 +40,32 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(e => e.Members)
                 .WithOne(m => m.Organization)
                 .HasForeignKey(m => m.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure User entity
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Email).IsUnique();
+            
+            entity.Property(e => e.Id)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            entity.Property(e => e.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(100);
+            
+            entity.Property(e => e.LastName)
+                .HasMaxLength(100);
+            
+            entity.HasMany(e => e.OrganizationMemberships)
+                .WithOne()
+                .HasForeignKey(m => m.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

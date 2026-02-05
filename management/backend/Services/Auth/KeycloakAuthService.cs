@@ -13,6 +13,8 @@ public class KeycloakAuthService : IKeycloakAuthService
     private readonly string _keycloakUrl;
     private readonly string _realm;
     private readonly string _clientId;
+    private readonly string _adminUsername;
+    private readonly string _adminPassword;
 
     public KeycloakAuthService(
         HttpClient httpClient,
@@ -32,6 +34,8 @@ public class KeycloakAuthService : IKeycloakAuthService
         _keycloakUrl = $"{authorityUri.Scheme}://{authorityUri.Authority}";
         _realm = pathSegments.Length >= 2 ? pathSegments[1] : "microservices";
         _clientId = _configuration["Keycloak:ClientId"] ?? "management-portal";
+        _adminUsername = _configuration["Keycloak:AdminUsername"] ?? "admin";
+        _adminPassword = _configuration["Keycloak:AdminPassword"] ?? "admin";
         
         _logger.LogInformation("KeycloakAuthService initialized - URL: {Url}, Realm: {Realm}, ClientId: {ClientId}",
             _keycloakUrl, _realm, _clientId);
@@ -244,6 +248,264 @@ public class KeycloakAuthService : IKeycloakAuthService
         {
             _logger.LogError(ex, "Error extracting roles from token");
             return new List<string>();
+        }
+    }
+
+    public async Task<string> GetAdminAccessTokenAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tokenEndpoint = $"{_keycloakUrl}/realms/master/protocol/openid-connect/token";
+            
+            var requestData = new Dictionary<string, string>
+            {
+                { "client_id", "admin-cli" },
+                { "grant_type", "password" },
+                { "username", _adminUsername },
+                { "password", _adminPassword }
+            };
+
+            var content = new FormUrlEncodedContent(requestData);
+            var response = await _httpClient.PostAsync(tokenEndpoint, content, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get admin access token. Status: {Status}", response.StatusCode);
+                throw new ServiceUnavailableException("Failed to authenticate with Keycloak admin API");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var tokenResponse = JsonSerializer.Deserialize<KeycloakTokenResponse>(responseContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.Access_Token))
+            {
+                throw new ServiceUnavailableException("Invalid admin token response");
+            }
+
+            return tokenResponse.Access_Token;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting admin access token");
+            throw;
+        }
+    }
+
+    public async Task<KeycloakUserResponse> CreateUserAsync(string email, string? firstName, string? lastName, string password, string role, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Validate role - only orgUser and orgAdmin can be created
+            if (role != "orgUser" && role != "orgAdmin")
+            {
+                throw new ValidationException($"Invalid role '{role}'. Only 'orgUser' and 'orgAdmin' can be created.");
+            }
+
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var usersEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users";
+
+            var userPayload = new
+            {
+                username = email,
+                email = email,
+                firstName = firstName ?? string.Empty,
+                lastName = lastName ?? string.Empty,
+                enabled = true,
+                emailVerified = true,
+                credentials = new[]
+                {
+                    new
+                    {
+                        type = "password",
+                        value = password,
+                        temporary = false
+                    }
+                },
+                realmRoles = new[] { role }
+            };
+
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(userPayload),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var response = await _httpClient.PostAsync(usersEndpoint, jsonContent, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to create user. Status: {Status}, Error: {Error}", response.StatusCode, errorContent);
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    throw new ValidationException("A user with this email already exists");
+                }
+                
+                throw new ServiceUnavailableException("Failed to create user in Keycloak");
+            }
+
+            // Get the created user's ID from the Location header
+            var locationHeader = response.Headers.Location?.ToString();
+            if (string.IsNullOrEmpty(locationHeader))
+            {
+                throw new ServiceUnavailableException("Failed to retrieve created user ID");
+            }
+
+            var userId = locationHeader.Split('/').Last();
+            
+            // Fetch the created user details
+            return await GetUserByIdAsync(userId, cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user in Keycloak");
+            throw new ServiceUnavailableException("Failed to create user");
+        }
+    }
+
+    public async Task<KeycloakUserResponse> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var usersEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users?email={Uri.EscapeDataString(email)}&exact=true";
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var response = await _httpClient.GetAsync(usersEndpoint, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get user by email. Status: {Status}", response.StatusCode);
+                throw new ServiceUnavailableException("Failed to retrieve user from Keycloak");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var users = JsonSerializer.Deserialize<List<KeycloakUserResponse>>(responseContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (users == null || users.Count == 0)
+            {
+                throw new NotFoundException($"User with email '{email}' not found");
+            }
+
+            return users[0];
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user by email from Keycloak");
+            throw new ServiceUnavailableException("Failed to retrieve user");
+        }
+    }
+
+    public async Task<KeycloakUserResponse> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var userEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}";
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var response = await _httpClient.GetAsync(userEndpoint, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    throw new NotFoundException($"User with ID '{userId}' not found");
+                }
+                
+                _logger.LogError("Failed to get user by ID. Status: {Status}", response.StatusCode);
+                throw new ServiceUnavailableException("Failed to retrieve user from Keycloak");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var user = JsonSerializer.Deserialize<KeycloakUserResponse>(responseContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (user == null)
+            {
+                throw new NotFoundException($"User with ID '{userId}' not found");
+            }
+
+            return user;
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user by ID from Keycloak");
+            throw new ServiceUnavailableException("Failed to retrieve user");
+        }
+    }
+
+    public async Task UpdateUserAsync(string userId, string? firstName, string? lastName, bool? enabled, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var userEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}";
+
+            // First, get the current user to preserve existing data
+            var currentUser = await GetUserByIdAsync(userId, cancellationToken);
+
+            var updatePayload = new
+            {
+                firstName = firstName ?? currentUser.FirstName ?? string.Empty,
+                lastName = lastName ?? currentUser.LastName ?? string.Empty,
+                enabled = enabled ?? currentUser.Enabled
+            };
+
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(updatePayload),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var response = await _httpClient.PutAsync(userEndpoint, jsonContent, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to update user. Status: {Status}, Error: {Error}", response.StatusCode, errorContent);
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    throw new NotFoundException($"User with ID '{userId}' not found");
+                }
+                
+                throw new ServiceUnavailableException("Failed to update user in Keycloak");
+            }
+
+            _logger.LogInformation("Successfully updated user {UserId}", userId);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user in Keycloak");
+            throw new ServiceUnavailableException("Failed to update user");
         }
     }
 
