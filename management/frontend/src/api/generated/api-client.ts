@@ -632,6 +632,7 @@ export interface OrganizationResponse {
     Email?: string | null;
     Phone?: string | null;
     Website?: string | null;
+    Active?: boolean;
     Address?: AddressResponse | null;
     BankAccounts?: BankAccountResponse[];
     MemberCount?: number;
@@ -683,6 +684,7 @@ export interface UpdateOrganizationRequest {
     Email?: string | null;
     Phone?: string | null;
     Website?: string | null;
+    Active?: boolean | null;
     Address?: CreateAddressRequest | null;
 }
 

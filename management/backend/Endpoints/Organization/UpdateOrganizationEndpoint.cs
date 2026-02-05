@@ -4,6 +4,7 @@ using ManagementApi.Exceptions.Application;
 using ManagementApi.Filters;
 using ManagementApi.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
@@ -34,7 +35,10 @@ public static class UpdateOrganizationEndpoint
         var logger = loggerFactory.CreateLogger("UpdateOrganization");
         logger.LogInformation("Updating organization with ID: {OrganizationId}", id);
 
-        var org = await db.Organizations.FindAsync(new object[] { id }, cancellationToken);
+        var org = await db.Organizations
+            .Include(o => o.Address)
+            .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+        
         if (org == null)
         {
             logger.LogWarning("Organization with ID {OrganizationId} not found", id);
@@ -53,6 +57,8 @@ public static class UpdateOrganizationEndpoint
             org.Phone = request.Phone;
         if (request.Website != null)
             org.Website = request.Website;
+        if (request.Active.HasValue)
+            org.Active = request.Active.Value;
         
         if (request.Address != null)
         {

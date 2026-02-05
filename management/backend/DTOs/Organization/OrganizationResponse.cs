@@ -9,6 +9,7 @@ public record OrganizationResponse
     public string? Email { get; init; }
     public string? Phone { get; init; }
     public string? Website { get; init; }
+    public bool Active { get; init; }
     public AddressResponse? Address { get; init; }
     public List<BankAccountResponse> BankAccounts { get; init; } = new();
     public int MemberCount { get; init; }

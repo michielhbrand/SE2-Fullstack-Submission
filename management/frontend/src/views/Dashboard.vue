@@ -47,12 +47,10 @@ const fetchOrganizations = async () => {
 
 const handleOrganizationCreated = () => {
   fetchOrganizations();
-  toast.success("Organization created successfully");
 };
 
 const handleOrganizationUpdated = () => {
   fetchOrganizations();
-  toast.success("Organization updated successfully");
 };
 
 const handleDeleteOrganization = async (id: number) => {

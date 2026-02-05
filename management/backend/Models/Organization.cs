@@ -9,6 +9,7 @@ public class Organization
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Website { get; set; }
+    public bool Active { get; set; } = true;
     
     // Foreign key to Address
     public int? AddressId { get; set; }

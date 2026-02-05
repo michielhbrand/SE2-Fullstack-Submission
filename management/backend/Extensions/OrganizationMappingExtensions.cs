@@ -25,6 +25,7 @@ public static class OrganizationMappingExtensions
             Email = organization.Email,
             Phone = organization.Phone,
             Website = organization.Website,
+            Active = organization.Active,
             Address = organization.Address?.ToResponse(),
             BankAccounts = bankAccounts?.Select(ba => ba.ToResponse()).ToList() ?? new List<BankAccountResponse>(),
             MemberCount = organization.Members?.Count ?? 0,

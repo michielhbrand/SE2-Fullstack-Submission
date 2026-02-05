@@ -34,6 +34,7 @@ const formData = reactive<UpdateOrganizationRequest>({
   Email: "",
   Phone: "",
   Website: "",
+  Active: true,
   Address: {
     Street: "",
     City: "",
@@ -51,6 +52,7 @@ const loadOrganizationData = () => {
     formData.Email = props.organization.Email || "";
     formData.Phone = props.organization.Phone || "";
     formData.Website = props.organization.Website || "";
+    formData.Active = props.organization.Active ?? true;
     if (props.organization.Address) {
       formData.Address = {
         Street: props.organization.Address.Street || "",
@@ -121,7 +123,7 @@ watch(
     @update:open="(value) => emit('update:open', value)"
     @close="handleClose"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form @submit.prevent="handleSubmit" class="space-y-6" id="edit-organization-form">
       <!-- Organization Details Section -->
       <div>
         <h3 class="text-sm font-semibold text-gray-900 mb-4">
@@ -134,7 +136,8 @@ watch(
             </Label>
             <Input
               id="edit-name"
-              v-model="formData.Name"
+              :model-value="formData.Name ?? ''"
+              @update:model-value="(value) => (formData.Name = value as string)"
               type="text"
               placeholder="Enter organization name"
               :disabled="isSubmitting"
@@ -201,6 +204,22 @@ watch(
               :disabled="isSubmitting"
             />
           </div>
+
+          <div class="md:col-span-2">
+            <div class="flex items-center space-x-2">
+              <input
+                id="edit-active"
+                type="checkbox"
+                :checked="formData.Active ?? true"
+                @change="(e) => (formData.Active = (e.target as HTMLInputElement).checked)"
+                :disabled="isSubmitting"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label for="edit-active" class="cursor-pointer">
+                Active (uncheck to deactivate organization)
+              </Label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -214,7 +233,8 @@ watch(
             </Label>
             <Input
               id="edit-street"
-              v-model="formData.Address!.Street"
+              :model-value="formData.Address!.Street ?? ''"
+              @update:model-value="(value) => (formData.Address!.Street = value as string)"
               type="text"
               placeholder="Enter street address"
               :disabled="isSubmitting"
@@ -283,7 +303,11 @@ watch(
         >
           Cancel
         </Button>
-        <Button @click="handleSubmit" :disabled="isSubmitting" type="submit">
+        <Button
+          type="submit"
+          form="edit-organization-form"
+          :disabled="isSubmitting"
+        >
           <span v-if="isSubmitting">Updating...</span>
           <span v-else>Update Organization</span>
         </Button>
