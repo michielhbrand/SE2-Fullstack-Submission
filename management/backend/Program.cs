@@ -1,4 +1,6 @@
-using ManagementApi.Endpoints;
+using FluentValidation;
+using ManagementApi.Endpoints.Auth;
+using ManagementApi.Endpoints.Organization;
 using ManagementApi.Exceptions;
 using ManagementApi.Extensions;
 using ManagementApi.Services.Auth;
@@ -23,6 +25,9 @@ builder.Services.AddHealthCheckServices(builder.Configuration);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Register FluentValidation validators
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
