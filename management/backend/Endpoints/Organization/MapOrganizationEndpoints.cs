@@ -12,7 +12,6 @@ public static class OrganizationEndpointsMapper
         group.MapGetOrganizationById();
         group.MapCreateOrganization();
         group.MapUpdateOrganization();
-        group.MapDeleteOrganization();
 
         return app;
     }

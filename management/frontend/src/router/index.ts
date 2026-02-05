@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
+import Organizations from '../views/Organizations.vue'
+import OrganizationDetails from '../views/OrganizationDetails.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +22,18 @@ const router = createRouter({
       path: '/dashboard',
       name: 'Dashboard',
       component: Dashboard,
+      meta: { requiresAuth: true, requiresSystemAdmin: true },
+    },
+    {
+      path: '/organizations',
+      name: 'Organizations',
+      component: Organizations,
+      meta: { requiresAuth: true, requiresSystemAdmin: true },
+    },
+    {
+      path: '/organizations/:id',
+      name: 'OrganizationDetails',
+      component: OrganizationDetails,
       meta: { requiresAuth: true, requiresSystemAdmin: true },
     },
   ],

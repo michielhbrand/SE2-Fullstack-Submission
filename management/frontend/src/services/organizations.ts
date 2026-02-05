@@ -5,15 +5,27 @@ import type {
   UpdateOrganizationRequest,
 } from '../api/generated/api-client'
 
+export interface OrganizationQueryParams {
+  search?: string
+  status?: 'all' | 'active' | 'inactive'
+  sortBy?: 'name' | 'email' | 'city' | 'status' | 'created'
+  sortDirection?: 'asc' | 'desc'
+}
+
 /**
  * Service for managing organizations using the generated API client
  */
 export const organizationService = {
   /**
-   * Get all organizations
+   * Get all organizations with optional filtering, searching, and sorting
    */
-  async getAll(): Promise<OrganizationResponse[]> {
-    return await apiClient.getOrganizations()
+  async getAll(params?: OrganizationQueryParams): Promise<OrganizationResponse[]> {
+    return await apiClient.getOrganizations(
+      params?.search || undefined,
+      params?.status || undefined,
+      params?.sortBy || undefined,
+      params?.sortDirection || undefined
+    )
   },
 
   /**
@@ -40,12 +52,5 @@ export const organizationService = {
     await apiClient.updateOrganization(id, data)
     // Fetch the updated organization
     return await this.getById(id)
-  },
-
-  /**
-   * Delete an organization
-   */
-  async delete(id: number): Promise<void> {
-    return await apiClient.deleteOrganization(id)
   },
 }

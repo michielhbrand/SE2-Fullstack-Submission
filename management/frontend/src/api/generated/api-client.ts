@@ -238,8 +238,16 @@ export class ManagementApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    getOrganizations( cancelToken?: CancelToken): Promise<OrganizationResponse[]> {
-        let url_ = this.baseUrl + "/api/v1/organizations";
+    getOrganizations(search?: string | null | undefined, status?: string | null | undefined, sortBy?: string | null | undefined, sortDirection?: string | null | undefined, cancelToken?: CancelToken): Promise<OrganizationResponse[]> {
+        let url_ = this.baseUrl + "/api/v1/organizations?";
+        if (search !== undefined && search !== null)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDirection !== undefined && sortDirection !== null)
+            url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -495,74 +503,6 @@ export class ManagementApiClient {
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
             return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            let result401: any = null;
-            let resultData401  = _responseText;
-            result401 = JSON.parse(resultData401);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            let result403: any = null;
-            let resultData403  = _responseText;
-            result403 = JSON.parse(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = JSON.parse(resultData404);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    deleteOrganization(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/v1/organizations/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "DELETE",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDeleteOrganization(_response);
-        });
-    }
-
-    protected processDeleteOrganization(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
 
         } else if (status === 401) {
             const _responseText = response.data;
