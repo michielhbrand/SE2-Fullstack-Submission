@@ -7,6 +7,7 @@ import Button from "./ui/Button.vue";
 import { organizationService } from "../services/organizations";
 import { toast } from "vue-sonner";
 import type { CreateOrganizationRequest } from "../api/generated/api-client";
+import { getErrorMessage } from "../lib/error-utils";
 
 interface Props {
   open?: boolean;
@@ -83,7 +84,7 @@ const handleSubmit = async () => {
     resetForm();
   } catch (error: any) {
     console.error("Failed to create organization:", error);
-    toast.error(error?.message || "Failed to create organization");
+    toast.error(getErrorMessage(error, "Failed to create organization"));
   } finally {
     isSubmitting.value = false;
   }

@@ -9,6 +9,7 @@ import CreateOrganizationDialog from "../components/CreateOrganizationDialog.vue
 import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
 import { organizationService } from "../services/organizations";
 import type { OrganizationResponse } from "../api/generated/api-client";
+import { getErrorMessage } from "../lib/error-utils";
 
 const router = useRouter();
 const isCreateDialogOpen = ref(false);
@@ -51,7 +52,7 @@ const fetchOrganizations = async () => {
     });
   } catch (error: any) {
     console.error("Failed to fetch organizations:", error);
-    toast.error(error?.message || "Failed to fetch organizations");
+    toast.error(getErrorMessage(error, "Failed to fetch organizations"));
   } finally {
     isLoading.value = false;
   }

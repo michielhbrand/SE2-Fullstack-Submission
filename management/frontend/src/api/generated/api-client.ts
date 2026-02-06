@@ -1175,8 +1175,8 @@ export interface OrganizationMemberResponse {
 
 export interface CreateOrganizationMemberRequest {
     Email?: string;
-    FirstName?: string | null;
-    LastName?: string | null;
+    FirstName?: string;
+    LastName?: string;
     Role?: UserRole;
 }
 

@@ -10,6 +10,7 @@ import type {
   OrganizationResponse,
   UpdateOrganizationRequest,
 } from "../api/generated/api-client";
+import { getErrorMessage } from "../lib/error-utils";
 
 interface Props {
   open?: boolean;
@@ -96,7 +97,7 @@ const handleSubmit = async () => {
     emit("update:open", false);
   } catch (error: any) {
     console.error("Failed to update organization:", error);
-    toast.error(error?.message || "Failed to update organization");
+    toast.error(getErrorMessage(error, "Failed to update organization"));
   } finally {
     isSubmitting.value = false;
   }

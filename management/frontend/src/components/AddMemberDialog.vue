@@ -7,6 +7,7 @@ import Button from "./ui/Button.vue";
 import { toast } from "vue-sonner";
 import { apiClient } from "../api/client";
 import type { CreateOrganizationMemberRequest } from "../api/generated/api-client";
+import { getErrorMessage } from "../lib/error-utils";
 
 interface Props {
   open?: boolean;
@@ -28,14 +29,14 @@ const formData = reactive<CreateOrganizationMemberRequest>({
   Email: "",
   FirstName: "",
   LastName: "",
-  Role: "orgUser",
+  Role: "OrgUser",
 });
 
 const resetForm = () => {
   formData.Email = "";
   formData.FirstName = "";
   formData.LastName = "";
-  formData.Role = "orgUser";
+  formData.Role = "OrgUser";
 };
 
 const handleClose = () => {
@@ -48,6 +49,16 @@ const handleClose = () => {
 const handleSubmit = async () => {
   if (!formData.Email?.trim()) {
     toast.error("Email is required");
+    return;
+  }
+
+  if (!formData.FirstName?.trim()) {
+    toast.error("First name is required");
+    return;
+  }
+
+  if (!formData.LastName?.trim()) {
+    toast.error("Last name is required");
     return;
   }
 
@@ -66,7 +77,7 @@ const handleSubmit = async () => {
     resetForm();
   } catch (error: any) {
     console.error("Failed to add member:", error);
-    toast.error(error?.message || "Failed to add member");
+    toast.error(getErrorMessage(error, "Failed to add member"));
   } finally {
     isSubmitting.value = false;
   }
@@ -112,7 +123,9 @@ watch(
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label for="firstName">First Name</Label>
+          <Label for="firstName">
+            First Name <span class="text-red-500">*</span>
+          </Label>
           <Input
             id="firstName"
             :model-value="formData.FirstName ?? ''"
@@ -120,11 +133,14 @@ watch(
             type="text"
             placeholder="Enter first name"
             :disabled="isSubmitting"
+            required
           />
         </div>
 
         <div>
-          <Label for="lastName">Last Name</Label>
+          <Label for="lastName">
+            Last Name <span class="text-red-500">*</span>
+          </Label>
           <Input
             id="lastName"
             :model-value="formData.LastName ?? ''"
@@ -132,6 +148,7 @@ watch(
             type="text"
             placeholder="Enter last name"
             :disabled="isSubmitting"
+            required
           />
         </div>
       </div>
@@ -147,8 +164,8 @@ watch(
           :disabled="isSubmitting"
           required
         >
-          <option value="orgUser">Organization User</option>
-          <option value="orgAdmin">Organization Admin</option>
+          <option value="OrgUser">Organization User</option>
+          <option value="OrgAdmin">Organization Admin</option>
         </select>
         <p class="text-xs text-gray-500 mt-1">
           orgUser: Regular member | orgAdmin: Administrative privileges

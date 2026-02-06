@@ -7,6 +7,7 @@ import Card from "../components/ui/Card.vue";
 import Button from "../components/ui/Button.vue";
 import Input from "../components/ui/Input.vue";
 import Label from "../components/ui/Label.vue";
+import { getErrorMessage } from "../lib/error-utils";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -32,7 +33,7 @@ const handleLogin = async () => {
       toast.error(result.error || "Login failed");
     }
   } catch (error: any) {
-    toast.error(error.message || "An error occurred during login");
+    toast.error(getErrorMessage(error, "An error occurred during login"));
   } finally {
     loading.value = false;
   }

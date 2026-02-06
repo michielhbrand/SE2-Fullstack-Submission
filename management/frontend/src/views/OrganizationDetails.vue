@@ -9,6 +9,7 @@ import AddMemberDialog from "../components/AddMemberDialog.vue";
 import { organizationService } from "../services/organizations";
 import { apiClient } from "../api/client";
 import type { OrganizationResponse, OrganizationMemberResponse } from "../api/generated/api-client";
+import { getErrorMessage } from "../lib/error-utils";
 
 const router = useRouter();
 const route = useRoute();
@@ -42,7 +43,7 @@ const fetchOrganization = async () => {
     organization.value = org;
   } catch (error: any) {
     console.error("Failed to fetch organization:", error);
-    toast.error(error?.message || "Failed to fetch organization");
+    toast.error(getErrorMessage(error, "Failed to fetch organization"));
     router.push("/organizations");
   } finally {
     isLoading.value = false;
@@ -57,7 +58,7 @@ const fetchMembers = async () => {
     members.value = await apiClient.getOrganizationMembers(organizationId.value);
   } catch (error: any) {
     console.error("Failed to fetch members:", error);
-    toast.error(error?.message || "Failed to fetch members");
+    toast.error(getErrorMessage(error, "Failed to fetch members"));
   } finally {
     isLoadingMembers.value = false;
   }
@@ -92,7 +93,7 @@ const handleRemoveMember = async (userId: string | undefined) => {
     fetchMembers();
   } catch (error: any) {
     console.error("Failed to remove member:", error);
-    toast.error(error?.message || "Failed to remove member");
+    toast.error(getErrorMessage(error, "Failed to remove member"));
   }
 };
 
@@ -367,12 +368,12 @@ onMounted(() => {
                     <span
                       :class="[
                         'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
-                        member.Role === 'orgAdmin'
+                        member.Role === 'OrgAdmin'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800',
                       ]"
                     >
-                      {{ member.Role === 'orgAdmin' ? 'Admin' : 'User' }}
+                      {{ member.Role === 'OrgAdmin' ? 'Admin' : 'User' }}
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
