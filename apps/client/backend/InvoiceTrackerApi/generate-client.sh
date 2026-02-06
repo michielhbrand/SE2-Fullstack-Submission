@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to generate TypeScript API client from OpenAPI specification
-# This script should be run from the backend/InvoiceTrackerApi directory
+# This script should be run from the apps/client/backend/InvoiceTrackerApi directory
 
 echo "🔧 Generating TypeScript API Client..."
 echo ""
@@ -41,7 +41,7 @@ echo "📥 Fetching OpenAPI specification..."
 if [ $? -eq 0 ]; then
     echo ""
     echo "✅ TypeScript API client generated successfully!"
-    echo "   Location: frontend/app/src/api/generated/api-client.ts"
+    echo "   Location: apps/client/frontend/src/api/generated/api-client.ts"
     echo ""
 else
     echo ""

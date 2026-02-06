@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to generate TypeScript API client from OpenAPI specification
-# This script should be run from the management/backend directory
+# This script should be run from the apps/management/backend directory
 
 echo "🔧 Generating Management API TypeScript Client..."
 echo ""
@@ -54,7 +54,7 @@ mkdir -p ../frontend/src/api/generated
 if [ $? -eq 0 ]; then
     echo ""
     echo "✅ TypeScript API client generated successfully!"
-    echo "   Location: management/frontend/src/api/generated/api-client.ts"
+    echo "   Location: apps/management/frontend/src/api/generated/api-client.ts"
     echo ""
 else
     echo ""

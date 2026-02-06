@@ -69,7 +69,7 @@
       "enumNameGeneratorType": null,
       "serviceHost": null,
       "serviceSchemes": null,
-      "output": "../../frontend/app/src/api/generated/api-client.ts",
+      "output": "../../frontend/src/api/generated/api-client.ts",
       "newLineBehavior": "Auto"
     }
   }
