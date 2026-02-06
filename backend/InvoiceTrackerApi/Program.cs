@@ -14,6 +14,8 @@ using InvoiceTrackerApi.Repositories.Organization;
 using InvoiceTrackerApi.Repositories.OrganizationMember;
 using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Repositories.Template;
+using InvoiceTrackerApi.Services.User;
+using InvoiceTrackerApi.Repositories.User;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +42,7 @@ builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
 builder.Services.AddScoped<ITemplateRepository, TemplateRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 builder.Services.AddScoped<IOrganizationMemberRepository, OrganizationMemberRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
@@ -47,9 +50,11 @@ builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IPdfStorageService, PdfStorageService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
+builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 
 builder.Services.AddHttpClient();
 

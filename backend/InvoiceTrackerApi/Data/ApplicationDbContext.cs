@@ -20,6 +20,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Address> Addresses { get; set; }
     public DbSet<BankAccount> BankAccounts { get; set; }
     public DbSet<OrganizationMember> OrganizationMembers { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<UserDirectory> UserDirectory { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,6 +86,30 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Configure User entity (minimal table with only business/state fields)
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            entity.Property(e => e.Active)
+                .IsRequired()
+                .HasDefaultValue(true);
+            
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+            
+            entity.Property(e => e.UpdatedAt);
+            
+            entity.HasMany(e => e.OrganizationMemberships)
+                .WithOne()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Configure OrganizationMember entity (join table for Keycloak users)
         modelBuilder.Entity<OrganizationMember>(entity =>
         {
@@ -111,6 +137,47 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<BankAccount>(entity =>
         {
             entity.HasIndex(e => e.OrganizationId);
+        });
+
+        // Configure UserDirectory entity (read-only model)
+        modelBuilder.Entity<UserDirectory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Email);
+            entity.HasIndex(e => e.LastSyncedAt);
+            
+            entity.Property(e => e.Id)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            entity.Property(e => e.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+            
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(100);
+            
+            entity.Property(e => e.LastName)
+                .HasMaxLength(100);
+            
+            entity.Property(e => e.Roles)
+                .HasMaxLength(500);
+            
+            entity.Property(e => e.KeycloakEnabled)
+                .IsRequired()
+                .HasDefaultValue(true);
+            
+            entity.Property(e => e.Active)
+                .IsRequired()
+                .HasDefaultValue(true);
+            
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+            
+            entity.Property(e => e.UpdatedAt);
+            
+            entity.Property(e => e.LastSyncedAt)
+                .IsRequired();
         });
     }
 }

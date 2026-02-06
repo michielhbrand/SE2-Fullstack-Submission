@@ -52,12 +52,12 @@ const togglePasswordVisibility = () => {
       <!-- Login Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="space-y-1">
-          <Label for="admin-username">Username</Label>
+          <Label for="admin-username">Username or Email</Label>
           <Input
             id="admin-username"
             v-model="username"
             type="text"
-            placeholder="Enter username"
+            placeholder="Enter username or email"
             :disabled="loading"
             class="h-11 border-gray-800 focus:ring-gray-800"
             required

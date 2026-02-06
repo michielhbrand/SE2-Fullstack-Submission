@@ -50,12 +50,12 @@ const handleLogin = async () => {
 
       <form @submit.prevent="handleLogin" class="space-y-6">
         <div class="space-y-2">
-          <Label for="username">Username</Label>
+          <Label for="username">Username or Email</Label>
           <Input
             id="username"
             v-model="username"
             type="text"
-            placeholder="Enter your username"
+            placeholder="Enter your username or email"
             :disabled="loading"
           />
         </div>

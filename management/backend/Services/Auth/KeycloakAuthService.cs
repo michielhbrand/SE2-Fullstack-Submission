@@ -300,8 +300,10 @@ public class KeycloakAuthService : IKeycloakAuthService
             var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
             var usersEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users";
 
-            // Convert enum to string for Keycloak
+            // Convert enum to lowercase string for Keycloak (e.g., OrgUser -> orgUser)
             var roleString = role.ToString();
+            // Convert first character to lowercase to match Keycloak role names
+            roleString = char.ToLowerInvariant(roleString[0]) + roleString.Substring(1);
 
             var userPayload = new
             {
@@ -319,8 +321,9 @@ public class KeycloakAuthService : IKeycloakAuthService
                         value = password,
                         temporary = false
                     }
-                },
-                realmRoles = new[] { roleString }
+                }
+                // Note: realmRoles in user creation payload doesn't work reliably
+                // We need to assign roles separately after user creation
             };
 
             var jsonContent = new StringContent(
@@ -354,6 +357,11 @@ public class KeycloakAuthService : IKeycloakAuthService
             }
 
             var userId = locationHeader.Split('/').Last();
+            
+            _logger.LogInformation("User created with ID: {UserId}, now assigning role: {Role}", userId, roleString);
+            
+            // Assign the role to the user
+            await AssignRoleToUserAsync(adminToken, userId, roleString, cancellationToken);
             
             // Fetch the created user details
             return await GetUserByIdAsync(userId, cancellationToken);
@@ -504,6 +512,76 @@ public class KeycloakAuthService : IKeycloakAuthService
         {
             _logger.LogError(ex, "Error updating user in Keycloak");
             throw new ServiceUnavailableException("Failed to update user");
+        }
+    }
+
+    private async Task AssignRoleToUserAsync(string adminToken, string userId, string roleName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // First, get the role details from Keycloak
+            var rolesEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/roles/{roleName}";
+            
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+            
+            var roleResponse = await _httpClient.GetAsync(rolesEndpoint, cancellationToken);
+            
+            if (!roleResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to get role {Role}. Status: {Status}, Error: {Error}",
+                    roleName, roleResponse.StatusCode, errorContent);
+                throw new ServiceUnavailableException($"Failed to retrieve role '{roleName}' from Keycloak");
+            }
+            
+            var roleContent = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+            var roleData = JsonSerializer.Deserialize<JsonElement>(roleContent);
+            
+            // Extract role ID and name
+            var roleId = roleData.GetProperty("id").GetString();
+            var roleNameFromKeycloak = roleData.GetProperty("name").GetString();
+            
+            // Now assign the role to the user
+            var userRoleMappingEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/role-mappings/realm";
+            
+            var roleAssignment = new[]
+            {
+                new
+                {
+                    id = roleId,
+                    name = roleNameFromKeycloak
+                }
+            };
+            
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(roleAssignment),
+                System.Text.Encoding.UTF8,
+                "application/json");
+            
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+            
+            var assignResponse = await _httpClient.PostAsync(userRoleMappingEndpoint, jsonContent, cancellationToken);
+            
+            if (!assignResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to assign role {Role} to user {UserId}. Status: {Status}, Error: {Error}",
+                    roleName, userId, assignResponse.StatusCode, errorContent);
+                throw new ServiceUnavailableException($"Failed to assign role '{roleName}' to user");
+            }
+            
+            _logger.LogInformation("Successfully assigned role {Role} to user {UserId}", roleName, userId);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning role {Role} to user {UserId}", roleName, userId);
+            throw new ServiceUnavailableException($"Failed to assign role to user");
         }
     }
 

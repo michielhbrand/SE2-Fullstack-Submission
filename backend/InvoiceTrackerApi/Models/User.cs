@@ -1,4 +1,4 @@
-namespace ManagementApi.Models;
+namespace InvoiceTrackerApi.Models;
 
 /// <summary>
 /// Minimal user table storing only business/state fields.

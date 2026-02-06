@@ -10,10 +10,17 @@ public static class UserEndpointsMapper
             .WithTags("Users")
             .RequireAuthorization(new AuthorizeAttribute { Roles = "systemAdmin" });
 
+        // Write operations (create, update)
         usersGroup.MapCreateUser();
+        usersGroup.MapUpdateUser();
+        
+        // Read operations (using UserDirectory read model)
+        usersGroup.MapGetUserDirectory();
         usersGroup.MapGetAllUsers();
         usersGroup.MapGetUser();
-        usersGroup.MapUpdateUser();
+        
+        // Sync operations
+        usersGroup.MapSyncUserDirectory();
 
         var organizationsGroup = app.MapGroup("/api/organizations")
             .WithTags("Organization Members")

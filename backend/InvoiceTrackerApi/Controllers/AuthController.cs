@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace InvoiceTrackerApi.Controllers;
 
 /// <summary>
-/// Controller for authentication and user management operations
+/// Controller for authentication operations
 /// </summary>
 [ApiController]
 [Route("api/auth")]
@@ -113,83 +113,4 @@ public class AuthController : AuthenticatedControllerBase
         return Ok(new { message = "Logout successful" });
     }
 
-    /// <summary>
-    /// Get all users (admin only)
-    /// </summary>
-    /// <returns>List of all users</returns>
-    [HttpGet("admin/users")]
-    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetAllUsers()
-    {
-        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-        var users = await _keycloakAuthService.GetAllUsersAsync(token);
-
-        return Ok(users);
-    }
-
-    /// <summary>
-    /// Update user role (admin only)
-    /// </summary>
-    /// <param name="userId">User ID to update</param>
-    /// <param name="request">Role update request</param>
-    /// <returns>Success message</returns>
-    [HttpPut("admin/users/{userId}/role")]
-    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> UpdateUserRole(string userId, [FromBody] UpdateRoleRequest request)
-    {
-        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-        await _keycloakAuthService.UpdateUserRoleAsync(token, userId, request.Role);
-
-        return Ok(new { message = "User role updated successfully" });
-    }
-
-    /// <summary>
-    /// Create a new user (admin only)
-    /// </summary>
-    /// <param name="request">User creation request</param>
-    /// <returns>Created user ID</returns>
-    [HttpPost("admin/users")]
-    [Authorize(Roles = "orgAdmin,systemAdmin")] // UserRole.OrgAdmin, UserRole.SystemAdmin
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
-    {
-        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-        // Parse role string to UserRole enum
-        if (!UserRoleExtensions.TryParseRoleString(request.Role, out var role))
-        {
-            return BadRequest(new { message = $"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}" });
-        }
-
-        // Additional protection: Ensure systemAdmin cannot be created
-        if (role == UserRole.SystemAdmin)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Cannot create System Admin users through this endpoint" });
-        }
-
-        var userId = await _keycloakAuthService.CreateUserAsync(
-            token,
-            request.Username,
-            request.Email,
-            request.FirstName,
-            request.LastName,
-            request.Password,
-            role
-        );
-
-        return StatusCode(StatusCodes.Status201Created, new { userId, message = "User created successfully" });
-    }
 }
