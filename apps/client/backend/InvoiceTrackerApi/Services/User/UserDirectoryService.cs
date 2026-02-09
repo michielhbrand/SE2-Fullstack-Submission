@@ -79,7 +79,7 @@ public class UserDirectoryService : IUserDirectoryService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                Role = u.Roles,
+                Role = ParseUserRole(u.Roles),
                 Active = u.Active,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
@@ -107,7 +107,7 @@ public class UserDirectoryService : IUserDirectoryService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                Role = u.Roles,
+                Role = ParseUserRole(u.Roles),
                 Active = u.Active,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
@@ -120,6 +120,42 @@ public class UserDirectoryService : IUserDirectoryService
         }
 
         return user;
+    }
+
+    /// <summary>
+    /// Parses Keycloak roles string and extracts the valid application role.
+    /// Keycloak returns roles like "default-roles-microservices,orgAdmin".
+    /// We only care about: orgUser, orgAdmin, or systemAdmin (Keycloak stores them with lowercase first char).
+    /// </summary>
+    private static string ParseUserRole(string? rolesString)
+    {
+        if (string.IsNullOrWhiteSpace(rolesString))
+        {
+            return "orgUser"; // Default role
+        }
+
+        var roles = rolesString
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(r => r.Trim())
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .ToArray();
+
+        if (roles.Any(r => r.Equals("systemAdmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "systemAdmin";
+        }
+
+        if (roles.Any(r => r.Equals("orgAdmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "orgAdmin";
+        }
+
+        if (roles.Any(r => r.Equals("orgUser", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "orgUser";
+        }
+
+        return "orgUser";
     }
 
     public async Task SyncUserAsync(

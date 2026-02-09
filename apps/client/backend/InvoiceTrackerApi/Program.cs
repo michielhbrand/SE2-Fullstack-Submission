@@ -31,6 +31,7 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
 builder.Services.AddAuthenticationServices(builder.Configuration);
 builder.Services.AddHealthCheckServices();
+builder.Services.AddValidationServices();
 
 builder.Services.AddProblemDetails();
 

@@ -33,7 +33,22 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Helper function to extract error message from API error response
   function extractErrorMessage(error: any, defaultMessage: string): string {
-    // Case 1: NSwag-generated client throws the parsed Problem Details object directly
+    // Case 1: Check for validation errors first (highest priority)
+    // These come from ASP.NET Core model validation
+    if (error?.errors && typeof error.errors === 'object') {
+      const validationMessages: string[] = []
+      for (const field in error.errors) {
+        const fieldErrors = error.errors[field]
+        if (Array.isArray(fieldErrors)) {
+          validationMessages.push(...fieldErrors)
+        }
+      }
+      if (validationMessages.length > 0) {
+        return validationMessages.join('. ')
+      }
+    }
+    
+    // Case 2: NSwag-generated client throws the parsed Problem Details object directly
     // This happens for documented status codes (400, 401, 403, etc.)
     if (error?.detail || error?.title) {
       return error.detail || error.title || defaultMessage
@@ -49,6 +64,21 @@ export const useAuthStore = defineStore('auth', () => {
       } catch (parseError) {
         // If parsing fails, keep it as string
         console.error('Failed to parse error response:', parseError)
+      }
+    }
+    
+    // Case 3: Check for ASP.NET Core validation errors in response data
+    if (errorData?.errors && typeof errorData.errors === 'object') {
+      // Extract all validation error messages
+      const validationMessages: string[] = []
+      for (const field in errorData.errors) {
+        const fieldErrors = errorData.errors[field]
+        if (Array.isArray(fieldErrors)) {
+          validationMessages.push(...fieldErrors)
+        }
+      }
+      if (validationMessages.length > 0) {
+        return validationMessages.join('. ')
       }
     }
     
@@ -186,6 +216,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error: any) {
+      // Log the error for debugging
+      console.error('Login error:', error)
+      
       const errorMessage = extractErrorMessage(
         error,
         'Login failed. Please check your credentials and try again.'

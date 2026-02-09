@@ -13,23 +13,3 @@ public interface IKeycloakAuthService
     Task UpdateUserRoleAsync(string adminToken, string userId, UserRole role);
     Task<string> CreateUserAsync(string adminToken, string username, string email, string firstName, string lastName, string password, UserRole role);
 }
-
-public class TokenResponse
-{
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
-    public int ExpiresIn { get; set; }
-    public string TokenType { get; set; } = string.Empty;
-    public List<string> Roles { get; set; } = new();
-}
-
-public class UserInfo
-{
-    public string Id { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public bool Enabled { get; set; }
-    public List<string> Roles { get; set; } = new();
-}

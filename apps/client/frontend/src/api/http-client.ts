@@ -65,18 +65,13 @@ apiClient.interceptors.response.use(
     // If we get a 401 Unauthorized response, attempt to refresh the token
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       // Don't attempt refresh for login, logout, or refresh endpoints
-      if (originalRequest.url?.includes('/auth/login') ||
-          originalRequest.url?.includes('/auth/logout') ||
-          originalRequest.url?.includes('/auth/refresh')) {
-        const errorData = error.response?.data as any
-        const errorMessage = errorData?.detail
-          || errorData?.title
-          || errorData?.message
-          || 'Authentication failed. Please log in again.'
-        
-        toast.error(errorMessage)
-        const authStore = useAuthStore()
-        authStore.logout(true)
+      const url = originalRequest.url || ''
+      if (url.includes('/auth/login') ||
+          url.includes('/auth/admin/login') ||
+          url.includes('/auth/logout') ||
+          url.includes('/auth/refresh')) {
+        // For login/logout/refresh endpoints, just reject without showing toast
+        // The calling code (auth store) will handle the error display
         return Promise.reject(error)
       }
 
