@@ -30,6 +30,5 @@ public class Invoice
     [MaxLength(255)]
     public string? TemplateId { get; set; }
 
-    // Navigation property for invoice items
     public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
 }

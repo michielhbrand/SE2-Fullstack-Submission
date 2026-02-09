@@ -47,7 +47,6 @@ public class UserDirectoryService : IUserDirectoryService
                 (u.LastName != null && u.LastName.ToLower().Contains(searchLower)));
         }
 
-        // Get total count before pagination
         var totalCount = await queryable.CountAsync(cancellationToken);
 
         // Apply sorting
@@ -128,7 +127,6 @@ public class UserDirectoryService : IUserDirectoryService
     {
         try
         {
-            // Get user from app database
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -138,7 +136,6 @@ public class UserDirectoryService : IUserDirectoryService
                 return;
             }
 
-            // Get all users from Keycloak to find this specific user
             var keycloakUsers = await _keycloakService.GetAllUsersAsync(adminToken);
             var keycloakUser = keycloakUsers.FirstOrDefault(u => u.Id == userId);
 
@@ -148,7 +145,6 @@ public class UserDirectoryService : IUserDirectoryService
                 return;
             }
 
-            // Get roles as comma-separated string
             var roles = string.Join(",", keycloakUser.Roles);
 
             // Upsert to UserDirectory

@@ -1,4 +1,4 @@
-# Minimal FullStack V1 - Monorepo
+# SE2 FullStack Submission - Monorepo
 
 A monorepo containing two full-stack applications: a **Client/SaaS Application** for invoice tracking and a **Management Application** for organization and user management.
 

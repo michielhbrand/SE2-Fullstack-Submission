@@ -32,13 +32,11 @@ public class UserService : IUserService
         CreateUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Parse role string to UserRole enum
         if (!UserRoleExtensions.TryParseRoleString(request.Role, out var role))
         {
             throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
         }
 
-        // Create user in Keycloak (identity data)
         var userId = await _keycloakService.CreateUserAsync(
             adminToken,
             request.Username,
@@ -48,7 +46,6 @@ public class UserService : IUserService
             request.Password,
             role);
 
-        // Create user in app database (business/state data)
         var user = new Models.User
         {
             Id = userId,
@@ -60,7 +57,6 @@ public class UserService : IUserService
 
         _logger.LogInformation("Created user {UserId} in app database", userId);
 
-        // Sync to UserDirectory for reads
         try
         {
             await _userDirectoryService.SyncUserAsync(userId, adminToken, cancellationToken);
@@ -81,10 +77,8 @@ public class UserService : IUserService
         UserRole role,
         CancellationToken cancellationToken = default)
     {
-        // Update role in Keycloak
         await _keycloakService.UpdateUserRoleAsync(adminToken, userId, role);
 
-        // Sync to UserDirectory to update roles
         try
         {
             await _userDirectoryService.SyncUserAsync(userId, adminToken, cancellationToken);

@@ -14,6 +14,7 @@ public class Quote
     [ForeignKey(nameof(ClientId))]
     public Client? Client { get; set; }
     
+    [Required]
     public DateTime DateCreated { get; set; }
     
     public bool NotificationSent { get; set; } = false;

@@ -21,10 +21,10 @@ public static class AuthenticationServiceExtensions
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    RoleClaimType = ClaimTypes.Role // Map role claims to ClaimTypes.Role
+                    RoleClaimType = ClaimTypes.Role
                 };
                 
-                // Add detailed logging for authentication events
+                // Add logging for authentication events
                 options.Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = context =>
