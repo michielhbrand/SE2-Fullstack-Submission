@@ -103,6 +103,8 @@ public class UserService : IUserService
             .Where(m => m.UserId == userId)
             .ToListAsync(cancellationToken);
 
+        var userResponse = userDirectory.ToResponse();
+
         return new UserWithOrganizationsResponse
         {
             Id = userDirectory.Id,
@@ -110,11 +112,12 @@ public class UserService : IUserService
             FirstName = userDirectory.FirstName,
             LastName = userDirectory.LastName,
             Active = userDirectory.Active,
+            Role = userResponse.Role,
             Organizations = memberships.Select(m => new OrganizationMembershipResponse
             {
                 OrganizationId = m.OrganizationId,
                 OrganizationName = m.Organization.Name,
-                Role = m.Role,
+                Role = userResponse.Role,
                 JoinedAt = m.JoinedAt
             }).ToList(),
             CreatedAt = userDirectory.CreatedAt,
@@ -133,7 +136,7 @@ public class UserService : IUserService
         }
 
         // Update identity fields in Keycloak
-        if (request.FirstName != null || request.LastName != null)
+        if (request.FirstName != null || request.LastName != null || request.Active.HasValue)
         {
             await _keycloakService.UpdateUserAsync(
                 userId,
@@ -143,6 +146,14 @@ public class UserService : IUserService
                 cancellationToken);
         }
 
+        // Update role in Keycloak if provided
+        if (request.Role.HasValue)
+        {
+            await _keycloakService.UpdateUserRoleAsync(userId, request.Role.Value, cancellationToken);
+            _logger.LogInformation("Updated role for user {UserId} to {Role}", userId, request.Role.Value);
+        }
+
+        // Update domain data in local database
         if (request.Active.HasValue)
         {
             user.Active = request.Active.Value;
@@ -234,15 +245,14 @@ public class UserService : IUserService
         {
             OrganizationId = organizationId,
             UserId = userId,
-            Role = request.Role,
             JoinedAt = DateTime.UtcNow
         };
 
         _context.OrganizationMembers.Add(membership);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Added user {UserId} to organization {OrganizationId} with role {Role}",
-            userId, organizationId, request.Role);
+        _logger.LogInformation("Added user {UserId} to organization {OrganizationId}",
+            userId, organizationId);
 
         return userDirectory.ToOrganizationMemberResponse(membership);
     }

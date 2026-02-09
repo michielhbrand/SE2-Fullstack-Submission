@@ -6,6 +6,8 @@ import Button from "../components/ui/Button.vue";
 import Card from "../components/ui/Card.vue";
 import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
 import AddMemberDialog from "../components/AddMemberDialog.vue";
+import EditMemberDialog from "../components/EditMemberDialog.vue";
+import RemoveMemberDialog from "../components/RemoveMemberDialog.vue";
 import { organizationService } from "../services/organizations";
 import { apiClient } from "../api/client";
 import type {
@@ -22,6 +24,10 @@ const isLoading = ref(false);
 const isLoadingMembers = ref(false);
 const isEditDialogOpen = ref(false);
 const isAddMemberDialogOpen = ref(false);
+const isEditMemberDialogOpen = ref(false);
+const isRemoveMemberDialogOpen = ref(false);
+const selectedMember = ref<OrganizationMemberResponse | null>(null);
+const memberToRemove = ref<OrganizationMemberResponse | null>(null);
 
 const organizationId = computed(() => {
   const id = route.params.id;
@@ -77,6 +83,11 @@ const openAddMemberDialog = () => {
   isAddMemberDialogOpen.value = true;
 };
 
+const openEditMemberDialog = (member: OrganizationMemberResponse) => {
+  selectedMember.value = member;
+  isEditMemberDialogOpen.value = true;
+};
+
 const handleOrganizationUpdated = () => {
   fetchOrganization();
 };
@@ -85,20 +96,32 @@ const handleMemberAdded = () => {
   fetchMembers();
 };
 
-const handleRemoveMember = async (userId: string | undefined) => {
-  if (!organizationId.value || !userId) return;
+const handleMemberUpdated = () => {
+  fetchMembers();
+};
 
-  if (!confirm("Are you sure you want to remove this member?")) {
-    return;
-  }
+const openRemoveMemberDialog = (member: OrganizationMemberResponse) => {
+  memberToRemove.value = member;
+  isRemoveMemberDialogOpen.value = true;
+};
+
+const handleRemoveMember = async () => {
+  if (!organizationId.value || !memberToRemove.value?.UserId) return;
 
   try {
-    await apiClient.removeUserFromOrganization(organizationId.value, userId);
+    await apiClient.removeUserFromOrganization(
+      organizationId.value,
+      memberToRemove.value.UserId,
+    );
     toast.success("Member removed successfully");
+    isRemoveMemberDialogOpen.value = false;
+    memberToRemove.value = null;
     fetchMembers();
   } catch (error: any) {
     console.error("Failed to remove member:", error);
     toast.error(getErrorMessage(error, "Failed to remove member"));
+    isRemoveMemberDialogOpen.value = false;
+    memberToRemove.value = null;
   }
 };
 
@@ -408,13 +431,22 @@ onMounted(() => {
                   <td
                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                   >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      @click="handleRemoveMember(member.UserId)"
-                    >
-                      Remove
-                    </Button>
+                    <div class="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        @click="openEditMemberDialog(member)"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        @click="openRemoveMemberDialog(member)"
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -442,29 +474,6 @@ onMounted(() => {
             >
           </div>
         </Card>
-
-        <!-- Activity Section (Placeholder) -->
-        <Card class="p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
-            Recent Activity
-          </h2>
-          <div class="text-center py-8">
-            <svg
-              class="h-12 w-12 text-gray-400 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <p class="text-gray-600">No recent activity</p>
-          </div>
-        </Card>
       </div>
     </main>
 
@@ -479,6 +488,18 @@ onMounted(() => {
       v-model:open="isAddMemberDialogOpen"
       :organization-id="organizationId"
       @success="handleMemberAdded"
+    />
+
+    <EditMemberDialog
+      v-model:open="isEditMemberDialogOpen"
+      :member="selectedMember"
+      @success="handleMemberUpdated"
+    />
+
+    <RemoveMemberDialog
+      v-model:open="isRemoveMemberDialogOpen"
+      :member="memberToRemove"
+      @confirm="handleRemoveMember"
     />
   </div>
 </template>

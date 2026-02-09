@@ -118,10 +118,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.UserId)
                 .IsRequired()
                 .HasMaxLength(255);
-            
-            entity.Property(e => e.Role)
-                .IsRequired()
-                .HasMaxLength(50);
         });
     }
 }

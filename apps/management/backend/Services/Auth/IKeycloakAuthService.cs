@@ -12,6 +12,7 @@ public interface IKeycloakAuthService
     Task<KeycloakUserResponse> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<KeycloakUserResponse> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
     Task UpdateUserAsync(string userId, string? firstName, string? lastName, bool? enabled, CancellationToken cancellationToken = default);
+    Task UpdateUserRoleAsync(string userId, UserRole newRole, CancellationToken cancellationToken = default);
     Task<List<string>> GetUserRolesAsync(string userId, CancellationToken cancellationToken = default);
     Task<string> GetAdminAccessTokenAsync(CancellationToken cancellationToken = default);
 }

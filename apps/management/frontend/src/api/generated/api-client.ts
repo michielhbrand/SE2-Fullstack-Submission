@@ -1298,9 +1298,12 @@ export interface UserResponse {
     FirstName?: string | null;
     LastName?: string | null;
     Active?: boolean;
+    Role?: UserRole;
     CreatedAt?: Date;
     UpdatedAt?: Date | null;
 }
+
+export type UserRole = "OrgUser" | "OrgAdmin" | "SystemAdmin";
 
 export interface CreateUserRequest {
     Email?: string;
@@ -1310,12 +1313,11 @@ export interface CreateUserRequest {
     Role?: UserRole;
 }
 
-export type UserRole = "OrgUser" | "OrgAdmin";
-
 export interface UpdateUserRequest {
     FirstName?: string | null;
     LastName?: string | null;
     Active?: boolean | null;
+    Role?: UserRole | null;
 }
 
 export interface PagedUserDirectoryResponse {

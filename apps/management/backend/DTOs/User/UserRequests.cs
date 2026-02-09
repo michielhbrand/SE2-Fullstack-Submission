@@ -22,6 +22,7 @@ public class UpdateUserRequest
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool? Active { get; set; }
+    public UserRole? Role { get; set; }
 }
 
 /// <summary>
@@ -31,7 +32,6 @@ public class AddUserToOrganizationRequest
 {
     public required string UserId { get; set; }
     public required int OrganizationId { get; set; }
-    public required UserRole Role { get; set; } = UserRole.OrgUser;
 }
 
 /// <summary>

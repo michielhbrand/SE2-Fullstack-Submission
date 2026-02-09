@@ -303,7 +303,6 @@ public class KeycloakAuthService : IKeycloakAuthService
 
             // Convert enum to lowercase string for Keycloak (e.g., OrgUser -> orgUser)
             var roleString = role.ToString();
-            // Convert first character to lowercase to match Keycloak role names
             roleString = char.ToLowerInvariant(roleString[0]) + roleString.Substring(1);
 
             var userPayload = new
@@ -361,10 +360,8 @@ public class KeycloakAuthService : IKeycloakAuthService
             
             _logger.LogInformation("User created with ID: {UserId}, now assigning role: {Role}", userId, roleString);
             
-            // Assign the role to the user
             await AssignRoleToUserAsync(adminToken, userId, roleString, cancellationToken);
             
-            // Fetch the created user details
             return await GetUserByIdAsync(userId, cancellationToken);
         }
         catch (AppException)
@@ -470,7 +467,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
             var userEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}";
 
-            // First, get the current user to preserve existing data
+            // Get the current user to preserve existing data
             var currentUser = await GetUserByIdAsync(userId, cancellationToken);
 
             var updatePayload = new
@@ -568,7 +565,7 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         try
         {
-            // First, get the role details from Keycloak
+            // Get the role details from Keycloak
             var rolesEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/roles/{roleName}";
             
             _httpClient.DefaultRequestHeaders.Clear();
@@ -587,11 +584,9 @@ public class KeycloakAuthService : IKeycloakAuthService
             var roleContent = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
             var roleData = JsonSerializer.Deserialize<JsonElement>(roleContent);
             
-            // Extract role ID and name
             var roleId = roleData.GetProperty("id").GetString();
             var roleNameFromKeycloak = roleData.GetProperty("name").GetString();
             
-            // Now assign the role to the user
             var userRoleMappingEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/role-mappings/realm";
             
             var roleAssignment = new[]
@@ -631,6 +626,113 @@ public class KeycloakAuthService : IKeycloakAuthService
         {
             _logger.LogError(ex, "Error assigning role {Role} to user {UserId}", roleName, userId);
             throw new ServiceUnavailableException($"Failed to assign role to user");
+        }
+    }
+
+    public async Task UpdateUserRoleAsync(string userId, UserRole newRole, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            
+            var currentRoles = await GetUserRolesAsync(userId, cancellationToken);
+            
+            var newRoleString = newRole.ToString();
+            newRoleString = char.ToLowerInvariant(newRoleString[0]) + newRoleString.Substring(1);
+            
+            _logger.LogInformation("Updating user {UserId} role to {Role}", userId, newRoleString);
+            
+            var rolesToRemove = currentRoles.Where(r => r == "orgUser" || r == "orgAdmin").ToList();
+            
+            if (rolesToRemove.Any())
+            {
+                await RemoveRolesFromUserAsync(adminToken, userId, rolesToRemove, cancellationToken);
+            }
+            
+            await AssignRoleToUserAsync(adminToken, userId, newRoleString, cancellationToken);
+            
+            _logger.LogInformation("Successfully updated user {UserId} role to {Role}", userId, newRoleString);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user role in Keycloak for user {UserId}", userId);
+            throw new ServiceUnavailableException("Failed to update user role");
+        }
+    }
+
+    private async Task RemoveRolesFromUserAsync(string adminToken, string userId, List<string> roleNames, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rolesToRemove = new List<object>();
+            
+            foreach (var roleName in roleNames)
+            {
+                var rolesEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/roles/{roleName}";
+                
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+                
+                var roleResponse = await _httpClient.GetAsync(rolesEndpoint, cancellationToken);
+                
+                if (roleResponse.IsSuccessStatusCode)
+                {
+                    var roleContent = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+                    var roleData = JsonSerializer.Deserialize<JsonElement>(roleContent);
+                    
+                    var roleId = roleData.GetProperty("id").GetString();
+                    var roleNameFromKeycloak = roleData.GetProperty("name").GetString();
+                    
+                    rolesToRemove.Add(new
+                    {
+                        id = roleId,
+                        name = roleNameFromKeycloak
+                    });
+                }
+            }
+            
+            if (rolesToRemove.Any())
+            {
+                var userRoleMappingEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/role-mappings/realm";
+                
+                var jsonContent = new StringContent(
+                    JsonSerializer.Serialize(rolesToRemove),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+                
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+                
+                var removeRequest = new HttpRequestMessage(HttpMethod.Delete, userRoleMappingEndpoint)
+                {
+                    Content = jsonContent
+                };
+                
+                var removeResponse = await _httpClient.SendAsync(removeRequest, cancellationToken);
+                
+                if (!removeResponse.IsSuccessStatusCode)
+                {
+                    var errorContent = await removeResponse.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogError("Failed to remove roles from user {UserId}. Status: {Status}, Error: {Error}",
+                        userId, removeResponse.StatusCode, errorContent);
+                    throw new ServiceUnavailableException("Failed to remove existing roles from user");
+                }
+                
+                _logger.LogInformation("Successfully removed roles from user {UserId}", userId);
+            }
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing roles from user {UserId}", userId);
+            throw new ServiceUnavailableException("Failed to remove roles from user");
         }
     }
 

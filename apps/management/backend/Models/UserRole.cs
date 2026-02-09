@@ -6,5 +6,6 @@ namespace ManagementApi.Models;
 public enum UserRole
 {
     OrgUser,
-    OrgAdmin
+    OrgAdmin,
+    SystemAdmin
 }

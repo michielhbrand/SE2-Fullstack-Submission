@@ -12,6 +12,7 @@ public class UserResponse
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool Active { get; set; }
+    public UserRole Role { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
@@ -26,6 +27,7 @@ public class UserWithOrganizationsResponse
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool Active { get; set; }
+    public UserRole Role { get; set; }
     public List<OrganizationMembershipResponse> Organizations { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
