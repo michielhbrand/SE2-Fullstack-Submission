@@ -21,4 +21,11 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.11.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Exclude test project files from main project compilation -->
+    <Compile Remove="ManagementApi.Tests/**" />
+    <EmbeddedResource Remove="ManagementApi.Tests/**" />
+    <None Remove="ManagementApi.Tests/**" />
+  </ItemGroup>
+
 </Project>

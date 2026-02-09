@@ -64,3 +64,6 @@ app.MapOrganizationEndpoints();
 app.MapUserEndpoints();
 
 app.Run();
+
+// Make the implicit Program class public for testing
+public partial class Program { }
