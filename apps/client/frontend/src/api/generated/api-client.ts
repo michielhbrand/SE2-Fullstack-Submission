@@ -82,6 +82,13 @@ export class ApiClient {
             result401 = JSON.parse(resultData401);
             return throwException("A server side error occurred.", status, _responseText, _headers, result401);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -147,6 +154,13 @@ export class ApiClient {
             let resultData401  = _responseText;
             result401 = JSON.parse(resultData401);
             return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2812,12 +2826,12 @@ export interface ProblemDetails {
 }
 
 export interface LoginRequest {
-    username?: string;
-    password?: string;
+    username: string;
+    password: string;
 }
 
 export interface LogoutRequest {
-    refreshToken?: string;
+    refreshToken: string;
 }
 
 export interface PaginatedResponseOfClientResponse {
@@ -2941,15 +2955,15 @@ export interface BankAccountResponse {
 }
 
 export interface CreateOrganizationRequest {
-    name?: string;
-    address?: CreateAddressRequest;
+    name: string;
+    address: CreateAddressRequest;
 }
 
 export interface CreateAddressRequest {
-    firstLine?: string;
+    firstLine: string;
     secondLine?: string | null;
-    city?: string;
-    code?: string;
+    city: string;
+    code: string;
 }
 
 export interface UpdateOrganizationRequest {
@@ -2965,11 +2979,11 @@ export interface OrganizationMemberResponse {
 }
 
 export interface AddOrganizationMemberRequest {
-    role?: string;
+    role: string;
 }
 
 export interface UpdateMemberRoleRequest {
-    role?: string;
+    role: string;
 }
 
 export interface PaginatedResponseOfQuoteResponse {
@@ -3055,6 +3069,7 @@ export interface UserResponse {
     email?: string;
     firstName?: string | null;
     lastName?: string | null;
+    role?: string | null;
     active?: boolean;
     createdAt?: Date;
     updatedAt?: Date | null;

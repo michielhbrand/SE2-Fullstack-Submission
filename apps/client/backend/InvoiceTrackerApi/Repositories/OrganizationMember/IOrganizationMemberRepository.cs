@@ -15,4 +15,5 @@ public interface IOrganizationMemberRepository
     Task RemoveMemberAsync(Models.OrganizationMember member);
     Task<bool> IsMemberAsync(int organizationId, string userId);
     Task<bool> HasRoleAsync(int organizationId, string userId, string role);
+    Task<bool> BelongsToAnyOrganizationAsync(string userId);
 }

@@ -79,6 +79,7 @@ public class UserDirectoryService : IUserDirectoryService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
+                Role = u.Roles,
                 Active = u.Active,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
@@ -106,6 +107,7 @@ public class UserDirectoryService : IUserDirectoryService
                 Email = u.Email,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
+                Role = u.Roles,
                 Active = u.Active,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt

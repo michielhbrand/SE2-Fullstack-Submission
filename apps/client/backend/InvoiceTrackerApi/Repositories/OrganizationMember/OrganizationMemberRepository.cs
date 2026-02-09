@@ -66,8 +66,14 @@ public class OrganizationMemberRepository : IOrganizationMemberRepository
     public async Task<bool> HasRoleAsync(int organizationId, string userId, string role)
     {
         return await _context.OrganizationMembers
-            .AnyAsync(m => m.OrganizationId == organizationId 
-                        && m.UserId == userId 
+            .AnyAsync(m => m.OrganizationId == organizationId
+                        && m.UserId == userId
                         && m.Role == role);
+    }
+
+    public async Task<bool> BelongsToAnyOrganizationAsync(string userId)
+    {
+        return await _context.OrganizationMembers
+            .AnyAsync(m => m.UserId == userId);
     }
 }

@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import router from '../router'
 import { authApi } from '../services/api'
-import { apiClient } from '../api/http-client'
 import type { UserRole } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
 
@@ -31,6 +30,35 @@ export const useAuthStore = defineStore('auth', () => {
   
   const TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
   const IS_ADMIN_FLAG = 'is_admin_user'
+
+  // Helper function to extract error message from API error response
+  function extractErrorMessage(error: any, defaultMessage: string): string {
+    // Case 1: NSwag-generated client throws the parsed Problem Details object directly
+    // This happens for documented status codes (400, 401, 403, etc.)
+    if (error?.detail || error?.title) {
+      return error.detail || error.title || defaultMessage
+    }
+    
+    // Case 2: Axios error with response data
+    let errorData = error?.response?.data
+    
+    // If data is a string, try to parse it as JSON
+    if (typeof errorData === 'string') {
+      try {
+        errorData = JSON.parse(errorData)
+      } catch (parseError) {
+        // If parsing fails, keep it as string
+        console.error('Failed to parse error response:', parseError)
+      }
+    }
+    
+    // Extract the error message with proper fallback chain
+    return errorData?.detail
+      || errorData?.title
+      || errorData?.message
+      || error?.message
+      || defaultMessage
+  }
 
   const isAuthenticated = computed(() => {
     if (!accessToken.value) {
@@ -158,12 +186,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Login failed. Please check your credentials and try again.'
-      
+      const errorMessage = extractErrorMessage(
+        error,
+        'Login failed. Please check your credentials and try again.'
+      )
       toast.error(errorMessage)
       return false
     }
@@ -178,10 +204,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         await authApi.logout(currentRefreshToken)
       } catch (error: any) {
-        // Extract error message from problem details response
-        const errorMessage = error?.response?.data?.detail
-          || error?.response?.data?.title
-          || error?.response?.data?.message
+        const errorMessage = extractErrorMessage(error, '')
         
         if (errorMessage) {
           toast.error(`Logout error: ${errorMessage}`)
@@ -237,12 +260,7 @@ export const useAuthStore = defineStore('auth', () => {
       const user = decodedToken.preferred_username || decodedToken.username || decodedToken.sub
       return { username: user }
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Failed to get user information'
-      
+      const errorMessage = extractErrorMessage(error, 'Failed to get user information')
       toast.error(errorMessage)
       return null
     }
@@ -258,12 +276,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return decodedToken.sub || null
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Failed to get current user ID'
-      
+      const errorMessage = extractErrorMessage(error, 'Failed to get current user ID')
       toast.error(errorMessage)
       return null
     }
@@ -282,19 +295,23 @@ export const useAuthStore = defineStore('auth', () => {
       const token = getAccessToken()
       if (!token) return []
 
-      const response = await apiClient.get<UserInfo[]>('/api/auth/admin/users')
+      // Use the correct API endpoint from the generated client
+      const response = await authApi.getAllUsers()
 
-      // Parse the response data if it's a string (due to transformResponse in apiClient)
-      const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+      // Map the PagedUserDirectoryResponse to UserInfo[]
+      const users: UserInfo[] = response.users?.map(user => ({
+        id: user.id || '',
+        username: user.email?.split('@')[0] || user.email || '', // Use email prefix as username
+        email: user.email || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        enabled: user.active || false,
+        roles: user.role ? [user.role] : ['orgUser'] // Convert single role to array
+      })) || []
       
-      return data
+      return users
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Failed to load users'
-      
+      const errorMessage = extractErrorMessage(error, 'Failed to load users')
       toast.error(errorMessage)
       return []
     }
@@ -311,12 +328,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Failed to update user role'
-      
+      const errorMessage = extractErrorMessage(error, 'Failed to update user role')
       toast.error(errorMessage)
       return false
     }
@@ -338,12 +350,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error: any) {
-      // Extract error message from problem details response
-      const errorMessage = error?.response?.data?.detail
-        || error?.response?.data?.title
-        || error?.response?.data?.message
-        || 'Failed to create user'
-      
+      const errorMessage = extractErrorMessage(error, 'Failed to create user')
       toast.error(errorMessage)
       throw error
     }

@@ -35,6 +35,7 @@ public class AuthController : AuthenticatedControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
         var tokenResponse = await _keycloakAuthService.LoginAsync(request.Username, request.Password, false);
@@ -59,6 +60,7 @@ public class AuthController : AuthenticatedControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<LoginResponse>> AdminLogin([FromBody] LoginRequest request)
     {
         var tokenResponse = await _keycloakAuthService.LoginAsync(request.Username, request.Password, true);

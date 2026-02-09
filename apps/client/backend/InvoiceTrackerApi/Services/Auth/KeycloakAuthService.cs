@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
+using InvoiceTrackerApi.Repositories.OrganizationMember;
 
 namespace InvoiceTrackerApi.Services.Auth;
 
@@ -9,6 +10,7 @@ public class KeycloakAuthService : IKeycloakAuthService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<KeycloakAuthService> _logger;
+    private readonly IOrganizationMemberRepository _organizationMemberRepository;
     private readonly string _keycloakUrl;
     private readonly string _realm;
     private readonly string _clientId;
@@ -17,11 +19,13 @@ public class KeycloakAuthService : IKeycloakAuthService
     public KeycloakAuthService(
         HttpClient httpClient,
         IConfiguration configuration,
-        ILogger<KeycloakAuthService> logger)
+        ILogger<KeycloakAuthService> logger,
+        IOrganizationMemberRepository organizationMemberRepository)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
+        _organizationMemberRepository = organizationMemberRepository;
 
         // Extract Keycloak configuration
         var authority = _configuration["Keycloak:Authority"] ?? throw new InvalidOperationException("Keycloak:Authority not configured");
@@ -87,8 +91,24 @@ public class KeycloakAuthService : IKeycloakAuthService
                 throw new Exceptions.InfrastructureException("Authentication service returned invalid response");
             }
 
-            // Extract roles from token
             var roles = ExtractRolesFromToken(keycloakResponse.Access_Token);
+            var userId = ExtractUserIdFromToken(keycloakResponse.Access_Token);
+            
+            // Validate that user belongs to at least one organization
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var belongsToOrganization = await _organizationMemberRepository.BelongsToAnyOrganizationAsync(userId);
+                if (!belongsToOrganization)
+                {
+                    _logger.LogWarning("User {Username} (ID: {UserId}) attempted to login but does not belong to any organization", username, userId);
+                    throw new Exceptions.ForbiddenException("User has not been assigned to an organization");
+                }
+            }
+            else
+            {
+                _logger.LogError("Failed to extract user ID from token for user: {Username}", username);
+                throw new Exceptions.InfrastructureException("Failed to validate user information");
+            }
             
             // If admin login, verify user has orgAdmin or systemAdmin role
             if (isAdminLogin && !roles.Contains(UserRole.OrgAdmin.ToRoleString()) && !roles.Contains(UserRole.SystemAdmin.ToRoleString()))

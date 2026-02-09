@@ -27,13 +27,13 @@ export const authApi = {
   },
 
   // Get all users (admin only)
-  getAllUsers: async () => {
-    return await client.auth_GetAllUsers()
+  getAllUsers: async (page: number = 1, pageSize: number = 100, searchTerm?: string) => {
+    return await client.user_GetUserDirectory(page, pageSize, searchTerm)
   },
 
   // Update user role (admin only)
   updateUserRole: async (userId: string, role: UserRole) => {
-    return await client.auth_UpdateUserRole(userId, { role })
+    return await client.user_UpdateUserRole(userId, { role })
   },
 
   // Create a new user (admin only)
@@ -45,7 +45,7 @@ export const authApi = {
     password: string
     role: string
   }) => {
-    return await client.auth_CreateUser(userData)
+    return await client.user_CreateUser(userData)
   }
 }
 

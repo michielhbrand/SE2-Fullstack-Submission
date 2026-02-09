@@ -48,14 +48,10 @@ const handleLogin = async (credentials: { username: string; password: string }) 
       } else {
         router.push('/dashboard')
       }
-    } else {
-      const errorMessage = isAdminMode.value
-        ? 'Invalid credentials or insufficient permissions'
-        : 'Invalid username or password'
-      toast.error(errorMessage)
     }
+    // Error toast is already shown by auth store, no need to show another one here
   } catch {
-    toast.error('An error occurred during login')
+    // Error toast is already shown by auth store, no need to show another one here
   } finally {
     loading.value = false
   }
