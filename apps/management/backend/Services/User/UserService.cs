@@ -1,7 +1,7 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.User;
 using ManagementApi.Exceptions.Application;
-using ManagementApi.Extensions;
+using ManagementApi.Mappers;
 using ManagementApi.Models;
 using ManagementApi.Services.Auth;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +43,7 @@ public class UserService : IUserService
             throw new ValidationException("A user with this email already exists");
         }
 
-        // Create user in Keycloak (identity data)
+        // Create user in Keycloak
         var keycloakUser = await _keycloakService.CreateUserAsync(
             request.Email,
             request.FirstName,
@@ -52,7 +52,7 @@ public class UserService : IUserService
             request.Role,
             cancellationToken);
 
-        // Create user in local database (business/state data only)
+        // Create user in local database
         var user = new Models.User
         {
             Id = keycloakUser.Id,
@@ -65,22 +65,19 @@ public class UserService : IUserService
 
         _logger.LogInformation("Created user {UserId} with email {Email}", user.Id, request.Email);
 
-        // Sync to UserDirectory for reads
+        // Sync to UserDirectory
         await _userDirectoryService.SyncUserAsync(user.Id, cancellationToken);
 
-        // Return response from UserDirectory
         return await _userDirectoryService.GetUserByIdAsync(user.Id, cancellationToken);
     }
 
     public async Task<UserResponse> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
     {
-        // Delegate to UserDirectory service for reads
         return await _userDirectoryService.GetUserByIdAsync(userId, cancellationToken);
     }
 
     public async Task<UserResponse> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        // Query UserDirectory for reads
         var userDirectory = await _context.UserDirectory
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), cancellationToken);
 
@@ -94,7 +91,6 @@ public class UserService : IUserService
 
     public async Task<UserWithOrganizationsResponse> GetUserWithOrganizationsAsync(string userId, CancellationToken cancellationToken = default)
     {
-        // Get user from UserDirectory
         var userDirectory = await _context.UserDirectory
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -103,7 +99,6 @@ public class UserService : IUserService
             throw new NotFoundException($"User with ID '{userId}' not found");
         }
 
-        // Get organization memberships
         var memberships = await _context.OrganizationMembers
             .Include(m => m.Organization)
             .Where(m => m.UserId == userId)
@@ -261,7 +256,6 @@ public class UserService : IUserService
         int organizationId,
         CancellationToken cancellationToken = default)
     {
-        // Delegate to UserDirectory service for reads
         return await _userDirectoryService.GetOrganizationMembersAsync(organizationId, cancellationToken);
     }
 

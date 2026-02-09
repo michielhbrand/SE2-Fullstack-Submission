@@ -1,5 +1,13 @@
 namespace ManagementApi.DTOs.Organization;
 
+public record GetOrganizationsRequest
+{
+    public string? Search { get; init; }
+    public string? Status { get; init; } = "all";
+    public string? SortBy { get; init; } = "name";
+    public string? SortDirection { get; init; } = "asc";
+}
+
 public record CreateOrganizationRequest
 {
     public required string Name { get; init; }

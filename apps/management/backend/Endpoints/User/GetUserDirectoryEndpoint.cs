@@ -1,6 +1,7 @@
+using ManagementApi.DTOs.User;
+using ManagementApi.Filters;
 using ManagementApi.Services.User;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 
 namespace ManagementApi.Endpoints.User;
 
@@ -17,28 +18,25 @@ public static class GetUserDirectoryEndpoint
             .WithDescription("Queries the UserDirectory read model for fast, denormalized user data suitable for UI tables")
             .WithOpenApi()
             .Produces<PagedUserDirectoryResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden);
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .AddEndpointFilter<ValidationFilter<GetUserDirectoryRequest>>();
     }
 
     private static async Task<Results<Ok<PagedUserDirectoryResponse>, ProblemHttpResult>> Handle(
-        [FromServices] IUserDirectoryService userDirectoryService,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string? searchTerm = null,
-        [FromQuery] string? sortBy = "Email",
-        [FromQuery] bool sortDescending = false,
-        [FromQuery] bool? activeOnly = null,
-        CancellationToken cancellationToken = default)
+        [AsParameters] GetUserDirectoryRequest request,
+        IUserDirectoryService userDirectoryService,
+        CancellationToken cancellationToken)
     {
         var query = new UserDirectoryQuery
         {
-            Page = page,
-            PageSize = pageSize,
-            SearchTerm = searchTerm,
-            SortBy = sortBy,
-            SortDescending = sortDescending,
-            ActiveOnly = activeOnly
+            Page = request.Page,
+            PageSize = request.PageSize,
+            SearchTerm = request.SearchTerm,
+            SortBy = request.SortBy,
+            SortDescending = request.SortDescending,
+            ActiveOnly = request.ActiveOnly
         };
 
         var result = await userDirectoryService.GetUsersAsync(query, cancellationToken);

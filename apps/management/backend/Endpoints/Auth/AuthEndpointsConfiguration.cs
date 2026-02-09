@@ -3,7 +3,7 @@ using ManagementApi.Services.Auth;
 
 namespace ManagementApi.Endpoints.Auth;
 
-public static class AuthEndpointsMapper
+public static class AuthEndpointsConfiguration
 {
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
@@ -15,17 +15,5 @@ public static class AuthEndpointsMapper
         group.MapLogout();
 
         return app;
-    }
-
-    public static LoginResponse ToLoginResponse(this TokenResponse result)
-    {
-        return new()
-        {
-            AccessToken = result.AccessToken,
-            RefreshToken = result.RefreshToken,
-            ExpiresIn = result.ExpiresIn,
-            TokenType = result.TokenType,
-            Roles = result.Roles
-        };
     }
 }

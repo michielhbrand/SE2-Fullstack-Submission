@@ -16,7 +16,6 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<Address> Addresses { get; set; }
-    public DbSet<BankAccount> BankAccounts { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserDirectory> UserDirectory { get; set; }
     public DbSet<OrganizationMember> OrganizationMembers { get; set; }
@@ -123,12 +122,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Role)
                 .IsRequired()
                 .HasMaxLength(50);
-        });
-
-        // Configure BankAccount entity
-        modelBuilder.Entity<BankAccount>(entity =>
-        {
-            entity.HasIndex(e => e.OrganizationId);
         });
     }
 }

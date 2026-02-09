@@ -1,12 +1,12 @@
 using ManagementApi.DTOs.User;
 using ManagementApi.Models;
 
-namespace ManagementApi.Extensions;
+namespace ManagementApi.Mappers;
 
 /// <summary>
-/// Mapping extensions for UserDirectory read model
+/// Mapper for converting UserDirectory read model to DTOs
 /// </summary>
-public static class UserDirectoryMappingExtensions
+public static class UserDirectoryMapper
 {
     public static UserResponse ToResponse(this UserDirectory userDirectory)
     {

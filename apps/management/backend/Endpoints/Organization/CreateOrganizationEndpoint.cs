@@ -1,6 +1,6 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Extensions;
+using ManagementApi.Mappers;
 using ManagementApi.Filters;
 using Microsoft.AspNetCore.Http.HttpResults;
 

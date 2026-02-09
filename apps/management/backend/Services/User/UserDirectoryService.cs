@@ -1,7 +1,7 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.User;
 using ManagementApi.Exceptions.Application;
-using ManagementApi.Extensions;
+using ManagementApi.Mappers;
 using ManagementApi.Models;
 using ManagementApi.Services.Auth;
 using Microsoft.EntityFrameworkCore;

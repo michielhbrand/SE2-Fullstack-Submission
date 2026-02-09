@@ -1,7 +1,7 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Exceptions.Application;
-using ManagementApi.Extensions;
+using ManagementApi.Mappers;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +14,7 @@ public static class GetOrganizationByIdEndpoint
         return group.MapGet("/{id:int}", Handle)
             .WithName("GetOrganizationById")
             .WithSummary("Get organization by ID")
-            .WithDescription("Retrieves a specific organization by its ID including address, members, and bank accounts")
+            .WithDescription("Retrieves a specific organization by its ID including address and members")
             .WithOpenApi()
             .Produces<OrganizationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -42,14 +42,9 @@ public static class GetOrganizationByIdEndpoint
             throw new NotFoundException("Organization", id);
         }
 
-        // Get bank accounts
-        var bankAccounts = await db.BankAccounts
-            .Where(ba => org.BankAccountIds.Contains(ba.Id))
-            .ToListAsync(cancellationToken);
-
         logger.LogInformation("Successfully retrieved organization with ID: {OrganizationId}", id);
 
-        var response = org.ToResponse(bankAccounts);
+        var response = org.ToResponse();
 
         return TypedResults.Ok(response);
     }

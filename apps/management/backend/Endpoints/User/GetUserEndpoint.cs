@@ -1,4 +1,5 @@
 using ManagementApi.DTOs.User;
+using ManagementApi.Filters;
 using ManagementApi.Services.User;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -14,9 +15,11 @@ public static class GetUserEndpoint
             .WithDescription("Retrieves a user by their ID")
             .WithOpenApi()
             .Produces<UserResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .AddEndpointFilter<ValidationFilter<GetUserRequest>>();
     }
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> Handle(
@@ -24,7 +27,8 @@ public static class GetUserEndpoint
         IUserService userService,
         CancellationToken cancellationToken)
     {
-        var user = await userService.GetUserByIdAsync(userId, cancellationToken);
+        var request = new GetUserRequest { UserId = userId };
+        var user = await userService.GetUserByIdAsync(request.UserId, cancellationToken);
         return TypedResults.Ok(user);
     }
 }

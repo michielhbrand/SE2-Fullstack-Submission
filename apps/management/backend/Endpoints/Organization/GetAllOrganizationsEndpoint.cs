@@ -1,6 +1,6 @@
 using ManagementApi.Data;
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Extensions;
+using ManagementApi.Mappers;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +22,7 @@ public static class GetAllOrganizationsEndpoint
     }
 
     private static async Task<Ok<List<OrganizationResponse>>> Handle(
-        [AsParameters] GetOrganizationsQuery query,
+        [AsParameters] GetOrganizationsRequest query,
         ApplicationDbContext db,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)

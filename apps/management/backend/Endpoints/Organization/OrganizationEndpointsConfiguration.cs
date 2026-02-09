@@ -1,6 +1,6 @@
 namespace ManagementApi.Endpoints.Organization;
 
-public static class OrganizationEndpointsMapper
+public static class OrganizationEndpointsConfiguration
 {
     public static IEndpointRouteBuilder MapOrganizationEndpoints(this IEndpointRouteBuilder app)
     {

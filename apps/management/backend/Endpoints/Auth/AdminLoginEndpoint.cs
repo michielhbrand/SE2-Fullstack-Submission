@@ -1,5 +1,6 @@
 using ManagementApi.DTOs.Auth;
 using ManagementApi.Filters;
+using ManagementApi.Mappers;
 using ManagementApi.Services.Auth;
 using Microsoft.AspNetCore.Http.HttpResults;
 

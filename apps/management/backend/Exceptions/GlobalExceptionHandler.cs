@@ -29,10 +29,8 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var problemDetails = CreateProblemDetails(httpContext, exception);
 
-        // Set response status code
         httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
         
-        // Set content type for ProblemDetails
         httpContext.Response.ContentType = "application/problem+json";
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
@@ -54,7 +52,6 @@ public class GlobalExceptionHandler : IExceptionHandler
                 Instance = httpContext.Request.Path
             };
 
-            // Add trace ID for correlation
             problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
 
             return problemDetails;
@@ -74,7 +71,6 @@ public class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path
         };
 
-        // Add trace ID for correlation
         internalError.Extensions["traceId"] = httpContext.TraceIdentifier;
 
         // In development, include stack trace

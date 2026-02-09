@@ -794,6 +794,13 @@ export class ManagementApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<UserResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             let result401: any = null;
@@ -822,26 +829,26 @@ export class ManagementApiClient {
         return Promise.resolve<UserResponse>(null as any);
     }
 
-    getUserDirectory(page?: number | undefined, pageSize?: number | undefined, searchTerm?: string | null | undefined, sortBy?: string | null | undefined, sortDescending?: boolean | undefined, activeOnly?: boolean | null | undefined, cancelToken?: CancelToken): Promise<PagedUserDirectoryResponse> {
+    getUserDirectory(page: number, pageSize: number, sortDescending: boolean, searchTerm?: string | null | undefined, sortBy?: string | null | undefined, activeOnly?: boolean | null | undefined, cancelToken?: CancelToken): Promise<PagedUserDirectoryResponse> {
         let url_ = this.baseUrl + "/api/users/directory?";
-        if (page === null)
-            throw new globalThis.Error("The parameter 'page' cannot be null.");
-        else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortDescending === undefined || sortDescending === null)
+            throw new globalThis.Error("The parameter 'sortDescending' must be defined and cannot be null.");
+        else
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         if (searchTerm !== undefined && searchTerm !== null)
-            url_ += "searchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+            url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
         if (sortBy !== undefined && sortBy !== null)
-            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new globalThis.Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (activeOnly !== undefined && activeOnly !== null)
-            url_ += "activeOnly=" + encodeURIComponent("" + activeOnly) + "&";
+            url_ += "ActiveOnly=" + encodeURIComponent("" + activeOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -880,6 +887,13 @@ export class ManagementApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<PagedUserDirectoryResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -1087,6 +1101,13 @@ export class ManagementApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<OrganizationMemberResponse[]>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             let result401: any = null;
@@ -1150,6 +1171,13 @@ export class ManagementApiClient {
         if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -1221,7 +1249,6 @@ export interface OrganizationResponse {
     Website?: string | null;
     Active?: boolean;
     Address?: AddressResponse | null;
-    BankAccounts?: BankAccountResponse[];
     MemberCount?: number;
     CreatedAt?: Date;
     UpdatedAt?: Date | null;
@@ -1234,16 +1261,6 @@ export interface AddressResponse {
     State?: string | null;
     PostalCode?: string | null;
     Country?: string | null;
-}
-
-export interface BankAccountResponse {
-    Id?: number;
-    AccountName?: string;
-    AccountNumber?: string;
-    BankName?: string;
-    BranchCode?: string | null;
-    SwiftCode?: string | null;
-    Active?: boolean;
 }
 
 export interface CreateOrganizationRequest {

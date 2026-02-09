@@ -1,20 +1,19 @@
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Models;
 
-namespace ManagementApi.Extensions;
+namespace ManagementApi.Mappers;
 
 /// <summary>
-/// Extension methods for mapping domain models to DTOs
+/// Mapper for converting Organization domain models to DTOs
 /// </summary>
-public static class OrganizationMappingExtensions
+public static class OrganizationMapper
 {
     /// <summary>
     /// Maps an Organization entity to OrganizationResponse DTO
     /// </summary>
     /// <param name="organization">The organization entity</param>
-    /// <param name="bankAccounts">Optional list of bank accounts associated with the organization</param>
     /// <returns>OrganizationResponse DTO</returns>
-    public static OrganizationResponse ToResponse(this Organization organization, List<BankAccount>? bankAccounts = null)
+    public static OrganizationResponse ToResponse(this Organization organization)
     {
         return new OrganizationResponse
         {
@@ -27,7 +26,6 @@ public static class OrganizationMappingExtensions
             Website = organization.Website,
             Active = organization.Active,
             Address = organization.Address?.ToResponse(),
-            BankAccounts = bankAccounts?.Select(ba => ba.ToResponse()).ToList() ?? new List<BankAccountResponse>(),
             MemberCount = organization.Members?.Count ?? 0,
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt
@@ -51,25 +49,6 @@ public static class OrganizationMappingExtensions
             State = address.State,
             PostalCode = address.PostalCode,
             Country = address.Country
-        };
-    }
-
-    /// <summary>
-    /// Maps a BankAccount entity to BankAccountResponse DTO
-    /// </summary>
-    /// <param name="bankAccount">The bank account entity</param>
-    /// <returns>BankAccountResponse DTO</returns>
-    public static BankAccountResponse ToResponse(this BankAccount bankAccount)
-    {
-        return new BankAccountResponse
-        {
-            Id = bankAccount.Id,
-            AccountName = bankAccount.AccountName,
-            AccountNumber = bankAccount.AccountNumber,
-            BankName = bankAccount.BankName,
-            BranchCode = bankAccount.BranchCode,
-            SwiftCode = bankAccount.SwiftCode,
-            Active = bankAccount.Active
         };
     }
 }
