@@ -8,7 +8,6 @@ const createAxiosInstance = (): AxiosInstance => {
     headers: {
       'Content-Type': 'application/json',
     },
-    // Disable automatic JSON parsing so NSwag's generated JSON.parse() works correctly
     transformResponse: [(data) => data],
   })
 
@@ -38,7 +37,6 @@ const createAxiosInstance = (): AxiosInstance => {
         try {
           const refreshToken = localStorage.getItem('refresh_token')
           if (refreshToken) {
-            // Create a temporary client without interceptors to avoid infinite loop
             const tempInstance = axios.create({
               transformResponse: [(data) => data],
             })
@@ -63,7 +61,6 @@ const createAxiosInstance = (): AxiosInstance => {
             }
           }
         } catch (refreshError) {
-          // If refresh fails, clear tokens and redirect to login
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('token_expires_at')
@@ -79,12 +76,10 @@ const createAxiosInstance = (): AxiosInstance => {
   return instance
 }
 
-// Create and export the API client instance
 const axiosInstance = createAxiosInstance()
 export const apiClient = new ManagementApiClient(
   import.meta.env.VITE_API_URL || 'http://localhost:5002',
   axiosInstance
 )
 
-// Export the axios instance for any direct usage if needed
 export const axiosClient = axiosInstance

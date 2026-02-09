@@ -29,11 +29,6 @@ const openCreateDialog = () => {
   isCreateDialogOpen.value = true;
 };
 
-const openEditDialog = (org: OrganizationResponse) => {
-  selectedOrganization.value = org;
-  isEditDialogOpen.value = true;
-};
-
 const navigateToOrganizations = () => {
   router.push("/organizations");
 };
@@ -66,7 +61,9 @@ onMounted(() => {
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header
+      class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center">
@@ -207,7 +204,9 @@ onMounted(() => {
                   />
                 </svg>
               </div>
-              <h4 class="font-semibold text-gray-900 mb-1">View Organizations</h4>
+              <h4 class="font-semibold text-gray-900 mb-1">
+                View Organizations
+              </h4>
               <p class="text-sm text-gray-600">Manage all organizations</p>
             </div>
           </Card>
@@ -318,201 +317,13 @@ onMounted(() => {
           </Card>
         </div>
       </div>
-
-      <!-- Organizations List -->
-      <div>
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-semibold text-gray-900">Organizations</h3>
-          <div class="flex gap-2">
-            <Button variant="outline" @click="navigateToOrganizations">
-              View All
-            </Button>
-            <Button @click="openCreateDialog">
-              <svg
-                class="h-4 w-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Add Organization
-            </Button>
-          </div>
-        </div>
-        <!-- Loading State -->
-        <Card v-if="isLoading" class="p-6">
-          <div class="text-center py-12">
-            <div
-              class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
-            ></div>
-            <p class="mt-4 text-gray-600">Loading organizations...</p>
-          </div>
-        </Card>
-
-        <!-- Empty State -->
-        <Card v-else-if="organizations.length === 0" class="p-6">
-          <div class="text-center py-12">
-            <svg
-              class="h-12 w-12 text-gray-400 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-            <h4 class="text-lg font-semibold text-gray-900 mb-2">
-              No Organizations Yet
-            </h4>
-            <p class="text-gray-600 mb-4">
-              Get started by creating your first organization
-            </p>
-            <Button @click="openCreateDialog">Create Organization</Button>
-          </div>
-        </Card>
-
-        <!-- Organizations Table -->
-        <Card v-else class="overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Organization
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Contact
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Location
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Created
-                  </th>
-                  <th
-                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr
-                  v-for="org in organizations"
-                  :key="org.Id"
-                  class="hover:bg-gray-50 transition-colors cursor-pointer"
-                  @click="openEditDialog(org)"
-                >
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <div
-                        class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center"
-                      >
-                        <svg
-                          class="h-5 w-5 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
-                      </div>
-                      <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">
-                          {{ org.Name }}
-                        </div>
-                        <div
-                          v-if="org.RegistrationNumber"
-                          class="text-sm text-gray-500"
-                        >
-                          Reg: {{ org.RegistrationNumber }}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      {{ org.Email || "—" }}
-                    </div>
-                    <div class="text-sm text-gray-500">
-                      {{ org.Phone || "—" }}
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      {{ org.Address?.City || "—" }}
-                    </div>
-                    <div class="text-sm text-gray-500">
-                      {{ org.Address?.Country || "—" }}
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ new Date(org.CreatedAt!).toLocaleDateString() }}
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-                  >
-                    <div class="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        @click.stop="openEditDialog(org)"
-                      >
-                        <svg
-                          class="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        <span class="ml-1">Edit</span>
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
     </main>
 
-    <!-- Create Organization Dialog -->
     <CreateOrganizationDialog
       v-model:open="isCreateDialogOpen"
       @success="handleOrganizationCreated"
     />
 
-    <!-- Edit Organization Dialog -->
     <EditOrganizationDialog
       v-model:open="isEditDialogOpen"
       :organization="selectedOrganization"

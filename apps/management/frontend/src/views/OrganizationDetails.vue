@@ -8,7 +8,10 @@ import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
 import AddMemberDialog from "../components/AddMemberDialog.vue";
 import { organizationService } from "../services/organizations";
 import { apiClient } from "../api/client";
-import type { OrganizationResponse, OrganizationMemberResponse } from "../api/generated/api-client";
+import type {
+  OrganizationResponse,
+  OrganizationMemberResponse,
+} from "../api/generated/api-client";
 import { getErrorMessage } from "../lib/error-utils";
 
 const router = useRouter();
@@ -55,7 +58,9 @@ const fetchMembers = async () => {
 
   isLoadingMembers.value = true;
   try {
-    members.value = await apiClient.getOrganizationMembers(organizationId.value);
+    members.value = await apiClient.getOrganizationMembers(
+      organizationId.value,
+    );
   } catch (error: any) {
     console.error("Failed to fetch members:", error);
     toast.error(getErrorMessage(error, "Failed to fetch members"));
@@ -82,7 +87,7 @@ const handleMemberAdded = () => {
 
 const handleRemoveMember = async (userId: string | undefined) => {
   if (!organizationId.value || !userId) return;
-  
+
   if (!confirm("Are you sure you want to remove this member?")) {
     return;
   }
@@ -110,7 +115,9 @@ onMounted(() => {
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header
+      class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center gap-4">
@@ -183,7 +190,8 @@ onMounted(() => {
             {{ organization.Active ? "Active" : "Inactive" }}
           </span>
           <span class="text-sm text-gray-500">
-            Created on {{ new Date(organization.CreatedAt!).toLocaleDateString() }}
+            Created on
+            {{ new Date(organization.CreatedAt!).toLocaleDateString() }}
           </span>
         </div>
 
@@ -208,7 +216,9 @@ onMounted(() => {
               </p>
             </div>
             <div>
-              <label class="text-sm font-medium text-gray-500">Tax Number</label>
+              <label class="text-sm font-medium text-gray-500"
+                >Tax Number</label
+              >
               <p class="mt-1 text-sm text-gray-900">
                 {{ organization.TaxNumber || "—" }}
               </p>
@@ -268,7 +278,9 @@ onMounted(() => {
               </p>
             </div>
             <div>
-              <label class="text-sm font-medium text-gray-500">Postal Code</label>
+              <label class="text-sm font-medium text-gray-500"
+                >Postal Code</label
+              >
               <p class="mt-1 text-sm text-gray-900">
                 {{ organization.Address.PostalCode || "—" }}
               </p>
@@ -356,9 +368,11 @@ onMounted(() => {
                 <tr v-for="member in members" :key="member.UserId">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900">
-                      {{ member.FirstName || member.LastName
-                        ? `${member.FirstName || ''} ${member.LastName || ''}`.trim()
-                        : '—' }}
+                      {{
+                        member.FirstName || member.LastName
+                          ? `${member.FirstName || ""} ${member.LastName || ""}`.trim()
+                          : "—"
+                      }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -373,7 +387,7 @@ onMounted(() => {
                           : 'bg-gray-100 text-gray-800',
                       ]"
                     >
-                      {{ member.Role === 'OrgAdmin' ? 'Admin' : 'User' }}
+                      {{ member.Role === "OrgAdmin" ? "Admin" : "User" }}
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -385,13 +399,15 @@ onMounted(() => {
                           : 'bg-red-100 text-red-800',
                       ]"
                     >
-                      {{ member.Active ? 'Active' : 'Inactive' }}
+                      {{ member.Active ? "Active" : "Inactive" }}
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ new Date(member.JoinedAt!).toLocaleDateString() }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                  >
                     <Button
                       variant="outline"
                       size="sm"
@@ -421,7 +437,9 @@ onMounted(() => {
               />
             </svg>
             <p class="text-gray-600 mb-4">No members yet</p>
-            <Button size="sm" @click="openAddMemberDialog">Add your first member</Button>
+            <Button size="sm" @click="openAddMemberDialog"
+              >Add your first member</Button
+            >
           </div>
         </Card>
 
@@ -450,14 +468,12 @@ onMounted(() => {
       </div>
     </main>
 
-    <!-- Edit Organization Dialog -->
     <EditOrganizationDialog
       v-model:open="isEditDialogOpen"
       :organization="organization"
       @success="handleOrganizationUpdated"
     />
 
-    <!-- Add Member Dialog -->
     <AddMemberDialog
       v-if="organizationId"
       v-model:open="isAddMemberDialogOpen"
