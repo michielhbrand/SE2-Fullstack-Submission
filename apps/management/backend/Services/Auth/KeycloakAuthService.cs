@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
+using ManagementApi.DTOs.Auth;
 using ManagementApi.Exceptions;
 using ManagementApi.Exceptions.Application;
 using ManagementApi.Models;
@@ -515,6 +516,54 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
+    public async Task<List<string>> GetUserRolesAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var roleMappingsEndpoint = $"{_keycloakUrl}/admin/realms/{_realm}/users/{userId}/role-mappings/realm";
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {adminToken}");
+
+            var response = await _httpClient.GetAsync(roleMappingsEndpoint, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("User {UserId} not found when fetching roles", userId);
+                    return new List<string>();
+                }
+                
+                _logger.LogError("Failed to get user roles. Status: {Status}", response.StatusCode);
+                throw new ServiceUnavailableException("Failed to retrieve user roles from Keycloak");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var roles = JsonSerializer.Deserialize<List<KeycloakRoleResponse>>(responseContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (roles == null)
+            {
+                return new List<string>();
+            }
+
+            // Return only the role names
+            return roles.Select(r => r.Name).Where(n => !string.IsNullOrEmpty(n)).ToList();
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user roles from Keycloak for user {UserId}", userId);
+            // Return empty list instead of throwing to allow sync to continue
+            return new List<string>();
+        }
+    }
+
     private async Task AssignRoleToUserAsync(string adminToken, string userId, string roleName, CancellationToken cancellationToken = default)
     {
         try
@@ -585,11 +634,4 @@ public class KeycloakAuthService : IKeycloakAuthService
         }
     }
 
-    private class KeycloakTokenResponse
-    {
-        public string Access_Token { get; set; } = string.Empty;
-        public string Refresh_Token { get; set; } = string.Empty;
-        public int Expires_In { get; set; }
-        public string Token_Type { get; set; } = string.Empty;
-    }
 }

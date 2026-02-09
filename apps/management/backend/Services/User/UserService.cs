@@ -65,7 +65,6 @@ public class UserService : IUserService
 
         _logger.LogInformation("Created user {UserId} with email {Email}", user.Id, request.Email);
 
-        // Sync to UserDirectory
         await _userDirectoryService.SyncUserAsync(user.Id, cancellationToken);
 
         return await _userDirectoryService.GetUserByIdAsync(user.Id, cancellationToken);
@@ -144,7 +143,6 @@ public class UserService : IUserService
                 cancellationToken);
         }
 
-        // Update business/state fields in app database
         if (request.Active.HasValue)
         {
             user.Active = request.Active.Value;
@@ -156,16 +154,13 @@ public class UserService : IUserService
 
         _logger.LogInformation("Updated user {UserId}", userId);
 
-        // Sync to UserDirectory
         await _userDirectoryService.SyncUserAsync(userId, cancellationToken);
 
-        // Return response from UserDirectory
         return await _userDirectoryService.GetUserByIdAsync(userId, cancellationToken);
     }
 
     public async Task<List<UserResponse>> GetAllUsersAsync(CancellationToken cancellationToken = default)
     {
-        // Delegate to UserDirectory service for reads
         var query = new UserDirectoryQuery
         {
             Page = 1,

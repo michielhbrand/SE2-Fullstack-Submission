@@ -143,8 +143,9 @@ public class UserDirectoryService : IUserDirectoryService
             // Get user from Keycloak
             var keycloakUser = await _keycloakService.GetUserByIdAsync(userId, cancellationToken);
 
-            // Get roles from Keycloak (simplified - you may need to implement GetUserRolesAsync)
-            var roles = string.Empty; // TODO: Implement role fetching
+            // Get roles from Keycloak
+            var rolesList = await _keycloakService.GetUserRolesAsync(userId, cancellationToken);
+            var roles = string.Join(",", rolesList);
 
             // Upsert to UserDirectory
             var userDirectory = await _context.UserDirectory

@@ -1,6 +1,6 @@
+using ManagementApi.DTOs.Auth;
 using ManagementApi.DTOs.User;
 using ManagementApi.Models;
-using ManagementApi.Services.Auth;
 
 namespace ManagementApi.Mappers;
 

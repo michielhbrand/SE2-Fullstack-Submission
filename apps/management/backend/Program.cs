@@ -21,6 +21,7 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
 builder.Services.AddAuthenticationServices(builder.Configuration);
 builder.Services.AddHealthCheckServices(builder.Configuration);
+builder.Services.AddRateLimitingServices(builder.Configuration);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -49,6 +50,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseCors("AllowManagementPortal");
+
+// Add rate limiting middleware before authentication
+app.UseRateLimitingMiddleware();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -1,5 +1,4 @@
 using ManagementApi.DTOs.Auth;
-using ManagementApi.Services.Auth;
 
 namespace ManagementApi.Mappers;
 
