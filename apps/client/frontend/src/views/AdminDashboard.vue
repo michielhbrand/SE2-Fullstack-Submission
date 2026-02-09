@@ -5,15 +5,21 @@ import { useAuthStore, type UserInfo } from "../stores/auth";
 import { Button, Card, Spinner } from "../components/ui/index";
 import { toast } from "vue-sonner";
 import NewUserModal from "../components/modals/NewUserModal.vue";
+import EditUserModal from "../components/modals/EditUserModal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const users = ref<UserInfo[]>([]);
+const allUsers = ref<UserInfo[]>([]);
 const loading = ref(true);
 const updatingUserId = ref<string | null>(null);
 const currentUserId = ref<string | null>(null);
 const showNewUserModal = ref(false);
+const showEditUserModal = ref(false);
+const selectedUser = ref<UserInfo | null>(null);
 const creatingUser = ref(false);
+const updatingUser = ref(false);
+const showActiveOnly = ref(true);
 
 onMounted(async () => {
   if (!authStore.isAdmin) {
@@ -30,13 +36,27 @@ const loadUsers = async () => {
   loading.value = true;
   try {
     const fetchedUsers = await authStore.getAllUsers();
-    users.value = fetchedUsers;
+    allUsers.value = fetchedUsers;
+    filterUsers();
   } catch (err) {
     toast.error("Failed to load users");
     console.error("Error loading users:", err);
   } finally {
     loading.value = false;
   }
+};
+
+const filterUsers = () => {
+  if (showActiveOnly.value) {
+    users.value = allUsers.value.filter((user) => user.enabled);
+  } else {
+    users.value = allUsers.value.filter((user) => !user.enabled);
+  }
+};
+
+const toggleActiveFilter = () => {
+  showActiveOnly.value = !showActiveOnly.value;
+  filterUsers();
 };
 
 const handleLogout = async () => {
@@ -146,6 +166,41 @@ const handleCreateUser = async (userData: {
     creatingUser.value = false;
   }
 };
+
+const handleEditUser = (user: UserInfo) => {
+  selectedUser.value = user;
+  showEditUserModal.value = true;
+};
+
+const handleUpdateUser = async (userData: {
+  firstName: string;
+  lastName: string;
+  role: string;
+  active: boolean;
+}) => {
+  if (!selectedUser.value) return;
+
+  updatingUser.value = true;
+  try {
+    const success = await authStore.updateUser(selectedUser.value.id, userData);
+
+    if (success) {
+      toast.success(
+        `Successfully updated ${selectedUser.value.username || selectedUser.value.email || "user"}`,
+      );
+      showEditUserModal.value = false;
+      selectedUser.value = null;
+      await loadUsers();
+    } else {
+      toast.error("Failed to update user details");
+    }
+  } catch (err: any) {
+    console.error("Error updating user:", err);
+    toast.error("An error occurred while updating user details");
+  } finally {
+    updatingUser.value = false;
+  }
+};
 </script>
 
 <template>
@@ -173,7 +228,33 @@ const handleCreateUser = async (userData: {
       <!-- Users Management Card -->
       <Card class="p-6">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-semibold text-gray-900">User Management</h2>
+          <div class="flex items-center gap-4">
+            <h2 class="text-2xl font-semibold text-gray-900">User Management</h2>
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+              <button
+                @click="toggleActiveFilter"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded transition-colors',
+                  showActiveOnly
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900',
+                ]"
+              >
+                Active ({{ allUsers.filter(u => u.enabled).length }})
+              </button>
+              <button
+                @click="toggleActiveFilter"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded transition-colors',
+                  !showActiveOnly
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900',
+                ]"
+              >
+                Inactive ({{ allUsers.filter(u => !u.enabled).length }})
+              </button>
+            </div>
+          </div>
           <div class="flex items-center gap-3">
             <Button
               @click="showNewUserModal = true"
@@ -308,32 +389,26 @@ const handleCreateUser = async (userData: {
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="relative group">
-                    <select
-                      :value="getUserRole(user)"
-                      @change="
-                        (e) =>
-                          updateUserRole(
-                            user,
-                            (e.target as HTMLSelectElement).value,
-                          )
-                      "
-                      :disabled="
-                        updatingUserId === user.id || !canChangeRole(user)
-                      "
-                      class="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-900 focus:border-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  <button
+                    @click="handleEditUser(user)"
+                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Edit user"
+                  >
+                    <svg
+                      class="h-4 w-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <option value="orgUser">Org User</option>
-                      <option value="orgAdmin">Org Admin</option>
-                    </select>
-                    <!-- Tooltip for current user -->
-                    <div
-                      v-if="isCurrentUser(user) && isAdmin(user)"
-                      class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10"
-                    >
-                      You cannot demote yourself
-                    </div>
-                  </div>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    Edit
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -392,7 +467,7 @@ const handleCreateUser = async (userData: {
                   <strong>Org Admin:</strong> Can log in and use both the user
                   portal and admin portal
                 </li>
-                <li>Use the dropdown above to change user roles</li>
+                <li>Click the <strong>Edit</strong> button to modify user details, role, and active status</li>
               </ul>
             </div>
           </div>
@@ -400,11 +475,19 @@ const handleCreateUser = async (userData: {
       </Card>
     </main>
 
-    <!-- New User Modal -->
     <NewUserModal
       :show="showNewUserModal"
       @close="showNewUserModal = false"
       @save="handleCreateUser"
+    />
+
+    <EditUserModal
+      :show="showEditUserModal"
+      :user="selectedUser"
+      :current-user-id="currentUserId"
+      :loading="updatingUser"
+      @close="showEditUserModal = false"
+      @save="handleUpdateUser"
     />
   </div>
 </template>

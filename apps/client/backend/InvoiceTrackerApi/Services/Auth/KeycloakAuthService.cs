@@ -447,4 +447,46 @@ public class KeycloakAuthService : IKeycloakAuthService
             throw new Exceptions.InfrastructureException("An unexpected error occurred while creating user", ex);
         }
     }
+
+    public async Task UpdateUserDetailsAsync(string adminToken, string userId, string firstName, string lastName)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new Exceptions.ValidationException("User ID is required");
+        }
+        if (string.IsNullOrWhiteSpace(firstName))
+        {
+            throw new Exceptions.ValidationException("First name is required");
+        }
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            throw new Exceptions.ValidationException("Last name is required");
+        }
+
+        try
+        {
+            var keycloakAdminToken = await _adminClient.GetAdminAccessTokenAsync();
+            
+            _logger.LogInformation("Updating user details for user {UserId}", userId);
+            
+            await _adminClient.UpdateUserDetailsAsync(keycloakAdminToken, userId, firstName, lastName);
+            
+            _logger.LogInformation("Successfully updated user details for user {UserId}", userId);
+        }
+        catch (Exceptions.AppException)
+        {
+            // Re-throw application exceptions
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error updating user details for user {UserId}", userId);
+            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error updating user details for user {UserId}", userId);
+            throw new Exceptions.InfrastructureException("An unexpected error occurred while updating user details", ex);
+        }
+    }
 }

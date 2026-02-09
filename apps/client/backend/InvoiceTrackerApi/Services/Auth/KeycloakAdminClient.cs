@@ -241,8 +241,8 @@ public class KeycloakAdminClient
     {
         var roleArray = new[] { new { id = role.Id, name = role.Name } };
         var jsonContent = new StringContent(
-            JsonSerializer.Serialize(roleArray), 
-            Encoding.UTF8, 
+            JsonSerializer.Serialize(roleArray),
+            Encoding.UTF8,
             "application/json");
         
         var request = new HttpRequestMessage(HttpMethod.Post, _config.GetUserRoleMappingEndpoint(userId));
@@ -256,6 +256,38 @@ public class KeycloakAdminClient
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning("Failed to add user role. Status: {Status}", response.StatusCode);
             throw new Exceptions.BusinessRuleException("Failed to update user role in Keycloak");
+        }
+    }
+
+    /// <summary>
+    /// Updates user details (firstName, lastName) in Keycloak.
+    /// </summary>
+    public async Task UpdateUserDetailsAsync(string adminToken, string userId, string firstName, string lastName)
+    {
+        var userPayload = new
+        {
+            firstName = firstName,
+            lastName = lastName
+        };
+        
+        var jsonContent = new StringContent(
+            JsonSerializer.Serialize(userPayload),
+            Encoding.UTF8,
+            "application/json"
+        );
+        
+        var request = new HttpRequestMessage(HttpMethod.Put, _config.GetUserEndpoint(userId));
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+        request.Content = jsonContent;
+        
+        var response = await _httpClient.SendAsync(request);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to update user details for user {UserId}. Status: {Status}, Error: {Error}",
+                userId, response.StatusCode, errorContent);
+            throw new Exceptions.BusinessRuleException("Failed to update user details in Keycloak");
         }
     }
 }

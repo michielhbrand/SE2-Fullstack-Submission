@@ -146,4 +146,30 @@ public class UserController : AuthenticatedControllerBase
 
         return Ok(new { message = "User role updated successfully" });
     }
+
+    /// <summary>
+    /// Update user details (admin only)
+    /// </summary>
+    /// <param name="userId">User ID to update</param>
+    /// <param name="request">User details update request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success message</returns>
+    [HttpPut("{userId}")]
+    [Authorize(Roles = "orgAdmin,systemAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateUserDetails(
+        string userId,
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+        await _userService.UpdateUserDetailsAsync(token, userId, request, cancellationToken);
+
+        return Ok(new { message = "User details updated successfully" });
+    }
 }

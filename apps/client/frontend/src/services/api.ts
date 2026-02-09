@@ -46,6 +46,15 @@ export const authApi = {
     role: string
   }) => {
     return await client.user_CreateUser(userData)
+  },
+
+  updateUser: async (userId: string, userData: {
+    firstName: string
+    lastName: string
+    role: string
+    active: boolean
+  }) => {
+    return await client.user_UpdateUserDetails(userId, userData)
   }
 }
 

@@ -90,4 +90,43 @@ public class UserService : IUserService
             // Don't fail the request if sync fails - it can be retried later
         }
     }
+
+    public async Task UpdateUserDetailsAsync(
+        string adminToken,
+        string userId,
+        UpdateUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.Role != UserRole.OrgUser && request.Role != UserRole.OrgAdmin)
+        {
+            throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+        }
+
+        await _keycloakService.UpdateUserDetailsAsync(adminToken, userId, request.FirstName, request.LastName);
+        await _keycloakService.UpdateUserRoleAsync(adminToken, userId, request.Role);
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user != null)
+        {
+            user.Active = request.Active;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            _logger.LogInformation("Updated user {UserId} active status to {Active}", userId, request.Active);
+        }
+        else
+        {
+            _logger.LogWarning("User {UserId} not found in app database, skipping Active status update", userId);
+        }
+
+        try
+        {
+            await _userDirectoryService.SyncUserAsync(userId, adminToken, cancellationToken);
+            _logger.LogInformation("Synced user {UserId} to UserDirectory after details update", userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync user {UserId} to UserDirectory after details update", userId);
+            // Don't fail the request if sync fails - it can be retried later
+        }
+    }
 }

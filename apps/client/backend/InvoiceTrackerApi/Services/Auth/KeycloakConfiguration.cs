@@ -39,7 +39,8 @@ public class KeycloakConfiguration
     public string GetLogoutEndpoint() => $"{KeycloakUrl}/realms/{Realm}/protocol/openid-connect/logout";
     public string GetAdminTokenEndpoint() => $"{KeycloakUrl}/realms/master/protocol/openid-connect/token";
     public string GetUsersEndpoint() => $"{KeycloakUrl}/admin/realms/{Realm}/users";
+    public string GetUserEndpoint(string userId) => $"{KeycloakUrl}/admin/realms/{Realm}/users/{userId}";
     public string GetRolesEndpoint() => $"{KeycloakUrl}/admin/realms/{Realm}/roles";
-    public string GetUserRoleMappingEndpoint(string userId) => 
+    public string GetUserRoleMappingEndpoint(string userId) =>
         $"{KeycloakUrl}/admin/realms/{Realm}/users/{userId}/role-mappings/realm";
 }

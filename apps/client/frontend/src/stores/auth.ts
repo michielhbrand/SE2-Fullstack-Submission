@@ -389,6 +389,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateUser(userId: string, userData: {
+    firstName: string
+    lastName: string
+    role: string
+    active: boolean
+  }): Promise<boolean> {
+    try {
+      const token = getAccessToken()
+      if (!token) return false
+
+      await authApi.updateUser(userId, userData)
+
+      return true
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error, 'Failed to update user')
+      toast.error(errorMessage)
+      return false
+    }
+  }
+
   async function refreshAccessToken(): Promise<string | null> {
     try {
       const currentRefreshToken = refreshToken.value || localStorage.getItem('refresh_token')
@@ -449,6 +469,7 @@ export const useAuthStore = defineStore('auth', () => {
     getAllUsers,
     updateUserRole,
     createUser,
+    updateUser,
     loadTokenFromStorage,
     refreshAccessToken,
   }

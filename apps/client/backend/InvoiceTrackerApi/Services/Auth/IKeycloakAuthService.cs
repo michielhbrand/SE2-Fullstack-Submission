@@ -12,4 +12,5 @@ public interface IKeycloakAuthService
     Task<List<UserInfo>> GetAllUsersAsync(string adminToken);
     Task UpdateUserRoleAsync(string adminToken, string userId, UserRole role);
     Task<string> CreateUserAsync(string adminToken, string username, string email, string firstName, string lastName, string password, UserRole role);
+    Task UpdateUserDetailsAsync(string adminToken, string userId, string firstName, string lastName);
 }
