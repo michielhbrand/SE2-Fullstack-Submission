@@ -26,7 +26,7 @@ public class KeycloakConfiguration
         KeycloakUrl = $"{authorityUri.Scheme}://{authorityUri.Authority}";
         Realm = pathSegments.Length >= 2 ? pathSegments[1] : "microservices";
         ClientId = configuration["Keycloak:ClientId"] ?? "frontend-app";
-        AdminClientId = "admin-app";
+        AdminClientId = configuration["Keycloak:ClientId"] ?? "frontend-app"; // Use same client for admin login
         AdminUsername = configuration["Keycloak:AdminUsername"] ?? "admin";
         AdminPassword = configuration["Keycloak:AdminPassword"] ?? "admin";
         

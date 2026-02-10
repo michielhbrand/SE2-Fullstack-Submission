@@ -4,6 +4,7 @@ import router from '../router'
 import { authApi } from '../services/api'
 import type { UserRole } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
+import { useOrganizationStore } from './organization'
 
 interface LoginCredentials {
   username: string
@@ -214,6 +215,17 @@ export const useAuthStore = defineStore('auth', () => {
       // Set up automatic logout when token expires
       setupTokenExpirationCheck(response.expires_in)
 
+      // If admin login, fetch organization context
+      if (isAdminLogin) {
+        const organizationStore = useOrganizationStore()
+        const success = await organizationStore.initializeOrganizationContext()
+        
+        if (!success) {
+          toast.warning('Logged in successfully, but failed to load organization context')
+          // Continue with login even if organization context fails
+        }
+      }
+
       return true
     } catch (error: any) {
       // Log the error for debugging
@@ -263,6 +275,10 @@ export const useAuthStore = defineStore('auth', () => {
       clearTimeout(tokenExpirationTimer.value)
       tokenExpirationTimer.value = null
     }
+    
+    // Clear organization context
+    const organizationStore = useOrganizationStore()
+    organizationStore.clearOrganizationContext()
     
     // Set flag if logout is due to token expiration
     if (dueToExpiration) {

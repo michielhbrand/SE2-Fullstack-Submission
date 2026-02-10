@@ -25,15 +25,16 @@ public class OrganizationController : AuthenticatedControllerBase
     }
 
     /// <summary>
-    /// Get all organizations
+    /// Get all organizations for the authenticated user
     /// </summary>
-    /// <returns>List of organizations</returns>
+    /// <returns>List of organizations the user belongs to</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<OrganizationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<OrganizationResponse>>> GetOrganizations()
     {
-        var organizations = await _organizationService.GetAllOrganizationsAsync();
+        var userId = GetCurrentUserId();
+        var organizations = await _organizationService.GetUserOrganizationsAsync(userId);
         return Ok(organizations);
     }
 

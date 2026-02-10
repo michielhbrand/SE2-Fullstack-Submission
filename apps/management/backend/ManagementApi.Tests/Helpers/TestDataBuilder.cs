@@ -61,13 +61,14 @@ public static class TestDataBuilder
 
     public static OrganizationMember CreateTestOrganizationMember(
         int organizationId = 1,
-        string userId = "test-user-id")
+        string userId = "test-user-id",
+        string role = "orgUser")
     {
         return new OrganizationMember
         {
             OrganizationId = organizationId,
             UserId = userId,
-            JoinedAt = DateTime.UtcNow
+            Role = role
         };
     }
 }

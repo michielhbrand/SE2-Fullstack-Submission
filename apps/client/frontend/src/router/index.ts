@@ -8,6 +8,9 @@ import Invoices from '../views/Invoices.vue'
 import Quotes from '../views/Quotes.vue'
 import Templates from '../views/Templates.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
+import Users from '../views/admin/Users.vue'
+import PaymentDetails from '../views/admin/PaymentDetails.vue'
+import EditOrganization from '../views/admin/EditOrganization.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -30,9 +33,29 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'AdminDashboard',
       component: AdminDashboard,
       meta: { requiresAuth: true, requiresAdmin: true },
+      redirect: '/admin/users',
+      children: [
+        {
+          path: 'users',
+          name: 'AdminUsers',
+          component: Users,
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
+        {
+          path: 'payment-details',
+          name: 'PaymentDetails',
+          component: PaymentDetails,
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
+        {
+          path: 'edit-organization',
+          name: 'EditOrganization',
+          component: EditOrganization,
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
+      ],
     },
     {
       path: '/welcome',

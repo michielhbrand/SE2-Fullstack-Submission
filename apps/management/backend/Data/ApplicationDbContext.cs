@@ -16,9 +16,18 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<Address> Addresses { get; set; }
+    public DbSet<BankAccount> BankAccounts { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserDirectory> UserDirectory { get; set; }
     public DbSet<OrganizationMember> OrganizationMembers { get; set; }
+    
+    // Client API tables - included for schema completeness even if not directly used
+    public DbSet<Client> Clients { get; set; }
+    public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<InvoiceItem> InvoiceItems { get; set; }
+    public DbSet<Quote> Quotes { get; set; }
+    public DbSet<QuoteItem> QuoteItems { get; set; }
+    public DbSet<Template> Templates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +127,51 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.UserId)
                 .IsRequired()
                 .HasMaxLength(255);
+            
+            entity.Property(e => e.Role)
+                .IsRequired()
+                .HasMaxLength(50);
+        });
+
+        // Configure BankAccount entity
+        modelBuilder.Entity<BankAccount>(entity =>
+        {
+            entity.HasIndex(e => e.OrganizationId);
+        });
+
+        // Configure Client API entities (for schema completeness)
+        modelBuilder.Entity<Client>(entity =>
+        {
+            entity.HasIndex(e => e.Email).IsUnique();
+            entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasMany(e => e.Items);
+        });
+
+        modelBuilder.Entity<InvoiceItem>(entity =>
+        {
+            entity.Property(e => e.PricePerUnit).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Quote>(entity =>
+        {
+            entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasMany(e => e.Items);
+        });
+
+        modelBuilder.Entity<QuoteItem>(entity =>
+        {
+            entity.Property(e => e.PricePerUnit).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Template>(entity =>
+        {
+            entity.HasIndex(e => new { e.Name, e.Version }).IsUnique();
+            entity.Property(e => e.Created).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
     }
 }

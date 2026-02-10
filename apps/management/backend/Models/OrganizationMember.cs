@@ -1,9 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ManagementApi.Models;
 
 public class OrganizationMember
 {
+    [Required]
     public int OrganizationId { get; set; }
-    public Organization Organization { get; set; } = null!;
-    public required string UserId { get; set; }  // Keycloak user ID (UUID string)
-    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+    
+    [Required]
+    [MaxLength(255)]
+    public required string UserId { get; set; }
+    
+    [Required]
+    [MaxLength(50)]
+    public required string Role { get; set; }  // Kept for database compatibility with Client API
+    
+    [ForeignKey(nameof(OrganizationId))]
+    public Organization? Organization { get; set; }
 }

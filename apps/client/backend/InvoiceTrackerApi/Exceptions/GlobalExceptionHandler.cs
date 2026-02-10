@@ -79,9 +79,10 @@ public class GlobalExceptionHandler : IExceptionHandler
         {
             _logger.LogError(
                 exception,
-                "Unexpected exception occurred: {ExceptionType} - {Message}",
+                "Unexpected exception occurred: {ExceptionType} - {Message}\nStackTrace: {StackTrace}",
                 exception.GetType().Name,
-                exception.Message);
+                exception.Message,
+                exception.StackTrace);
         }
     }
 }

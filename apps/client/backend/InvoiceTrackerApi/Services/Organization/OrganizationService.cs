@@ -38,9 +38,11 @@ public class OrganizationService : IOrganizationService
         var responses = new List<OrganizationResponse>();
         foreach (var org in organizations)
         {
-            var bankAccounts = await _context.BankAccounts
-                .Where(a => org.BankAccountIds.Contains(a.Id))
-                .ToListAsync();
+            var bankAccounts = org.BankAccountIds != null && org.BankAccountIds.Any()
+                ? await _context.BankAccounts
+                    .Where(a => org.BankAccountIds.Contains(a.Id))
+                    .ToListAsync()
+                : new List<Models.BankAccount>();
             
             var response = org.ToDto();
             response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
@@ -59,9 +61,11 @@ public class OrganizationService : IOrganizationService
             throw new NotFoundException("Organization", id);
         }
 
-        var bankAccounts = await _context.BankAccounts
-            .Where(a => organization.BankAccountIds.Contains(a.Id))
-            .ToListAsync();
+        var bankAccounts = organization.BankAccountIds != null && organization.BankAccountIds.Any()
+            ? await _context.BankAccounts
+                .Where(a => organization.BankAccountIds.Contains(a.Id))
+                .ToListAsync()
+            : new List<Models.BankAccount>();
 
         var response = organization.ToDto();
         response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
@@ -143,11 +147,13 @@ public class OrganizationService : IOrganizationService
 
         // Reload with details
         var updatedOrganization = await _organizationRepository.GetByIdWithDetailsAsync(id);
-        var bankAccounts = await _context.BankAccounts
-            .Where(a => updatedOrganization!.BankAccountIds.Contains(a.Id))
-            .ToListAsync();
+        var bankAccounts = updatedOrganization!.BankAccountIds != null && updatedOrganization.BankAccountIds.Any()
+            ? await _context.BankAccounts
+                .Where(a => updatedOrganization.BankAccountIds.Contains(a.Id))
+                .ToListAsync()
+            : new List<Models.BankAccount>();
 
-        var response = updatedOrganization!.ToDto();
+        var response = updatedOrganization.ToDto();
         response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
 
         return response;
@@ -324,20 +330,61 @@ public class OrganizationService : IOrganizationService
 
     public async Task<IEnumerable<OrganizationResponse>> GetUserOrganizationsAsync(string userId)
     {
-        var organizations = await _memberRepository.GetOrganizationsByUserIdAsync(userId);
-
-        var responses = new List<OrganizationResponse>();
-        foreach (var org in organizations)
+        try
         {
-            var bankAccounts = await _context.BankAccounts
-                .Where(a => org.BankAccountIds.Contains(a.Id))
-                .ToListAsync();
+            _logger.LogInformation("Fetching organizations for user {UserId}", userId);
+            
+            var organizations = await _memberRepository.GetOrganizationsByUserIdAsync(userId);
+            
+            _logger.LogInformation("Found {Count} organizations for user {UserId}", organizations.Count(), userId);
 
-            var response = org.ToDto();
-            response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
-            responses.Add(response);
+            var responses = new List<OrganizationResponse>();
+            foreach (var org in organizations)
+            {
+                try
+                {
+                    // Ensure Address is loaded
+                    if (org.Address == null && org.AddressId > 0)
+                    {
+                        _logger.LogWarning(
+                            "Organization {OrgId} has AddressId {AddressId} but Address is null. Loading explicitly.",
+                            org.Id, org.AddressId);
+                        
+                        org.Address = await _context.Addresses.FindAsync(org.AddressId);
+                        
+                        if (org.Address == null)
+                        {
+                            _logger.LogError(
+                                "Address {AddressId} not found for organization {OrgId}",
+                                org.AddressId, org.Id);
+                        }
+                    }
+                    
+                    var bankAccounts = org.BankAccountIds != null && org.BankAccountIds.Any()
+                        ? await _context.BankAccounts
+                            .Where(a => org.BankAccountIds.Contains(a.Id))
+                            .ToListAsync()
+                        : new List<Models.BankAccount>();
+
+                    var response = org.ToDto();
+                    response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
+                    responses.Add(response);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error processing organization {OrgId} for user {UserId}",
+                        org.Id, userId);
+                    throw;
+                }
+            }
+
+            return responses;
         }
-
-        return responses;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching organizations for user {UserId}", userId);
+            throw;
+        }
     }
 }

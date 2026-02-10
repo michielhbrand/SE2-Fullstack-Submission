@@ -116,9 +116,8 @@ public class UserService : IUserService
             Organizations = memberships.Select(m => new OrganizationMembershipResponse
             {
                 OrganizationId = m.OrganizationId,
-                OrganizationName = m.Organization.Name,
-                Role = userResponse.Role,
-                JoinedAt = m.JoinedAt
+                OrganizationName = m.Organization?.Name ?? "",
+                Role = userResponse.Role  // Use the role from user response (parsed from Keycloak)
             }).ToList(),
             CreatedAt = userDirectory.CreatedAt,
             UpdatedAt = userDirectory.UpdatedAt
@@ -245,7 +244,7 @@ public class UserService : IUserService
         {
             OrganizationId = organizationId,
             UserId = userId,
-            JoinedAt = DateTime.UtcNow
+            Role = request.Role.ToString()  // Convert enum to string (e.g., "OrgUser", "OrgAdmin")
         };
 
         _context.OrganizationMembers.Add(membership);

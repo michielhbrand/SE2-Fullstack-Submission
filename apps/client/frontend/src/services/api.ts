@@ -51,7 +51,7 @@ export const authApi = {
   updateUser: async (userId: string, userData: {
     firstName: string
     lastName: string
-    role: string
+    role: UserRole
     active: boolean
   }) => {
     return await client.user_UpdateUserDetails(userId, userData)
@@ -187,6 +187,34 @@ export const invoiceApi = {
   // Get invoice templates
   getTemplates: async () => {
     return await client.invoice_GetTemplates()
+  }
+}
+
+// Organization API functions
+export const organizationApi = {
+  // Get all organizations
+  getOrganizations: async () => {
+    return await client.organization_GetOrganizations()
+  },
+
+  // Get a specific organization
+  getOrganization: async (id: number) => {
+    return await client.organization_GetOrganization(id)
+  },
+
+  // Create a new organization
+  createOrganization: async (organizationData: any) => {
+    return await client.organization_CreateOrganization(organizationData)
+  },
+
+  // Update an organization
+  updateOrganization: async (id: number, organizationData: any) => {
+    return await client.organization_UpdateOrganization(id, organizationData)
+  },
+
+  // Delete an organization
+  deleteOrganization: async (id: number) => {
+    return await client.organization_DeleteOrganization(id)
   }
 }
 

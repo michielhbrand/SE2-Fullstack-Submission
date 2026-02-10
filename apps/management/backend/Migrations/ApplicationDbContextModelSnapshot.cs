@@ -48,7 +48,7 @@ namespace ManagementApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", (string)null);
                 });
 
             modelBuilder.Entity("ManagementApi.Models.Organization", b =>
@@ -98,7 +98,7 @@ namespace ManagementApi.Migrations
 
                     b.HasIndex("AddressId");
 
-                    b.ToTable("Organizations");
+                    b.ToTable("Organizations", (string)null);
                 });
 
             modelBuilder.Entity("ManagementApi.Models.OrganizationMember", b =>
@@ -119,7 +119,7 @@ namespace ManagementApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("OrganizationMembers");
+                    b.ToTable("OrganizationMembers", (string)null);
                 });
 
             modelBuilder.Entity("ManagementApi.Models.User", b =>
@@ -141,7 +141,7 @@ namespace ManagementApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("ManagementApi.Models.UserDirectory", b =>
@@ -192,7 +192,7 @@ namespace ManagementApi.Migrations
 
                     b.HasIndex("LastSyncedAt");
 
-                    b.ToTable("UserDirectory");
+                    b.ToTable("UserDirectory", (string)null);
                 });
 
             modelBuilder.Entity("ManagementApi.Models.Organization", b =>

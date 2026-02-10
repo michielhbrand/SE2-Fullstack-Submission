@@ -34,8 +34,8 @@ public static class UserDirectoryMapper
             FirstName = userDirectory.FirstName,
             LastName = userDirectory.LastName,
             Active = userDirectory.Active,
-            Role = ParseUserRole(userDirectory.Roles),
-            JoinedAt = membership.JoinedAt
+            Role = ParseUserRole(userDirectory.Roles)
+            // JoinedAt removed - not in database schema
         };
     }
 
