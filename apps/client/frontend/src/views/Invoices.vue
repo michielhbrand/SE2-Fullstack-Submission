@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoiceApi } from '../services/api'
-import { Button, Spinner } from '../components/ui/index'
+import { Button, Spinner, Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 
@@ -95,50 +95,41 @@ const previewPdf = async (invoiceId: number) => {
 
         <!-- Invoices Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-          <!-- Loading Spinner -->
-          <div v-if="loading" class="flex items-center justify-center py-12">
-            <Spinner size="lg" />
+          <!-- Loading Skeleton -->
+          <div v-if="loading" class="p-6 space-y-3">
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
           </div>
           
           <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PDF</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">{{ invoice.client?.name }} {{ invoice.client?.surname }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ invoice.client?.cellphone }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ invoice.items?.length || 0 }} item(s)</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">R {{ getTotalAmount(invoice).toFixed(2) }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ new Date(invoice.dateCreated).toLocaleDateString() }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span
-                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      :class="invoice.notificationSent ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
-                    >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>PDF</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="invoice in invoices" :key="invoice.id">
+                  <TableCell class="font-medium">{{ invoice.client?.name }} {{ invoice.client?.surname }}</TableCell>
+                  <TableCell>{{ invoice.client?.cellphone }}</TableCell>
+                  <TableCell>{{ invoice.items?.length || 0 }} item(s)</TableCell>
+                  <TableCell class="font-medium">R {{ getTotalAmount(invoice).toFixed(2) }}</TableCell>
+                  <TableCell>{{ new Date(invoice.dateCreated).toLocaleDateString() }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="invoice.notificationSent ? 'default' : 'secondary'">
                       {{ invoice.notificationSent ? 'Sent' : 'Pending' }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <button
                       v-if="invoice.pdfStorageKey"
                       @click="previewPdf(invoice.id)"
@@ -168,15 +159,15 @@ const previewPdf = async (invoiceId: number) => {
                       </svg>
                     </button>
                     <span v-else class="text-gray-400 text-sm">N/A</span>
-                  </td>
-                </tr>
-                <tr v-if="invoices.length === 0">
-                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                  </TableCell>
+                </TableRow>
+                <TableRow v-if="invoices.length === 0">
+                  <TableCell colspan="7" class="text-center text-gray-500">
                     No invoices found
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
           
           <!-- Pagination -->
@@ -184,33 +175,19 @@ const previewPdf = async (invoiceId: number) => {
             <div class="text-sm text-gray-700">
               Showing {{ ((currentPage - 1) * pageSize) + 1 }} to {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} results
             </div>
-            <div class="flex gap-2">
-              <Button
-                @click="goToPage(currentPage - 1)"
-                :disabled="currentPage === 1"
-                variant="outline"
-                size="sm"
-              >
-                Previous
-              </Button>
-              <Button
-                v-for="page in paginationPages"
-                :key="page"
-                @click="goToPage(page)"
-                :variant="page === currentPage ? 'default' : 'outline'"
-                size="sm"
-              >
-                {{ page }}
-              </Button>
-              <Button
-                @click="goToPage(currentPage + 1)"
-                :disabled="currentPage === totalPages"
-                variant="outline"
-                size="sm"
-              >
-                Next
-              </Button>
-            </div>
+            <Pagination
+              :total="totalCount"
+              :sibling-count="1"
+              :page="currentPage"
+              :items-per-page="pageSize"
+              @update:page="goToPage"
+            >
+              <PaginationContent>
+                <PaginationPrevious />
+                <PaginationItem v-for="page in paginationPages" :key="page" :value="page" />
+                <PaginationNext />
+              </PaginationContent>
+            </Pagination>
           </div>
         </div>
       </div>

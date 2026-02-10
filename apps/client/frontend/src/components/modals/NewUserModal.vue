@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button } from "../ui/index";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/index";
 import { toast } from "vue-sonner";
 
 interface UserForm {
@@ -128,13 +128,11 @@ watch(
 
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Username *</label
-          >
-          <input
+          <Label for="username">Username *</Label>
+          <Input
+            id="username"
             v-model="user.username"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.username ? 'border-red-500' : ''"
             placeholder="Enter username"
           />
@@ -144,13 +142,11 @@ watch(
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Email *</label
-          >
-          <input
+          <Label for="email">Email *</Label>
+          <Input
+            id="email"
             v-model="user.email"
             type="email"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.email ? 'border-red-500' : ''"
             placeholder="user@example.com"
           />
@@ -161,32 +157,25 @@ watch(
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >First Name *</label
-            >
-            <input
+            <Label for="firstName">First Name *</Label>
+            <Input
+              id="firstName"
               v-model="user.firstName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="formErrors.firstName ? 'border-red-500' : ''"
               placeholder="First name"
             />
-            <p
-              v-if="formErrors.firstName"
-              class="mt-1 text-sm text-red-600"
-            >
+            <p v-if="formErrors.firstName" class="mt-1 text-sm text-red-600">
               {{ formErrors.firstName }}
             </p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Last Name *</label
-            >
-            <input
+            <Label for="lastName">Last Name *</Label>
+            <Input
+              id="lastName"
               v-model="user.lastName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="formErrors.lastName ? 'border-red-500' : ''"
               placeholder="Last name"
             />
@@ -197,13 +186,11 @@ watch(
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Password *</label
-          >
-          <input
+          <Label for="password">Password *</Label>
+          <Input
+            id="password"
             v-model="user.password"
             type="password"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.password ? 'border-red-500' : ''"
             placeholder="Minimum 8 characters"
           />
@@ -213,36 +200,30 @@ watch(
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Confirm Password *</label
-          >
-          <input
+          <Label for="confirmPassword">Confirm Password *</Label>
+          <Input
+            id="confirmPassword"
             v-model="user.confirmPassword"
             type="password"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.confirmPassword ? 'border-red-500' : ''"
             placeholder="Re-enter password"
           />
-          <p
-            v-if="formErrors.confirmPassword"
-            class="mt-1 text-sm text-red-600"
-          >
+          <p v-if="formErrors.confirmPassword" class="mt-1 text-sm text-red-600">
             {{ formErrors.confirmPassword }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Role *</label
-          >
-          <select
-            v-model="user.role"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :class="formErrors.role ? 'border-red-500' : ''"
-          >
-            <option value="orgUser">Organization User</option>
-            <option value="orgAdmin">Organization Admin</option>
-          </select>
+          <Label for="role">Role *</Label>
+          <Select v-model="user.role">
+            <SelectTrigger id="role" :class="formErrors.role ? 'border-red-500' : ''">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="orgUser">Organization User</SelectItem>
+              <SelectItem value="orgAdmin">Organization Admin</SelectItem>
+            </SelectContent>
+          </Select>
           <p v-if="formErrors.role" class="mt-1 text-sm text-red-600">
             {{ formErrors.role }}
           </p>

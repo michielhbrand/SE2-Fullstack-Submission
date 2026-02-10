@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { clientApi } from '../services/api'
 import { useUIStore } from '../stores/ui'
-import { Button, Spinner } from '../components/ui/index'
+import { Button, Spinner, Skeleton, Input, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
 import EditClientModal from '../components/modals/EditClientModal.vue'
@@ -131,12 +131,12 @@ const paginationPages = computed(() => {
         <!-- Search Bar -->
         <div class="mb-6">
           <div class="flex gap-2">
-            <input
+            <Input
               v-model="searchQuery"
               @keyup.enter="handleSearch"
               type="text"
               placeholder="Search clients by name, email, or company..."
-              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="flex-1"
             />
             <Button @click="handleSearch" variant="outline" class="text-gray-600">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,57 +148,53 @@ const paginationPages = computed(() => {
 
         <!-- Clients Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-          <!-- Loading Spinner -->
-          <div v-if="loading" class="flex items-center justify-center py-12">
-            <Spinner size="lg" />
+          <!-- Loading Skeleton -->
+          <div v-if="loading" class="p-6 space-y-3">
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
+            <Skeleton class="h-12 w-full" />
           </div>
           
           <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cellphone</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th class="px-0 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">{{ client.name }} {{ client.surname }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ client.email }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ client.cellphone }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ client.company || '-' }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ new Date(client.dateCreated).toLocaleDateString() }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Cellphone</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="client in clients" :key="client.id">
+                  <TableCell class="font-medium">{{ client.name }} {{ client.surname }}</TableCell>
+                  <TableCell>{{ client.email }}</TableCell>
+                  <TableCell>{{ client.cellphone }}</TableCell>
+                  <TableCell>{{ client.company || '-' }}</TableCell>
+                  <TableCell>{{ new Date(client.dateCreated).toLocaleDateString() }}</TableCell>
+                  <TableCell>
                     <button
                       @click="openEditClientModal(client)"
-                      variant="default"
+                      class="text-blue-600 hover:text-blue-800"
                       title="Edit client"
                     >
-                      <v-icon icon="mdi-file-edit-outline"></v-icon>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
                     </button>
-                  </td>
-                </tr>
-                <tr v-if="clients.length === 0">
-                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                  </TableCell>
+                </TableRow>
+                <TableRow v-if="clients.length === 0">
+                  <TableCell colspan="6" class="text-center text-gray-500">
                     No clients found
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
           
           <!-- Pagination -->
@@ -206,33 +202,19 @@ const paginationPages = computed(() => {
             <div class="text-sm text-gray-700">
               Showing {{ ((currentPage - 1) * pageSize) + 1 }} to {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} results
             </div>
-            <div class="flex gap-2">
-              <Button
-                @click="goToPage(currentPage - 1)"
-                :disabled="currentPage === 1"
-                variant="outline"
-                size="sm"
-              >
-                Previous
-              </Button>
-              <Button
-                v-for="page in paginationPages"
-                :key="page"
-                @click="goToPage(page)"
-                :variant="page === currentPage ? 'default' : 'outline'"
-                size="sm"
-              >
-                {{ page }}
-              </Button>
-              <Button
-                @click="goToPage(currentPage + 1)"
-                :disabled="currentPage === totalPages"
-                variant="outline"
-                size="sm"
-              >
-                Next
-              </Button>
-            </div>
+            <Pagination
+              :total="totalCount"
+              :sibling-count="1"
+              :page="currentPage"
+              :items-per-page="pageSize"
+              @update:page="goToPage"
+            >
+              <PaginationContent>
+                <PaginationPrevious />
+                <PaginationItem v-for="page in paginationPages" :key="page" :value="page" />
+                <PaginationNext />
+              </PaginationContent>
+            </Pagination>
           </div>
         </div>
       </div>

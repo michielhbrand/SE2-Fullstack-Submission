@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Spinner } from "../ui/index";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Spinner, Checkbox, Label, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/index";
 import { toast } from "vue-sonner";
 import type { UserInfo } from "../../stores/auth";
 
@@ -127,13 +127,11 @@ watch(
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >First Name *</label
-            >
-            <input
+            <Label for="edit-firstName">First Name *</Label>
+            <Input
+              id="edit-firstName"
               v-model="formData.firstName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="formErrors.firstName ? 'border-red-500' : ''"
               placeholder="First name"
             />
@@ -143,13 +141,11 @@ watch(
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Last Name *</label
-            >
-            <input
+            <Label for="edit-lastName">Last Name *</Label>
+            <Input
+              id="edit-lastName"
               v-model="formData.lastName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="formErrors.lastName ? 'border-red-500' : ''"
               placeholder="Last name"
             />
@@ -160,18 +156,16 @@ watch(
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Role *</label
-          >
-          <select
-            v-model="formData.role"
-            :disabled="!canChangeRole"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            :class="formErrors.role ? 'border-red-500' : ''"
-          >
-            <option value="orgUser">Organization User</option>
-            <option value="orgAdmin">Organization Admin</option>
-          </select>
+          <Label for="edit-role">Role *</Label>
+          <Select v-model="formData.role" :disabled="!canChangeRole">
+            <SelectTrigger id="edit-role" :class="formErrors.role ? 'border-red-500' : ''">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="orgUser">Organization User</SelectItem>
+              <SelectItem value="orgAdmin">Organization Admin</SelectItem>
+            </SelectContent>
+          </Select>
           <p v-if="formErrors.role" class="mt-1 text-sm text-red-600">
             {{ formErrors.role }}
           </p>
@@ -181,14 +175,12 @@ watch(
         </div>
 
         <div>
-          <label class="flex items-center space-x-2 cursor-pointer">
-            <input
-              v-model="formData.active"
-              type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span class="text-sm font-medium text-gray-700">Active User</span>
-          </label>
+          <div class="flex items-center space-x-2">
+            <Checkbox id="active-user" v-model:checked="formData.active" />
+            <Label for="active-user" class="text-sm font-medium text-gray-700 cursor-pointer">
+              Active User
+            </Label>
+          </div>
           <p class="mt-1 text-xs text-gray-500">
             Inactive users cannot log in to the system
           </p>

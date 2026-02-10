@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Button, Spinner } from '../components/ui/index'
+import { Button, Spinner, Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/index'
 import { templateApi } from '../services/api'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
@@ -79,54 +79,41 @@ const closePreview = () => {
 
     <!-- Templates Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-      <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <Spinner size="lg" />
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="p-6 space-y-3">
+        <Skeleton class="h-12 w-full" />
+        <Skeleton class="h-12 w-full" />
+        <Skeleton class="h-12 w-full" />
+        <Skeleton class="h-12 w-full" />
       </div>
       
       <div v-else-if="templates.length > 0" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Template Name
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Version
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created By
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
-              </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="template in templates" :key="template.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Template Name</TableHead>
+              <TableHead>Version</TableHead>
+              <TableHead>Created By</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead class="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="template in templates" :key="template.id">
+              <TableCell>
                 <div class="flex items-center">
                   <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
-                  <span class="text-sm font-medium text-gray-900">{{ template.name }}</span>
+                  <span class="font-medium">{{ template.name }}</span>
                 </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                  v{{ template.version }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ template.createdBy }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ template.created }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              </TableCell>
+              <TableCell>
+                <Badge variant="default">v{{ template.version }}</Badge>
+              </TableCell>
+              <TableCell>{{ template.createdBy }}</TableCell>
+              <TableCell>{{ template.created }}</TableCell>
+              <TableCell class="text-right">
                 <Button
                   @click="previewTemplateHandler(template)"
                   variant="outline"
@@ -139,10 +126,10 @@ const closePreview = () => {
                   </svg>
                   Preview
                 </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
       
       <!-- Empty State -->

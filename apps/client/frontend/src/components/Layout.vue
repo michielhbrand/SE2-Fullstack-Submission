@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
 import { clientApi, invoiceApi, quoteApi } from '../services/api'
-import { Button, Separator, ScrollArea } from '../components/ui/index'
+import { Button, Separator, ScrollArea, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/index'
 import packageJson from '../../package.json'
 import NewInvoiceModal from './modals/NewInvoiceModal.vue'
 import NewQuoteModal from './modals/NewQuoteModal.vue'
@@ -18,7 +18,6 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 
 const lastScrollY = ref(0)
-const newDropdownRef = ref<HTMLDivElement | null>(null)
 const clients = ref<any[]>([])
 
 onMounted(async () => {
@@ -31,7 +30,6 @@ onMounted(async () => {
   }
   
   window.addEventListener('scroll', handleScroll)
-  document.addEventListener('click', handleClickOutside)
   
   // Fetch all clients for modals
   await fetchClients()
@@ -39,7 +37,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
-  document.removeEventListener('click', handleClickOutside)
 })
 
 const handleScroll = () => {
@@ -52,12 +49,6 @@ const handleScroll = () => {
   }
   
   lastScrollY.value = currentScrollY
-}
-
-const handleClickOutside = (event: MouseEvent) => {
-  if (newDropdownRef.value && !newDropdownRef.value.contains(event.target as Node)) {
-    uiStore.closeNewDropdown()
-  }
 }
 
 const handleLogout = async () => {
@@ -153,45 +144,33 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
             </svg>
           </Button>
           <h1 class="text-xl font-semibold text-gray-900">Application Dashboard</h1>
-          <div class="relative" ref="newDropdownRef">
-            <Button
-              @click="uiStore.toggleNewDropdown"
-              variant="default"
-            >
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              New
-              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </Button>
-            
-            <!-- Dropdown Menu -->
-            <div
-              v-if="uiStore.showNewDropdown"
-              class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-            >
-              <button
-                @click="uiStore.openNewQuoteModal"
-                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-t-lg"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="default">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem @click="uiStore.openNewQuoteModal">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 New Quote
-              </button>
-              <button
-                @click="uiStore.openNewInvoiceModal"
-                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 rounded-b-lg"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="uiStore.openNewInvoiceModal">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 New Invoice
-              </button>
-            </div>
-          </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         
         <div class="flex items-center gap-4">

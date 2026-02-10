@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore, type UserInfo } from "../../stores/auth";
-import { Button, Card, Spinner } from "../../components/ui/index";
+import { Button, Card, Spinner, Skeleton, Badge, Avatar, AvatarFallback, ToggleGroup, ToggleGroupItem, Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../components/ui/index";
 import { toast } from "vue-sonner";
 import NewUserModal from "../../components/modals/NewUserModal.vue";
 import EditUserModal from "../../components/modals/EditUserModal.vue";
@@ -51,11 +51,6 @@ const filterUsers = () => {
   } else {
     users.value = allUsers.value.filter((user) => !user.enabled);
   }
-};
-
-const toggleActiveFilter = () => {
-  showActiveOnly.value = !showActiveOnly.value;
-  filterUsers();
 };
 
 const isAdmin = (user: UserInfo) => {
@@ -161,30 +156,14 @@ const handleUpdateUser = async (userData: {
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-2xl font-semibold text-gray-900">User Management</h2>
-          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-            <button
-              @click="toggleActiveFilter"
-              :class="[
-                'px-3 py-1 text-sm font-medium rounded transition-colors',
-                showActiveOnly
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-              ]"
-            >
+          <ToggleGroup type="single" :model-value="showActiveOnly ? 'active' : 'inactive'" @update:model-value="(value) => { showActiveOnly = value === 'active'; filterUsers(); }">
+            <ToggleGroupItem value="active">
               Active ({{ allUsers.filter(u => u.enabled).length }})
-            </button>
-            <button
-              @click="toggleActiveFilter"
-              :class="[
-                'px-3 py-1 text-sm font-medium rounded transition-colors',
-                !showActiveOnly
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-              ]"
-            >
+            </ToggleGroupItem>
+            <ToggleGroupItem value="inactive">
               Inactive ({{ allUsers.filter(u => !u.enabled).length }})
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <div class="flex items-center gap-3">
           <Button
@@ -231,57 +210,38 @@ const handleUpdateUser = async (userData: {
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="flex justify-center items-center py-12">
-        <Spinner class="h-8 w-8 text-gray-900" />
+      <div v-if="loading" class="space-y-3">
+        <Skeleton class="h-16 w-full" />
+        <Skeleton class="h-16 w-full" />
+        <Skeleton class="h-16 w-full" />
+        <Skeleton class="h-16 w-full" />
       </div>
 
       <!-- Users Table -->
       <div v-else-if="users.length > 0" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                User
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Email
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Role
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="user in users" :key="user.id">
+              <TableCell>
                 <div class="flex items-center">
-                  <div
-                    class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center"
-                  >
-                    <span class="text-gray-700 font-semibold text-sm">
+                  <Avatar class="h-10 w-10">
+                    <AvatarFallback>
                       {{
                         (user.username || user.email || "??")
                           .substring(0, 2)
                           .toUpperCase()
                       }}
-                    </span>
-                  </div>
+                    </AvatarFallback>
+                  </Avatar>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">
                       {{ user.username || user.email || "N/A" }}
@@ -291,35 +251,19 @@ const handleUpdateUser = async (userData: {
                     </div>
                   </div>
                 </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ user.email }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                    user.enabled
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800',
-                  ]"
-                >
+              </TableCell>
+              <TableCell>{{ user.email }}</TableCell>
+              <TableCell>
+                <Badge :variant="user.enabled ? 'default' : 'destructive'">
                   {{ user.enabled ? "Active" : "Inactive" }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                    isAdmin(user)
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-blue-100 text-blue-800',
-                  ]"
-                >
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge :variant="isAdmin(user) ? 'default' : 'secondary'">
                   {{ getUserRoleBadge(user) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                </Badge>
+              </TableCell>
+              <TableCell>
                 <button
                   @click="handleEditUser(user)"
                   class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
@@ -340,10 +284,10 @@ const handleUpdateUser = async (userData: {
                   </svg>
                   Edit
                 </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- Empty State -->

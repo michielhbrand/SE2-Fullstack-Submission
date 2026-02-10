@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button } from '../ui/index'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Textarea, Input, Label } from '../ui/index'
 import { toast } from 'vue-sonner'
 
 interface ClientForm {
@@ -100,64 +100,65 @@ watch(() => props.client, (newClient) => {
 
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-          <input
+          <Label for="edit-name">Name *</Label>
+          <Input
+            id="edit-name"
             v-model="editClient.name"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.name ? 'border-red-500' : ''"
           />
           <p v-if="formErrors.name" class="mt-1 text-sm text-red-600">{{ formErrors.name }}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Surname *</label>
-          <input
+          <Label for="edit-surname">Surname *</Label>
+          <Input
+            id="edit-surname"
             v-model="editClient.surname"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.surname ? 'border-red-500' : ''"
           />
           <p v-if="formErrors.surname" class="mt-1 text-sm text-red-600">{{ formErrors.surname }}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-          <input
+          <Label for="edit-email">Email *</Label>
+          <Input
+            id="edit-email"
             v-model="editClient.email"
             type="email"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.email ? 'border-red-500' : ''"
           />
           <p v-if="formErrors.email" class="mt-1 text-sm text-red-600">{{ formErrors.email }}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Cellphone *</label>
-          <input
+          <Label for="edit-cellphone">Cellphone *</Label>
+          <Input
+            id="edit-cellphone"
             v-model="editClient.cellphone"
             type="tel"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             :class="formErrors.cellphone ? 'border-red-500' : ''"
           />
           <p v-if="formErrors.cellphone" class="mt-1 text-sm text-red-600">{{ formErrors.cellphone }}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-          <textarea
+          <Label for="edit-address">Address</Label>
+          <Textarea
+            id="edit-address"
             v-model="editClient.address"
             rows="2"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          ></textarea>
+            placeholder="Enter address"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-          <input
+          <Label for="edit-company">Company</Label>
+          <Input
+            id="edit-company"
             v-model="editClient.company"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>

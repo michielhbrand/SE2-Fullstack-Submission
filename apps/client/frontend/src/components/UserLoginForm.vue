@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Button, Input, Label, Card } from './ui/index'
+import { Button, Input, Label, Card, Checkbox } from './ui/index'
 
 interface Props {
   tokenExpiredMessage?: boolean
@@ -21,6 +21,7 @@ const emit = defineEmits<Emits>()
 const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const rememberMe = ref(false)
 
 const handleSubmit = () => {
   emit('submit', {
@@ -106,12 +107,8 @@ const togglePasswordVisibility = () => {
         </div>
 
         <div class="flex items-center space-x-2">
-          <input 
-            id="remember" 
-            type="checkbox" 
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <Label for="remember" class="text-sm text-gray-700">Remember me</Label>
+          <Checkbox id="remember" v-model:checked="rememberMe" />
+          <Label for="remember" class="text-sm text-gray-700 cursor-pointer">Remember me</Label>
         </div>
 
         <Button 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button } from '../ui/index'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label } from '../ui/index'
 import { quoteApi } from '@/services/api'
 import { toast } from 'vue-sonner'
 
@@ -397,11 +397,12 @@ onUnmounted(() => {
 
             <div class="space-y-2">
               <div>
-                <input
+                <Label :for="`quote-item-desc-${index}`">Description</Label>
+                <Input
+                  :id="`quote-item-desc-${index}`"
                   v-model="item.description"
                   type="text"
                   placeholder="Description"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   :class="formErrors[`item_${index}_description`] ? 'border-red-500' : ''"
                 />
                 <p v-if="formErrors[`item_${index}_description`]" class="mt-1 text-sm text-red-600">
@@ -411,12 +412,13 @@ onUnmounted(() => {
 
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <input
+                  <Label :for="`quote-item-amount-${index}`">Amount</Label>
+                  <Input
+                    :id="`quote-item-amount-${index}`"
                     v-model.number="item.amount"
                     type="number"
                     min="1"
                     placeholder="Amount"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     :class="formErrors[`item_${index}_amount`] ? 'border-red-500' : ''"
                   />
                   <p v-if="formErrors[`item_${index}_amount`]" class="mt-1 text-sm text-red-600">
@@ -425,13 +427,14 @@ onUnmounted(() => {
                 </div>
 
                 <div>
-                  <input
+                  <Label :for="`quote-item-price-${index}`">Price per unit</Label>
+                  <Input
+                    :id="`quote-item-price-${index}`"
                     v-model.number="item.pricePerUnit"
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="Price per unit"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     :class="formErrors[`item_${index}_price`] ? 'border-red-500' : ''"
                   />
                   <p v-if="formErrors[`item_${index}_price`]" class="mt-1 text-sm text-red-600">
