@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Button } from "../ui/index";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button } from "../ui/index";
 import { toast } from "vue-sonner";
 
 interface UserForm {
@@ -120,183 +120,143 @@ watch(
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-[60] overflow-y-auto">
-    <div
-      class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
-    >
-      <div
-        class="fixed inset-0 transition-opacity bg-gray-500/50"
-        @click="handleClose"
-      ></div>
+  <Dialog :open="show" @update:open="(open) => !open && handleClose()">
+    <DialogContent class="sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Create New User</DialogTitle>
+      </DialogHeader>
 
-      <!-- Spacer for centering -->
-      <span
-        class="hidden sm:inline-block sm:align-middle sm:h-screen"
-        aria-hidden="true"
-        >&#8203;</span
-      >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Username *</label
+          >
+          <input
+            v-model="user.username"
+            type="text"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="formErrors.username ? 'border-red-500' : ''"
+            placeholder="Enter username"
+          />
+          <p v-if="formErrors.username" class="mt-1 text-sm text-red-600">
+            {{ formErrors.username }}
+          </p>
+        </div>
 
-      <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-      >
-        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-medium text-gray-900">Create New User</h3>
-            <button
-              @click="handleClose"
-              class="text-gray-400 hover:text-gray-500"
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Email *</label
+          >
+          <input
+            v-model="user.email"
+            type="email"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="formErrors.email ? 'border-red-500' : ''"
+            placeholder="user@example.com"
+          />
+          <p v-if="formErrors.email" class="mt-1 text-sm text-red-600">
+            {{ formErrors.email }}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >First Name *</label
             >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+            <input
+              v-model="user.firstName"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              :class="formErrors.firstName ? 'border-red-500' : ''"
+              placeholder="First name"
+            />
+            <p
+              v-if="formErrors.firstName"
+              class="mt-1 text-sm text-red-600"
+            >
+              {{ formErrors.firstName }}
+            </p>
           </div>
 
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Username *</label
-              >
-              <input
-                v-model="user.username"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.username ? 'border-red-500' : ''"
-                placeholder="Enter username"
-              />
-              <p v-if="formErrors.username" class="mt-1 text-sm text-red-600">
-                {{ formErrors.username }}
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Email *</label
-              >
-              <input
-                v-model="user.email"
-                type="email"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.email ? 'border-red-500' : ''"
-                placeholder="user@example.com"
-              />
-              <p v-if="formErrors.email" class="mt-1 text-sm text-red-600">
-                {{ formErrors.email }}
-              </p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >First Name *</label
-                >
-                <input
-                  v-model="user.firstName"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  :class="formErrors.firstName ? 'border-red-500' : ''"
-                  placeholder="First name"
-                />
-                <p
-                  v-if="formErrors.firstName"
-                  class="mt-1 text-sm text-red-600"
-                >
-                  {{ formErrors.firstName }}
-                </p>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >Last Name *</label
-                >
-                <input
-                  v-model="user.lastName"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  :class="formErrors.lastName ? 'border-red-500' : ''"
-                  placeholder="Last name"
-                />
-                <p v-if="formErrors.lastName" class="mt-1 text-sm text-red-600">
-                  {{ formErrors.lastName }}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Password *</label
-              >
-              <input
-                v-model="user.password"
-                type="password"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.password ? 'border-red-500' : ''"
-                placeholder="Minimum 8 characters"
-              />
-              <p v-if="formErrors.password" class="mt-1 text-sm text-red-600">
-                {{ formErrors.password }}
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Confirm Password *</label
-              >
-              <input
-                v-model="user.confirmPassword"
-                type="password"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.confirmPassword ? 'border-red-500' : ''"
-                placeholder="Re-enter password"
-              />
-              <p
-                v-if="formErrors.confirmPassword"
-                class="mt-1 text-sm text-red-600"
-              >
-                {{ formErrors.confirmPassword }}
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Role *</label
-              >
-              <select
-                v-model="user.role"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="formErrors.role ? 'border-red-500' : ''"
-              >
-                <option value="orgUser">Organization User</option>
-                <option value="orgAdmin">Organization Admin</option>
-              </select>
-              <p v-if="formErrors.role" class="mt-1 text-sm text-red-600">
-                {{ formErrors.role }}
-              </p>
-              <p class="mt-1 text-xs text-gray-500">
-                Organization Users have basic access, while Organization Admins
-                can manage users and settings.
-              </p>
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Last Name *</label
+            >
+            <input
+              v-model="user.lastName"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              :class="formErrors.lastName ? 'border-red-500' : ''"
+              placeholder="Last name"
+            />
+            <p v-if="formErrors.lastName" class="mt-1 text-sm text-red-600">
+              {{ formErrors.lastName }}
+            </p>
           </div>
         </div>
 
-        <div
-          class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2"
-        >
-          <Button @click="handleSave" variant="default"> Create User </Button>
-          <Button @click="handleClose" variant="outline"> Cancel </Button>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Password *</label
+          >
+          <input
+            v-model="user.password"
+            type="password"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="formErrors.password ? 'border-red-500' : ''"
+            placeholder="Minimum 8 characters"
+          />
+          <p v-if="formErrors.password" class="mt-1 text-sm text-red-600">
+            {{ formErrors.password }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Confirm Password *</label
+          >
+          <input
+            v-model="user.confirmPassword"
+            type="password"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="formErrors.confirmPassword ? 'border-red-500' : ''"
+            placeholder="Re-enter password"
+          />
+          <p
+            v-if="formErrors.confirmPassword"
+            class="mt-1 text-sm text-red-600"
+          >
+            {{ formErrors.confirmPassword }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Role *</label
+          >
+          <select
+            v-model="user.role"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="formErrors.role ? 'border-red-500' : ''"
+          >
+            <option value="orgUser">Organization User</option>
+            <option value="orgAdmin">Organization Admin</option>
+          </select>
+          <p v-if="formErrors.role" class="mt-1 text-sm text-red-600">
+            {{ formErrors.role }}
+          </p>
+          <p class="mt-1 text-xs text-gray-500">
+            Organization Users have basic access, while Organization Admins
+            can manage users and settings.
+          </p>
         </div>
       </div>
-    </div>
-  </div>
+
+      <DialogFooter>
+        <Button @click="handleClose" variant="outline">Cancel</Button>
+        <Button @click="handleSave" variant="default">Create User</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

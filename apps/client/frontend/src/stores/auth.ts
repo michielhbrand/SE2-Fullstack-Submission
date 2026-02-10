@@ -408,7 +408,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function updateUser(userId: string, userData: {
     firstName: string
     lastName: string
-    role: string
+    role: UserRole
     active: boolean
   }): Promise<boolean> {
     try {

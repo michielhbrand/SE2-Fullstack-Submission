@@ -7,3 +7,16 @@ export { default as Sheet } from './Sheet.vue'
 export { default as Separator } from './Separator.vue'
 export { default as ScrollArea } from './ScrollArea.vue'
 export { default as Spinner } from './Spinner.vue'
+
+// Dialog components
+export {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogPortal,
+  DialogOverlay
+} from './dialog'
