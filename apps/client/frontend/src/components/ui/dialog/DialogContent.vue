@@ -13,16 +13,31 @@ import DialogPortal from './DialogPortal.vue'
 
 interface Props extends DialogContentProps {
   class?: HTMLAttributes['class']
+  preventClose?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  preventClose: false,
+})
 const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props
+  const { class: _, preventClose: __, ...delegated } = props
 
   return delegated
 })
+
+const onPointerDownOutside = (event: Event) => {
+  if (props.preventClose) {
+    event.preventDefault()
+  }
+}
+
+const onInteractOutside = (event: Event) => {
+  if (props.preventClose) {
+    event.preventDefault()
+  }
+}
 </script>
 
 <template>
@@ -37,9 +52,9 @@ const delegatedProps = computed(() => {
         )
       "
       @escape-key-down="emits('escapeKeyDown', $event)"
-      @pointer-down-outside="emits('pointerDownOutside', $event)"
+      @pointer-down-outside="onPointerDownOutside"
       @focus-outside="emits('focusOutside', $event)"
-      @interact-outside="emits('interactOutside', $event)"
+      @interact-outside="onInteractOutside"
       @open-auto-focus="emits('openAutoFocus', $event)"
       @close-auto-focus="emits('closeAutoFocus', $event)"
     >

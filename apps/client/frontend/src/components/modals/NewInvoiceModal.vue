@@ -178,13 +178,19 @@ const selectTemplate = (template: string) => {
 }
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (templateDropdownRef.value && !templateDropdownRef.value.contains(event.target as Node)) {
+  const target = event.target as Node
+  // Only process if the click target is inside the dialog
+  const dialogEl = document.querySelector('[role="dialog"]')
+  if (!dialogEl || !dialogEl.contains(target)) return
+
+  if (templateDropdownRef.value && !templateDropdownRef.value.contains(target)) {
     isTemplateDropdownOpen.value = false
   }
-  if (clientDropdownRef.value && !clientDropdownRef.value.contains(event.target as Node)) {
+  if (clientDropdownRef.value && !clientDropdownRef.value.contains(target)) {
     isClientDropdownOpen.value = false
   }
 }
+
 
 // Reset form when modal opens
 const resetForm = () => {
@@ -225,7 +231,7 @@ onUnmounted(() => {
 
 <template>
   <Dialog :open="show" @update:open="(open) => !open && handleClose()">
-    <DialogContent class="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <DialogContent class="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" :prevent-close="true">
       <DialogHeader>
         <DialogTitle>New Invoice</DialogTitle>
       </DialogHeader>
