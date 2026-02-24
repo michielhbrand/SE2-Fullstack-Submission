@@ -17,7 +17,9 @@ public static class TemplateMappingExtensions
             Version = template.Version,
             StorageKey = template.StorageKey,
             Created = template.Created,
-            CreatedBy = template.CreatedBy
+            CreatedBy = template.CreatedBy,
+            Type = template.Type,
+            OrganizationId = template.OrganizationId
         };
     }
 }

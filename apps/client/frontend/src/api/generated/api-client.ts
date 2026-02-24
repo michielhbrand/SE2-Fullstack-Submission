@@ -667,58 +667,6 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    invoice_GetTemplates( cancelToken?: CancelToken): Promise<string[]> {
-        let url_ = this.baseUrl + "/api/invoice/templates";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processInvoice_GetTemplates(_response);
-        });
-    }
-
-    protected processInvoice_GetTemplates(response: AxiosResponse): Promise<string[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<string[]>(result200);
-
-        } else if (status === 500) {
-            const _responseText = response.data;
-            return throwException("A server side error occurred.", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<string[]>(null as any);
-    }
-
     invoice_GetInvoices(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice?";
         if (page === null)
@@ -1850,58 +1798,6 @@ export class ApiClient {
         return Promise.resolve<OrganizationResponse[]>(null as any);
     }
 
-    quote_GetTemplates( cancelToken?: CancelToken): Promise<string[]> {
-        let url_ = this.baseUrl + "/api/quote/templates";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processQuote_GetTemplates(_response);
-        });
-    }
-
-    protected processQuote_GetTemplates(response: AxiosResponse): Promise<string[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<string[]>(result200);
-
-        } else if (status === 500) {
-            const _responseText = response.data;
-            return throwException("A server side error occurred.", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<string[]>(null as any);
-    }
-
     quote_GetQuotes(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
         let url_ = this.baseUrl + "/api/quote?";
         if (page === null)
@@ -2302,8 +2198,12 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    template_GetTemplates(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateResponse> {
+    template_GetTemplates(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateResponse> {
         let url_ = this.baseUrl + "/api/template?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -2358,8 +2258,12 @@ export class ApiClient {
         return Promise.resolve<PaginatedResponseOfTemplateResponse>(null as any);
     }
 
-    template_CreateTemplate(request: CreateTemplateRequest, cancelToken?: CancelToken): Promise<TemplateResponse> {
-        let url_ = this.baseUrl + "/api/template";
+    template_CreateTemplate(request: CreateTemplateRequest, organizationId?: number | undefined, cancelToken?: CancelToken): Promise<TemplateResponse> {
+        let url_ = this.baseUrl + "/api/template?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -2534,6 +2438,62 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    template_GetTemplatesByType(organizationId?: number | undefined, type?: TemplateType | undefined, cancelToken?: CancelToken): Promise<TemplateResponse[]> {
+        let url_ = this.baseUrl + "/api/template/by-type?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
+        if (type === null)
+            throw new globalThis.Error("The parameter 'type' cannot be null.");
+        else if (type !== undefined)
+            url_ += "type=" + encodeURIComponent("" + type) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processTemplate_GetTemplatesByType(_response);
+        });
+    }
+
+    protected processTemplate_GetTemplatesByType(response: AxiosResponse): Promise<TemplateResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TemplateResponse[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TemplateResponse[]>(null as any);
     }
 
     template_GetTemplatePreviewUrl(id: number, cancelToken?: CancelToken): Promise<TemplatePreviewUrlResponse> {
@@ -3606,7 +3566,7 @@ export interface InvoiceResponse {
     lastModifiedDate?: Date | null;
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
-    templateId?: string | null;
+    templateId?: number | null;
     items?: InvoiceItemResponse[];
 }
 
@@ -3625,7 +3585,7 @@ export interface PdfUrlResponse {
 
 export interface CreateInvoiceRequest {
     clientId: number;
-    templateId?: string | null;
+    templateId?: number | null;
     items: CreateInvoiceItemRequest[];
 }
 
@@ -3638,13 +3598,13 @@ export interface CreateInvoiceItemRequest {
 export interface UpdateInvoiceRequest {
     clientId: number;
     notificationSent?: boolean;
-    templateId?: string | null;
+    templateId?: number | null;
     items: CreateInvoiceItemRequest[];
 }
 
 export interface CreateInvoiceFromQuoteRequest {
     quoteId?: number;
-    templateId?: string | null;
+    templateId?: number | null;
     organizationId?: number;
 }
 
@@ -3720,7 +3680,7 @@ export interface QuoteResponse {
     lastModifiedDate?: Date | null;
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
-    templateId?: string | null;
+    templateId?: number | null;
     items?: QuoteItemResponse[];
 }
 
@@ -3735,7 +3695,7 @@ export interface QuoteItemResponse {
 
 export interface CreateQuoteRequest {
     clientId: number;
-    templateId?: string | null;
+    templateId?: number | null;
     items: CreateQuoteItemRequest[];
 }
 
@@ -3748,7 +3708,7 @@ export interface CreateQuoteItemRequest {
 export interface UpdateQuoteRequest {
     clientId: number;
     notificationSent?: boolean;
-    templateId?: string | null;
+    templateId?: number | null;
     items: CreateQuoteItemRequest[];
 }
 
@@ -3764,12 +3724,17 @@ export interface TemplateResponse {
     storageKey?: string;
     created?: Date;
     createdBy?: string;
+    type?: TemplateType;
+    organizationId?: number;
 }
+
+export type TemplateType = 0 | 1;
 
 export interface CreateTemplateRequest {
     name: string;
     version: number;
     content: string;
+    type: TemplateType;
 }
 
 export interface TemplatePreviewUrlResponse {

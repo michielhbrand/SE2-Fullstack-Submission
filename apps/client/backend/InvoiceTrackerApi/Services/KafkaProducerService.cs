@@ -18,7 +18,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         
         var config = new ProducerConfig
         {
-            BootstrapServers = configuration["Kafka:BootstrapServers"] ?? "localhost:9092"
+            BootstrapServers = configuration["Kafka:BootstrapServers"] ?? "localhost:9093"
         };
 
         _producer = new ProducerBuilder<string, string>(config).Build();

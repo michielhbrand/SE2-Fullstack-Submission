@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
@@ -13,7 +13,6 @@ import ServerStatus from './ServerStatus.vue'
 const router = useRouter()
 const route = useRoute()
 
-// Stores
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 
@@ -21,17 +20,14 @@ const lastScrollY = ref(0)
 const clients = ref<any[]>([])
 
 onMounted(async () => {
-  // Load sidebar state
   uiStore.loadSidebarState()
   
-  // Load user info if not already loaded
   if (!authStore.username) {
     authStore.loadTokenFromStorage()
   }
   
   window.addEventListener('scroll', handleScroll)
   
-  // Fetch all clients for modals
   await fetchClients()
 })
 
@@ -53,7 +49,6 @@ const handleScroll = () => {
 
 const handleLogout = async () => {
   await authStore.logout()
-  // Router push is handled by the logout method
 }
 
 const fetchClients = async () => {
@@ -65,7 +60,14 @@ const fetchClients = async () => {
   }
 }
 
-const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: string }) => {
+watch(() => uiStore.showNewInvoiceModal, (newVal) => {
+  if (newVal) fetchClients()
+})
+watch(() => uiStore.showNewQuoteModal, (newVal) => {
+  if (newVal) fetchClients()
+})
+
+const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: number }) => {
   try {
     const invoice = {
       clientId: data.clientId,
@@ -82,19 +84,16 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
     uiStore.closeNewInvoiceModal()
     uiStore.showSuccess('Invoice created successfully')
     
-    // Navigate to invoices page to see the new invoice
     if (route.path !== '/invoices') {
       router.push('/invoices')
     }
-    // If already on invoices page, the component will refetch on next mount
-    // Better solution: use an invoices store or event bus for reactive updates
   } catch (error: any) {
     console.error('Failed to save invoice:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to save invoice')
   }
 }
 
-const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: string }) => {
+const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: number }) => {
   try {
     const quote = {
       clientId: data.clientId,
@@ -111,12 +110,9 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
     uiStore.closeNewQuoteModal()
     uiStore.showSuccess('Quote created successfully')
     
-    // Navigate to quotes page to see the new quote
     if (route.path !== '/quotes') {
       router.push('/quotes')
     }
-    // If already on quotes page, the component will refetch on next mount
-    // Better solution: use a quotes store or event bus for reactive updates
   } catch (error: any) {
     console.error('Failed to save quote:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to save quote')

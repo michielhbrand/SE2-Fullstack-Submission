@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, type HTMLAttributes } from 'vue'
+import { type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 
 interface Props {
   class?: HTMLAttributes['class']
   type?: string
-  modelValue?: string
+  modelValue?: string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {

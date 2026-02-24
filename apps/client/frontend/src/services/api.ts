@@ -4,6 +4,13 @@ import { apiClient } from '../api/http-client'
 // Create a single instance of the generated API client with our configured axios instance
 const client = new ApiClient(undefined, apiClient)
 
+// TemplateType constants matching the backend enum
+export const TemplateType = {
+  Invoice: 0,
+  Quote: 1
+} as const
+export type TemplateType = (typeof TemplateType)[keyof typeof TemplateType]
+
 // Auth API functions
 export const authApi = {
   // User login
@@ -61,9 +68,24 @@ export const authApi = {
 
 // Template API functions
 export const templateApi = {
-  // Get all templates
-  getTemplates: async (page: number = 1, pageSize: number = 100) => {
+  // Get all templates for an organization
+  getTemplates: async (page: number = 1, pageSize: number = 100, organizationId?: number) => {
+    // The generated client doesn't support organizationId yet, use direct call if needed
+    if (organizationId) {
+      const response = await apiClient.get('/api/template', {
+        params: { organizationId, page, pageSize }
+      })
+      return JSON.parse(response.data)
+    }
     return await client.template_GetTemplates(page, pageSize)
+  },
+
+  // Get templates filtered by type for an organization
+  getTemplatesByType: async (organizationId: number, type: TemplateType) => {
+    const response = await apiClient.get('/api/template/by-type', {
+      params: { organizationId, type }
+    })
+    return JSON.parse(response.data)
   },
 
   // Get a specific template
@@ -72,8 +94,11 @@ export const templateApi = {
   },
 
   // Create a new template
-  createTemplate: async (name: string, version: number, content: string) => {
-    return await client.template_CreateTemplate({ name, version, content })
+  createTemplate: async (name: string, version: number, content: string, type: TemplateType = TemplateType.Invoice, organizationId?: number) => {
+    const response = await apiClient.post('/api/template', { name, version, content, type }, {
+      params: organizationId ? { organizationId } : undefined
+    })
+    return JSON.parse(response.data)
   },
 
   // Delete a template
@@ -117,11 +142,6 @@ export const quoteApi = {
   // Get PDF URL for a quote
   getPdfUrl: async (id: number) => {
     return await client.quote_GetQuotePdfUrl(id)
-  },
-
-  // Get quote templates
-  getTemplates: async () => {
-    return await client.quote_GetTemplates()
   }
 }
 
@@ -183,11 +203,6 @@ export const invoiceApi = {
   // Get PDF URL for an invoice
   getPdfUrl: async (id: number) => {
     return await client.invoice_GetInvoicePdfUrl(id)
-  },
-
-  // Get invoice templates
-  getTemplates: async () => {
-    return await client.invoice_GetTemplates()
   }
 }
 
@@ -280,7 +295,7 @@ export const workflowApi = {
   },
 
   // Convert quote to invoice
-  convertQuoteToInvoice: async (data: { quoteId: number; templateId?: string; organizationId: number }) => {
+  convertQuoteToInvoice: async (data: { quoteId: number; templateId?: number; organizationId: number }) => {
     return await client.invoice_ConvertQuoteToInvoice(data)
   }
 }

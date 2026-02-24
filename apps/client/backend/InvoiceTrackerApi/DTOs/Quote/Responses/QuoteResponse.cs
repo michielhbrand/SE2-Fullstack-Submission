@@ -15,7 +15,7 @@ public class QuoteResponse
     public DateTime? LastModifiedDate { get; set; }
     public string? ModifiedBy { get; set; }
     public string? PdfStorageKey { get; set; }
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
     public List<QuoteItemResponse> Items { get; set; } = new();
 }
 

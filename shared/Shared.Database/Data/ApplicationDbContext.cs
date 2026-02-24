@@ -45,7 +45,12 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Template)
+                .WithMany()
+                .HasForeignKey(e => e.TemplateId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.TemplateId);
         });
 
         // Configure InvoiceItem entity
@@ -63,7 +68,12 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Template)
+                .WithMany()
+                .HasForeignKey(e => e.TemplateId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.TemplateId);
         });
 
         // Configure QuoteItem entity
@@ -75,8 +85,15 @@ public class ApplicationDbContext : DbContext
         // Configure Template entity
         modelBuilder.Entity<Template>(entity =>
         {
-            entity.HasIndex(e => new { e.Name, e.Version }).IsUnique();
+            entity.HasIndex(e => new { e.Name, e.Version, e.OrganizationId }).IsUnique();
             entity.Property(e => e.Created).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(20)
+                .HasConversion<string>();
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.OrganizationId);
         });
 
         // Configure Organization entity

@@ -4,6 +4,7 @@ using InvoiceTrackerApi.DTOs.Template.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Template;
+using Shared.Database.Models;
 using TemplateModel = Shared.Database.Models.Template;
 
 namespace InvoiceTrackerApi.Services.Template;
@@ -30,15 +31,15 @@ public class TemplateService : ITemplateService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int organizationId, int page, int pageSize)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var templates = await _templateRepository.GetAllAsync(page, pageSize);
-        var totalCount = await _templateRepository.GetTotalCountAsync();
+        var templates = await _templateRepository.GetAllByOrganizationAsync(organizationId, page, pageSize);
+        var totalCount = await _templateRepository.GetTotalCountByOrganizationAsync(organizationId);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<TemplateResponse>
@@ -66,14 +67,17 @@ public class TemplateService : ITemplateService
         return template.ToDto();
     }
 
-    public async Task<TemplateResponse> CreateTemplateAsync(CreateTemplateRequest request, string createdBy)
+    public async Task<TemplateResponse> CreateTemplateAsync(CreateTemplateRequest request, string createdBy, int organizationId)
     {
-        // Business rule validation: Check for duplicate template name and version
-        var existingTemplate = await _templateRepository.GetByNameAndVersionAsync(request.Name, request.Version);
+        // Business rule validation: Check for duplicate template name and version within the org
+        var existingTemplate = await _templateRepository.GetByNameAndVersionAndOrgAsync(request.Name, request.Version, organizationId);
         if (existingTemplate != null)
         {
-            throw new DuplicateEntityException($"A template with name '{request.Name}' and version {request.Version} already exists");
+            throw new DuplicateEntityException($"A template with name '{request.Name}' and version {request.Version} already exists in this organization");
         }
+
+        // Determine the bucket based on template type
+        var bucketName = request.Type == TemplateType.Quote ? "quote-templates" : "templates";
 
         // Upload the template HTML to PdfGeneratorService
         try
@@ -91,22 +95,23 @@ public class TemplateService : ITemplateService
             }
 
             var uploadResult = await uploadResponse.Content.ReadFromJsonAsync<UploadTemplateResponse>();
-            var storageKey = $"templates/{uploadResult?.Name}";
 
-            // Create the template record
+            // Create the template record first to get the ID
             var template = new TemplateModel
             {
                 CreatedBy = createdBy,
                 Created = DateTime.UtcNow,
                 Version = request.Version,
                 Name = request.Name,
-                StorageKey = storageKey
+                Type = request.Type,
+                OrganizationId = organizationId,
+                StorageKey = $"{bucketName}/{uploadResult?.Name}" // Temporary, uses the uploaded name
             };
 
             var createdTemplate = await _templateRepository.AddAsync(template);
 
-            _logger.LogInformation("Template created: {TemplateName} v{Version} by user {UserId}",
-                template.Name, template.Version, createdBy);
+            _logger.LogInformation("Template created: {TemplateName} v{Version} (Type: {Type}, Org: {OrgId}) by user {UserId}",
+                template.Name, template.Version, template.Type, organizationId, createdBy);
 
             return createdTemplate.ToDto();
         }
@@ -140,59 +145,16 @@ public class TemplateService : ITemplateService
             throw new NotFoundException("Template", id);
         }
 
-        // Extract template name from storage key
-        var templateName = template.StorageKey.Replace("templates/", "");
+        // Use the template ID for the preview endpoint on PdfGeneratorService
         var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-        var previewUrl = $"{pdfServiceUrl}/api/Template/{Uri.EscapeDataString(templateName)}/preview";
+        var previewUrl = $"{pdfServiceUrl}/api/Template/{template.Id}/preview";
 
         return previewUrl;
     }
 
-    public async Task<List<string>> GetInvoiceTemplateNamesAsync()
+    public async Task<List<TemplateResponse>> GetTemplatesByTypeAsync(int organizationId, TemplateType type)
     {
-        try
-        {
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync($"{pdfServiceUrl}/api/Template");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var templates = await response.Content.ReadFromJsonAsync<List<string>>();
-                return templates ?? new List<string>();
-            }
-
-            _logger.LogWarning("Failed to fetch invoice templates from PDF Generator Service. Status: {Status}", response.StatusCode);
-            return new List<string>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching invoice templates from PDF Generator Service");
-            return new List<string>();
-        }
-    }
-
-    public async Task<List<string>> GetQuoteTemplateNamesAsync()
-    {
-        try
-        {
-            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
-            var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync($"{pdfServiceUrl}/api/Template/quote-templates");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var templates = await response.Content.ReadFromJsonAsync<List<string>>();
-                return templates ?? new List<string>();
-            }
-
-            _logger.LogWarning("Failed to fetch quote templates from PDF Generator Service. Status: {Status}", response.StatusCode);
-            return new List<string>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching quote templates from PDF Generator Service");
-            return new List<string>();
-        }
+        var templates = await _templateRepository.GetByOrganizationAndTypeAsync(organizationId, type);
+        return templates.Select(t => t.ToDto()).ToList();
     }
 }

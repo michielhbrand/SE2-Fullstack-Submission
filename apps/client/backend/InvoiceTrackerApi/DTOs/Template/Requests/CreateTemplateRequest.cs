@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Shared.Database.Models;
 
 namespace InvoiceTrackerApi.DTOs.Template.Requests;
 
@@ -17,4 +18,7 @@ public class CreateTemplateRequest
 
     [Required]
     public string Content { get; set; } = string.Empty;
+
+    [Required]
+    public TemplateType Type { get; set; }
 }

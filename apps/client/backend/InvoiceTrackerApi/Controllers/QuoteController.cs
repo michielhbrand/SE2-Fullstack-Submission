@@ -3,7 +3,6 @@ using InvoiceTrackerApi.DTOs.Invoice.Responses;
 using InvoiceTrackerApi.DTOs.Quote.Requests;
 using InvoiceTrackerApi.DTOs.Quote.Responses;
 using InvoiceTrackerApi.Services.Quote;
-using InvoiceTrackerApi.Services.Template;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,30 +15,14 @@ namespace InvoiceTrackerApi.Controllers;
 public class QuoteController : AuthenticatedControllerBase
 {
     private readonly IQuoteService _quoteService;
-    private readonly ITemplateService _templateService;
     private readonly ILogger<QuoteController> _logger;
 
     public QuoteController(
         IQuoteService quoteService,
-        ITemplateService templateService,
         ILogger<QuoteController> logger)
     {
         _quoteService = quoteService;
-        _templateService = templateService;
         _logger = logger;
-    }
-
-    /// <summary>
-    /// Get available quote templates
-    /// </summary>
-    /// <returns>List of template names</returns>
-    [HttpGet("templates")]
-    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<List<string>>> GetTemplates()
-    {
-        var templates = await _templateService.GetQuoteTemplateNamesAsync();
-        return Ok(templates);
     }
 
     /// <summary>

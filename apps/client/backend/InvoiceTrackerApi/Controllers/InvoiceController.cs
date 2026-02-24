@@ -2,7 +2,6 @@ using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Invoice.Responses;
 using InvoiceTrackerApi.DTOs.Common;
 using InvoiceTrackerApi.Services.Invoice;
-using InvoiceTrackerApi.Services.Template;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,30 +14,14 @@ namespace InvoiceTrackerApi.Controllers;
 public class InvoiceController : AuthenticatedControllerBase
 {
     private readonly IInvoiceService _invoiceService;
-    private readonly ITemplateService _templateService;
     private readonly ILogger<InvoiceController> _logger;
 
     public InvoiceController(
         IInvoiceService invoiceService,
-        ITemplateService templateService,
         ILogger<InvoiceController> logger)
     {
         _invoiceService = invoiceService;
-        _templateService = templateService;
         _logger = logger;
-    }
-
-    /// <summary>
-    /// Get available invoice templates
-    /// </summary>
-    /// <returns>List of template names</returns>
-    [HttpGet("templates")]
-    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<List<string>>> GetTemplates()
-    {
-        var templates = await _templateService.GetInvoiceTemplateNamesAsync();
-        return Ok(templates);
     }
 
     /// <summary>
@@ -191,6 +174,6 @@ public class InvoiceController : AuthenticatedControllerBase
 public class CreateInvoiceFromQuoteRequest
 {
     public int QuoteId { get; set; }
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
     public int OrganizationId { get; set; }
 }

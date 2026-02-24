@@ -12,6 +12,8 @@ interface Template {
   createdBy: string
   created: string
   storageKey: string
+  type: string
+  organizationId: number
 }
 
 const templates = ref<Template[]>([])
@@ -29,13 +31,16 @@ const fetchTemplates = async () => {
   
   try {
     const response = await templateApi.getTemplates()
+    const typeNames: Record<number, string> = { 0: 'Invoice', 1: 'Quote' }
     templates.value = (response.data || []).map((template) => ({
       id: template.id ?? 0,
       name: template.name ?? '',
       version: template.version ?? 0,
       createdBy: template.createdBy ?? '',
       created: template.created ? new Date(template.created).toLocaleDateString() : '',
-      storageKey: template.storageKey ?? ''
+      storageKey: template.storageKey ?? '',
+      type: typeNames[(template as any).type] ?? 'Unknown',
+      organizationId: (template as any).organizationId ?? 0
     }))
   } catch (err: any) {
     console.error('Failed to fetch templates:', err)
@@ -92,6 +97,7 @@ const closePreview = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Template Name</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Version</TableHead>
               <TableHead>Created By</TableHead>
               <TableHead>Created</TableHead>
@@ -107,6 +113,9 @@ const closePreview = () => {
                   </svg>
                   <span class="font-medium">{{ template.name }}</span>
                 </div>
+              </TableCell>
+              <TableCell>
+                <Badge :variant="template.type === 'Quote' ? 'secondary' : 'default'">{{ template.type }}</Badge>
               </TableCell>
               <TableCell>
                 <Badge variant="default">v{{ template.version }}</Badge>

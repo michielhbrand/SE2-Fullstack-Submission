@@ -27,8 +27,10 @@ public class Quote
     [MaxLength(500)]
     public string? PdfStorageKey { get; set; }
     
-    [MaxLength(255)]
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
+
+    [ForeignKey(nameof(TemplateId))]
+    public Template? Template { get; set; }
 
     [Required]
     public int OrganizationId { get; set; }

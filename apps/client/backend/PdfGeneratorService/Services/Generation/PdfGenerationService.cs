@@ -1,4 +1,6 @@
 using Shared.Database.Models;
+using Shared.Database.Data;
+using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.Services.Storage;
 using PuppeteerSharp;
 using System.Text;
@@ -9,32 +11,37 @@ public class PdfGenerationService : IPdfGenerationService
 {
     private readonly ILogger<PdfGenerationService> _logger;
     private readonly IMinioStorageService _storageService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _templatePath;
+    private readonly string _quoteTemplatePath;
 
     public PdfGenerationService(
         ILogger<PdfGenerationService> logger,
         IWebHostEnvironment env,
-        IMinioStorageService storageService)
+        IMinioStorageService storageService,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _storageService = storageService;
+        _serviceProvider = serviceProvider;
         _templatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
+        _quoteTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "QuoteTemplate.html");
     }
 
-    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice, string? templateName = null)
+    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice, int? templateId = null)
     {
         try
         {
-            _logger.LogInformation("Generating PDF for Invoice {InvoiceId} with template {TemplateName}",
-                invoice.Id, templateName ?? "default");
+            _logger.LogInformation("Generating PDF for Invoice {InvoiceId} with templateId {TemplateId}",
+                invoice.Id, templateId?.ToString() ?? "default");
 
             // Read the HTML template
             string htmlTemplate;
             
-            if (!string.IsNullOrEmpty(templateName))
+            if (templateId.HasValue)
             {
-                // Fetch template from MinIO
-                htmlTemplate = await _storageService.GetTemplateAsync(templateName);
+                // Look up template from DB and fetch from MinIO by StorageKey
+                htmlTemplate = await GetTemplateHtmlByIdAsync(templateId.Value, TemplateType.Invoice);
             }
             else
             {
@@ -84,25 +91,32 @@ public class PdfGenerationService : IPdfGenerationService
         }
     }
 
-    public async Task<byte[]> GeneratePdfFromQuoteAsync(Quote quote, string? templateName = null)
+    public async Task<byte[]> GeneratePdfFromQuoteAsync(Quote quote, int? templateId = null)
     {
         try
         {
-            _logger.LogInformation("Generating PDF for Quote {QuoteId} with template {TemplateName}",
-                quote.Id, templateName ?? "default");
+            _logger.LogInformation("Generating PDF for Quote {QuoteId} with templateId {TemplateId}",
+                quote.Id, templateId?.ToString() ?? "default");
 
             // Read the HTML template
             string htmlTemplate;
             
-            if (!string.IsNullOrEmpty(templateName))
+            if (templateId.HasValue)
             {
-                // Fetch template from MinIO
-                htmlTemplate = await _storageService.GetQuoteTemplateAsync(templateName);
+                // Look up template from DB and fetch from MinIO by StorageKey
+                htmlTemplate = await GetTemplateHtmlByIdAsync(templateId.Value, TemplateType.Quote);
             }
             else
             {
-                // Fall back to default quote template
-                htmlTemplate = await _storageService.GetQuoteTemplateAsync("QuoteTemplate.html");
+                // Fall back to default quote template from MinIO or local file
+                try
+                {
+                    htmlTemplate = await _storageService.GetQuoteTemplateAsync("QuoteTemplate.html");
+                }
+                catch
+                {
+                    htmlTemplate = await File.ReadAllTextAsync(_quoteTemplatePath);
+                }
             }
 
             // Replace placeholders with actual data
@@ -144,6 +158,46 @@ public class PdfGenerationService : IPdfGenerationService
         {
             _logger.LogError(ex, "Error generating PDF for Quote {QuoteId}", quote.Id);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Looks up a template by ID from the database, then fetches the HTML content from MinIO using the StorageKey.
+    /// </summary>
+    private async Task<string> GetTemplateHtmlByIdAsync(int templateId, TemplateType expectedType)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var template = await dbContext.Templates.FirstOrDefaultAsync(t => t.Id == templateId);
+
+        if (template == null)
+        {
+            _logger.LogWarning("Template {TemplateId} not found in database, falling back to default", templateId);
+            throw new InvalidOperationException($"Template with ID {templateId} not found");
+        }
+
+        _logger.LogInformation("Found template {TemplateId}: {TemplateName} (Type: {Type}, StorageKey: {StorageKey})",
+            template.Id, template.Name, template.Type, template.StorageKey);
+
+        // Parse the StorageKey (format: "bucket/objectName")
+        var parts = template.StorageKey.Split('/', 2);
+        if (parts.Length != 2)
+        {
+            throw new InvalidOperationException($"Invalid StorageKey format for template {templateId}: {template.StorageKey}");
+        }
+
+        var bucketName = parts[0];
+        var objectName = parts[1];
+
+        // Fetch from the appropriate bucket based on the StorageKey
+        if (template.Type == TemplateType.Quote)
+        {
+            return await _storageService.GetQuoteTemplateAsync(objectName);
+        }
+        else
+        {
+            return await _storageService.GetTemplateAsync(objectName);
         }
     }
 

@@ -104,11 +104,11 @@ public class TemplateController : ControllerBase
         }
     }
 
-    // GET: api/Template/{templateName}/preview
-    [HttpGet("{templateName}/preview")]
+    // GET: api/Template/{templateId}/preview
+    [HttpGet("{templateId:int}/preview")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> PreviewTemplate(string templateName)
+    public async Task<ActionResult> PreviewTemplate(int templateId)
     {
         try
         {
@@ -151,15 +151,15 @@ public class TemplateController : ControllerBase
                 }
             };
 
-            // Generate PDF preview
-            var pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, templateName);
+            // Generate PDF preview using template ID
+            var pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, templateId);
             
-            return File(pdfBytes, "application/pdf", $"{templateName}_preview.pdf");
+            return File(pdfBytes, "application/pdf", $"template-{templateId}_preview.pdf");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating preview for template {TemplateName}", templateName);
-            return NotFound(new { message = $"Template '{templateName}' not found or error generating preview" });
+            _logger.LogError(ex, "Error generating preview for template {TemplateId}", templateId);
+            return NotFound(new { message = $"Template with ID '{templateId}' not found or error generating preview" });
         }
     }
 }

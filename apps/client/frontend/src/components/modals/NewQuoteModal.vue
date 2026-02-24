@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label } from '../ui/index'
-import { quoteApi } from '@/services/api'
+import { templateApi, TemplateType } from '@/services/api'
+import { useOrganizationStore } from '@/stores/organization'
 import { toast } from 'vue-sonner'
 
 interface QuoteItem {
@@ -20,6 +21,12 @@ interface Client {
   company?: string
 }
 
+interface TemplateOption {
+  id: number
+  name: string
+  version: number
+}
+
 interface Props {
   show: boolean
   clients: Client[]
@@ -27,17 +34,19 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'save', data: { clientId: number, items: QuoteItem[], templateId?: string }): void
+  (e: 'save', data: { clientId: number, items: QuoteItem[], templateId?: number }): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+const organizationStore = useOrganizationStore()
+
 const selectedClientId = ref<number | null>(null)
-const selectedTemplateId = ref<string>('')
+const selectedTemplateId = ref<number | null>(null)
 const quoteItems = ref<QuoteItem[]>([{ description: '', amount: 1, pricePerUnit: 0 }])
 const formErrors = ref<Record<string, string>>({})
-const templates = ref<string[]>([])
+const templates = ref<TemplateOption[]>([])
 const loadingTemplates = ref(false)
 const templateSearchQuery = ref('')
 const isTemplateDropdownOpen = ref(false)
@@ -52,11 +61,21 @@ const clientSearchInputRef = ref<HTMLInputElement | null>(null)
 const fetchTemplates = async () => {
   loadingTemplates.value = true
   try {
-    const templateList = await quoteApi.getTemplates()
-    templates.value = templateList || []
+    const orgId = organizationStore.currentOrganizationId
+    if (!orgId) {
+      templates.value = []
+      return
+    }
+    // Fetch quote templates from the template API filtered by type
+    const templateList = await templateApi.getTemplatesByType(orgId, TemplateType.Quote)
+    templates.value = (templateList || []).map((t: any) => ({
+      id: t.id as number,
+      name: `${t.name} v${t.version}`,
+      version: t.version as number
+    }))
     // Set default template if available
     if (templates.value.length > 0 && !selectedTemplateId.value) {
-      selectedTemplateId.value = templates.value[0] || ''
+      selectedTemplateId.value = templates.value[0]!.id
     }
   } catch (error) {
     console.error('Error fetching templates:', error)
@@ -111,7 +130,7 @@ const handleSave = () => {
   emit('save', {
     clientId: selectedClientId.value,
     items: quoteItems.value,
-    templateId: selectedTemplateId.value || undefined
+    templateId: selectedTemplateId.value ?? undefined
   })
 }
 
@@ -141,14 +160,19 @@ const filteredTemplates = computed(() => {
     return templates.value
   }
   return templates.value.filter(template =>
-    template.toLowerCase().includes(templateSearchQuery.value.toLowerCase())
+    template.name.toLowerCase().includes(templateSearchQuery.value.toLowerCase())
   )
+})
+
+const selectedTemplateName = computed(() => {
+  if (!selectedTemplateId.value) return ''
+  const tmpl = templates.value.find(t => t.id === selectedTemplateId.value)
+  return tmpl ? tmpl.name : ''
 })
 
 const toggleClientDropdown = () => {
   isClientDropdownOpen.value = !isClientDropdownOpen.value
   if (isClientDropdownOpen.value) {
-    // Focus search input when dropdown opens
     setTimeout(() => {
       clientSearchInputRef.value?.focus()
     }, 50)
@@ -164,22 +188,20 @@ const selectClient = (clientId: number) => {
 const toggleTemplateDropdown = () => {
   isTemplateDropdownOpen.value = !isTemplateDropdownOpen.value
   if (isTemplateDropdownOpen.value) {
-    // Focus search input when dropdown opens
     setTimeout(() => {
       templateSearchInputRef.value?.focus()
     }, 50)
   }
 }
 
-const selectTemplate = (template: string) => {
-  selectedTemplateId.value = template
+const selectTemplate = (template: TemplateOption) => {
+  selectedTemplateId.value = template.id
   isTemplateDropdownOpen.value = false
   templateSearchQuery.value = ''
 }
 
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as Node
-  // Only process if the click target is inside the dialog
   const dialogEl = document.querySelector('[role="dialog"]')
   if (!dialogEl || !dialogEl.contains(target)) return
 
@@ -195,7 +217,7 @@ const handleClickOutside = (event: MouseEvent) => {
 // Reset form when modal opens
 const resetForm = () => {
   selectedClientId.value = null
-  selectedTemplateId.value = templates.value.length > 0 ? (templates.value[0] || '') : ''
+  selectedTemplateId.value = templates.value.length > 0 ? templates.value[0]!.id : null
   quoteItems.value = [{ description: '', amount: 1, pricePerUnit: 0 }]
   formErrors.value = {}
   templateSearchQuery.value = ''
@@ -318,7 +340,7 @@ onUnmounted(() => {
               :class="formErrors.template ? 'border-red-500' : ''"
             >
               <span :class="selectedTemplateId ? 'text-gray-900' : 'text-gray-500'">
-                {{ loadingTemplates ? 'Loading templates...' : (selectedTemplateId || 'Select a template...') }}
+                {{ loadingTemplates ? 'Loading templates...' : (selectedTemplateName || 'Select a template...') }}
               </span>
               <svg
                 class="w-5 h-5 text-gray-400 transition-transform"
@@ -358,13 +380,13 @@ onUnmounted(() => {
                 </div>
                 <button
                   v-for="template in filteredTemplates"
-                  :key="template"
+                  :key="template.id"
                   type="button"
                   @click="selectTemplate(template)"
                   class="w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors text-sm"
-                  :class="{ 'bg-blue-100 font-medium': selectedTemplateId === template }"
+                  :class="{ 'bg-blue-100 font-medium': selectedTemplateId === template.id }"
                 >
-                  {{ template }}
+                  {{ template.name }}
                 </button>
               </div>
             </div>

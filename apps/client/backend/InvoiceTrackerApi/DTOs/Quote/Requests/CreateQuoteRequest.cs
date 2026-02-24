@@ -10,8 +10,7 @@ public class CreateQuoteRequest
     [Required]
     public int ClientId { get; set; }
 
-    [MaxLength(255)]
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
 
     [Required]
     public List<CreateQuoteItemRequest> Items { get; set; } = new();

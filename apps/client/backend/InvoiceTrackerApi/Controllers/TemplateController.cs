@@ -26,18 +26,20 @@ public class TemplateController : AuthenticatedControllerBase
     }
 
     /// <summary>
-    /// Get paginated list of templates
+    /// Get paginated list of templates for an organization
     /// </summary>
+    /// <param name="organizationId">Organization ID</param>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
     /// <returns>Paginated list of templates</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<TemplateResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PaginatedResponse<TemplateResponse>>> GetTemplates(
+        [FromQuery] int organizationId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var response = await _templateService.GetTemplatesAsync(page, pageSize);
+        var response = await _templateService.GetTemplatesAsync(organizationId, page, pageSize);
         return Ok(response);
     }
 
@@ -56,15 +58,34 @@ public class TemplateController : AuthenticatedControllerBase
     }
 
     /// <summary>
+    /// Get templates filtered by type for an organization
+    /// </summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="type">Template type (Invoice or Quote)</param>
+    /// <returns>List of templates</returns>
+    [HttpGet("by-type")]
+    [ProducesResponseType(typeof(List<TemplateResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<TemplateResponse>>> GetTemplatesByType(
+        [FromQuery] int organizationId,
+        [FromQuery] TemplateType type)
+    {
+        var templates = await _templateService.GetTemplatesByTypeAsync(organizationId, type);
+        return Ok(templates);
+    }
+
+    /// <summary>
     /// Create a new template
     /// </summary>
     /// <param name="request">Template creation data</param>
+    /// <param name="organizationId">Organization ID</param>
     /// <returns>Created template</returns>
     [HttpPost]
     [ProducesResponseType(typeof(TemplateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<TemplateResponse>> CreateTemplate([FromBody] CreateTemplateRequest request)
+    public async Task<ActionResult<TemplateResponse>> CreateTemplate(
+        [FromBody] CreateTemplateRequest request,
+        [FromQuery] int organizationId)
     {
         if (!ModelState.IsValid)
         {
@@ -73,7 +94,7 @@ public class TemplateController : AuthenticatedControllerBase
 
         var userId = GetCurrentUserIdentifier();
 
-        var template = await _templateService.CreateTemplateAsync(request, userId);
+        var template = await _templateService.CreateTemplateAsync(request, userId, organizationId);
 
         return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, template);
     }

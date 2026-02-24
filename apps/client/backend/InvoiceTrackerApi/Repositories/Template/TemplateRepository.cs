@@ -1,4 +1,5 @@
 using Shared.Database.Data;
+using Shared.Database.Models;
 using Microsoft.EntityFrameworkCore;
 using TemplateModel = Shared.Database.Models.Template;
 
@@ -19,6 +20,12 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
             .FirstOrDefaultAsync(t => t.Name == name && t.Version == version);
     }
 
+    public async Task<TemplateModel?> GetByNameAndVersionAndOrgAsync(string name, int version, int organizationId)
+    {
+        return await _context.Templates
+            .FirstOrDefaultAsync(t => t.Name == name && t.Version == version && t.OrganizationId == organizationId);
+    }
+
     public async Task<IEnumerable<TemplateModel>> GetAllAsync(int page, int pageSize)
     {
         return await _context.Templates
@@ -28,8 +35,33 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<TemplateModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize)
+    {
+        return await _context.Templates
+            .Where(t => t.OrganizationId == organizationId)
+            .OrderByDescending(t => t.Created)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TemplateModel>> GetByOrganizationAndTypeAsync(int organizationId, TemplateType type)
+    {
+        return await _context.Templates
+            .Where(t => t.OrganizationId == organizationId && t.Type == type)
+            .OrderByDescending(t => t.Created)
+            .ToListAsync();
+    }
+
     public async Task<int> GetTotalCountAsync()
     {
         return await _context.Templates.CountAsync();
+    }
+
+    public async Task<int> GetTotalCountByOrganizationAsync(int organizationId)
+    {
+        return await _context.Templates
+            .Where(t => t.OrganizationId == organizationId)
+            .CountAsync();
     }
 }

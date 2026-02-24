@@ -33,7 +33,7 @@ public class InvoiceCreatedConsumer : BackgroundService
 
         var config = new ConsumerConfig
         {
-            BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
+            BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9093",
             GroupId = "pdf-generator-service",
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,

@@ -12,8 +12,7 @@ public class UpdateQuoteRequest
 
     public bool NotificationSent { get; set; }
 
-    [MaxLength(255)]
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
 
     [Required]
     public List<CreateQuoteItemRequest> Items { get; set; } = new();

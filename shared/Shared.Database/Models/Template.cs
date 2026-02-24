@@ -1,9 +1,16 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Shared.Database.Models;
 
-[Index(nameof(Name), nameof(Version), IsUnique = true)]
+public enum TemplateType
+{
+    Invoice,
+    Quote
+}
+
+[Index(nameof(Name), nameof(Version), nameof(OrganizationId), IsUnique = true)]
 public class Template
 {
     [Key]
@@ -25,4 +32,13 @@ public class Template
     [Required]
     [MaxLength(500)]
     public string StorageKey { get; set; } = string.Empty;
+
+    [Required]
+    public TemplateType Type { get; set; }
+
+    [Required]
+    public int OrganizationId { get; set; }
+
+    [ForeignKey(nameof(OrganizationId))]
+    public Organization? Organization { get; set; }
 }

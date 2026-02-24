@@ -16,6 +16,5 @@ public class ConvertQuoteToInvoiceRequest
     /// <summary>
     /// Optional template ID for the invoice PDF
     /// </summary>
-    [MaxLength(255)]
-    public string? TemplateId { get; set; }
+    public int? TemplateId { get; set; }
 }
