@@ -1,5 +1,5 @@
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Models;
+using Shared.Database.Models;
 
 namespace ManagementApi.Mappers;
 

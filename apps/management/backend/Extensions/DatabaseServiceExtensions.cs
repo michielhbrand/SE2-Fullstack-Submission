@@ -1,4 +1,4 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Extensions;

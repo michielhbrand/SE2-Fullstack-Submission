@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore, type UserInfo } from "../../stores/auth";
+import { useOrganizationStore } from "../../stores/organization";
+import { organizationApi } from "../../services/api";
 import { Button, Card, Spinner, Skeleton, Badge, Avatar, AvatarFallback, ToggleGroup, ToggleGroupItem, Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../components/ui/index";
 import { toast } from "vue-sonner";
 import NewUserModal from "../../components/modals/NewUserModal.vue";
@@ -9,8 +11,10 @@ import EditUserModal from "../../components/modals/EditUserModal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const organizationStore = useOrganizationStore();
 const users = ref<UserInfo[]>([]);
 const allUsers = ref<UserInfo[]>([]);
+const orgMemberIds = ref<Set<string>>(new Set());
 const loading = ref(true);
 const currentUserId = ref<string | null>(null);
 const showNewUserModal = ref(false);
@@ -31,11 +35,37 @@ onMounted(async () => {
   await loadUsers();
 });
 
+// Watch for organization changes and reload users
+watch(
+  () => organizationStore.currentOrganizationId,
+  async (newOrgId, oldOrgId) => {
+    if (newOrgId !== oldOrgId && newOrgId !== null) {
+      console.log('[Users] Organization changed to:', newOrgId);
+      await loadUsers();
+    }
+  }
+);
+
 const loadUsers = async () => {
   loading.value = true;
   try {
+    // Fetch all users from the directory
     const fetchedUsers = await authStore.getAllUsers();
-    allUsers.value = fetchedUsers;
+
+    // Fetch org members to filter by current organization
+    const orgId = organizationStore.currentOrganizationId;
+    if (orgId) {
+      const members = await organizationApi.getOrganizationMembers(orgId);
+      orgMemberIds.value = new Set(members.map((m) => m.userId ?? '').filter(Boolean));
+      console.log('[Users] Org members for org', orgId, ':', [...orgMemberIds.value]);
+      // Filter to only show users who are members of this org
+      allUsers.value = fetchedUsers.filter((u) => orgMemberIds.value.has(u.id));
+    } else {
+      // No org context — show all users
+      allUsers.value = fetchedUsers;
+      orgMemberIds.value = new Set();
+    }
+
     filterUsers();
   } catch (err) {
     toast.error("Failed to load users");
@@ -92,7 +122,12 @@ const handleCreateUser = async (userData: {
 }) => {
   creatingUser.value = true;
   try {
-    await authStore.createUser(userData);
+    const orgId = organizationStore.currentOrganizationId;
+    console.log('[Users] Creating user with organizationId:', orgId);
+    await authStore.createUser({
+      ...userData,
+      organizationId: orgId ?? undefined,
+    });
     toast.success(`Successfully created user ${userData.username}`);
     showNewUserModal.value = false;
     // Reload users to show the new user

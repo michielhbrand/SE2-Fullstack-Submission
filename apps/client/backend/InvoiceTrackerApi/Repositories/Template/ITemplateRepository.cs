@@ -1,4 +1,4 @@
-using TemplateModel = InvoiceTrackerApi.Models.Template;
+using TemplateModel = Shared.Database.Models.Template;
 
 namespace InvoiceTrackerApi.Repositories.Template;
 

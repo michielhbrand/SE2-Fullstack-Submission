@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceTrackerApi.Repositories.OrganizationMember;
@@ -15,14 +15,14 @@ public class OrganizationMemberRepository : IOrganizationMemberRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Models.OrganizationMember>> GetMembersByOrganizationIdAsync(int organizationId)
+    public async Task<IEnumerable<Shared.Database.Models.OrganizationMember>> GetMembersByOrganizationIdAsync(int organizationId)
     {
         return await _context.OrganizationMembers
             .Where(m => m.OrganizationId == organizationId)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Models.Organization>> GetOrganizationsByUserIdAsync(string userId)
+    public async Task<IEnumerable<Shared.Database.Models.Organization>> GetOrganizationsByUserIdAsync(string userId)
     {
         return await _context.Organizations
             .Include(o => o.Address)
@@ -31,27 +31,27 @@ public class OrganizationMemberRepository : IOrganizationMemberRepository
             .ToListAsync();
     }
 
-    public async Task<Models.OrganizationMember?> GetMembershipAsync(int organizationId, string userId)
+    public async Task<Shared.Database.Models.OrganizationMember?> GetMembershipAsync(int organizationId, string userId)
     {
         return await _context.OrganizationMembers
             .Include(m => m.Organization)
             .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
     }
 
-    public async Task<Models.OrganizationMember> AddMemberAsync(Models.OrganizationMember member)
+    public async Task<Shared.Database.Models.OrganizationMember> AddMemberAsync(Shared.Database.Models.OrganizationMember member)
     {
         _context.OrganizationMembers.Add(member);
         await _context.SaveChangesAsync();
         return member;
     }
 
-    public async Task UpdateMemberRoleAsync(Models.OrganizationMember member)
+    public async Task UpdateMemberRoleAsync(Shared.Database.Models.OrganizationMember member)
     {
         _context.OrganizationMembers.Update(member);
         await _context.SaveChangesAsync();
     }
 
-    public async Task RemoveMemberAsync(Models.OrganizationMember member)
+    public async Task RemoveMemberAsync(Shared.Database.Models.OrganizationMember member)
     {
         _context.OrganizationMembers.Remove(member);
         await _context.SaveChangesAsync();

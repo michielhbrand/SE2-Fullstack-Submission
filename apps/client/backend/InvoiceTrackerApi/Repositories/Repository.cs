@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using InvoiceTrackerApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 

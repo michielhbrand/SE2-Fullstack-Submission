@@ -1,4 +1,4 @@
-using ManagementApi.Models;
+using Shared.Database.Models;
 
 namespace ManagementApi.DTOs.User;
 

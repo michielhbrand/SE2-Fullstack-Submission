@@ -1,4 +1,4 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.Services.Auth;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

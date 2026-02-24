@@ -1,10 +1,10 @@
 using InvoiceTrackerApi.DTOs.Auth.Requests;
 using InvoiceTrackerApi.DTOs.User;
-using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserRole = InvoiceTrackerApi.Services.Auth.UserRole;
 
 namespace InvoiceTrackerApi.Controllers;
 

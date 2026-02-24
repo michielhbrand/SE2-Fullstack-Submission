@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.BackgroundServices;
-using PdfGeneratorService.Data;
+using Shared.Database.Data;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
 

@@ -44,6 +44,7 @@ export const authApi = {
     lastName: string
     password: string
     role: string
+    organizationId?: number
   }) => {
     return await client.user_CreateUser(userData)
   },
@@ -215,6 +216,11 @@ export const organizationApi = {
   // Delete an organization
   deleteOrganization: async (id: number) => {
     return await client.organization_DeleteOrganization(id)
+  },
+
+  // Get members of an organization
+  getOrganizationMembers: async (orgId: number) => {
+    return await client.organizationMember_GetOrganizationMembers(orgId)
   }
 }
 

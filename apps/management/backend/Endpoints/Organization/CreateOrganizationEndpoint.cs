@@ -1,4 +1,4 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Mappers;
 using ManagementApi.Filters;
@@ -31,7 +31,7 @@ public static class CreateOrganizationEndpoint
         var logger = loggerFactory.CreateLogger("CreateOrganization");
         logger.LogInformation("Creating new organization: {OrganizationName}", request.Name);
 
-        var organization = new Models.Organization
+        var organization = new Shared.Database.Models.Organization
         {
             Name = request.Name,
             TaxNumber = request.TaxNumber,
@@ -46,7 +46,7 @@ public static class CreateOrganizationEndpoint
         if (request.Address != null)
         {
             logger.LogDebug("Creating address for organization: {OrganizationName}", request.Name);
-            organization.Address = new Models.Address
+            organization.Address = new Shared.Database.Models.Address
             {
                 Street = request.Address.Street,
                 City = request.Address.City,

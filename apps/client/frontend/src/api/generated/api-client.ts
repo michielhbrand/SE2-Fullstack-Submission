@@ -3018,10 +3018,11 @@ export interface OrganizationResponse {
 
 export interface AddressResponse {
     id?: number;
-    firstLine?: string;
-    secondLine?: string | null;
-    city?: string;
-    code?: string;
+    street?: string;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
 }
 
 export interface BankAccountResponse {
@@ -3039,10 +3040,11 @@ export interface CreateOrganizationRequest {
 }
 
 export interface CreateAddressRequest {
-    firstLine: string;
-    secondLine?: string | null;
-    city: string;
-    code: string;
+    street: string;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
 }
 
 export interface UpdateOrganizationRequest {
@@ -3161,6 +3163,7 @@ export interface CreateUserRequest {
     lastName: string;
     password: string;
     role: string;
+    organizationId?: number | null;
 }
 
 export interface UpdateRoleRequest {

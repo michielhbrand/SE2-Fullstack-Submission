@@ -1,4 +1,4 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Mappers;
 using Microsoft.AspNetCore.Http.HttpResults;

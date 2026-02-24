@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PdfGeneratorService.Services.Storage;
 using PdfGeneratorService.Services.Generation;
-using PdfGeneratorService.Models;
+using Shared.Database.Models;
 
 namespace PdfGeneratorService.Controllers;
 
@@ -133,19 +133,19 @@ public class TemplateController : ControllerBase
                     new InvoiceItem
                     {
                         Description = "Sample Product 1",
-                        Amount = 2,
+                        Quantity = 2,
                         PricePerUnit = 50.00m
                     },
                     new InvoiceItem
                     {
                         Description = "Sample Service",
-                        Amount = 1,
+                        Quantity = 1,
                         PricePerUnit = 150.00m
                     },
                     new InvoiceItem
                     {
                         Description = "Sample Product 2",
-                        Amount = 3,
+                        Quantity = 3,
                         PricePerUnit = 25.00m
                     }
                 }

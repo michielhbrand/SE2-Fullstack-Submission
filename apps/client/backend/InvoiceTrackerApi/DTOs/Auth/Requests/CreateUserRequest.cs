@@ -47,4 +47,9 @@ public class CreateUserRequest
     /// </summary>
     [Required(ErrorMessage = "Role is required")]
     public string Role { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Optional organization ID to automatically add the user as a member
+    /// </summary>
+    public int? OrganizationId { get; set; }
 }

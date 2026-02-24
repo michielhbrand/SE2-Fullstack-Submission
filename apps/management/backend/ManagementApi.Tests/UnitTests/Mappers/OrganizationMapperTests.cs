@@ -1,7 +1,7 @@
 using FluentAssertions;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Mappers;
-using ManagementApi.Models;
+using Shared.Database.Models;
 
 namespace ManagementApi.Tests.UnitTests.Mappers;
 

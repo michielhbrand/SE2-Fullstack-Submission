@@ -1,7 +1,9 @@
 using InvoiceTrackerApi.DTOs.Auth.Requests;
-using InvoiceTrackerApi.Models;
+using Shared.Database.Models;
+using InvoiceTrackerApi.Repositories.OrganizationMember;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Services.Auth;
+using UserRole = InvoiceTrackerApi.Services.Auth.UserRole;
 
 namespace InvoiceTrackerApi.Services.User;
 
@@ -13,17 +15,20 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IKeycloakAuthService _keycloakService;
     private readonly IUserDirectoryService _userDirectoryService;
+    private readonly IOrganizationMemberRepository _organizationMemberRepository;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
         IUserRepository userRepository,
         IKeycloakAuthService keycloakService,
         IUserDirectoryService userDirectoryService,
+        IOrganizationMemberRepository organizationMemberRepository,
         ILogger<UserService> logger)
     {
         _userRepository = userRepository;
         _keycloakService = keycloakService;
         _userDirectoryService = userDirectoryService;
+        _organizationMemberRepository = organizationMemberRepository;
         _logger = logger;
     }
 
@@ -46,7 +51,7 @@ public class UserService : IUserService
             request.Password,
             role);
 
-        var user = new Models.User
+        var user = new Shared.Database.Models.User
         {
             Id = userId,
             Active = true,
@@ -66,6 +71,32 @@ public class UserService : IUserService
         {
             _logger.LogError(ex, "Failed to sync user {UserId} to UserDirectory", userId);
             // Don't fail the request if sync fails - it can be retried later
+        }
+
+        // Add user as organization member if organizationId is provided
+        if (request.OrganizationId.HasValue)
+        {
+            try
+            {
+                var member = new Shared.Database.Models.OrganizationMember
+                {
+                    OrganizationId = request.OrganizationId.Value,
+                    UserId = userId,
+                    Role = request.Role
+                };
+
+                await _organizationMemberRepository.AddMemberAsync(member);
+                _logger.LogInformation(
+                    "Added user {UserId} as {Role} to organization {OrganizationId}",
+                    userId, request.Role, request.OrganizationId.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to add user {UserId} to organization {OrganizationId}",
+                    userId, request.OrganizationId.Value);
+                // Don't fail the request - the user was created successfully
+            }
         }
 
         return userId;

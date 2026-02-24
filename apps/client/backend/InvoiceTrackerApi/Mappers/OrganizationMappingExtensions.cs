@@ -1,6 +1,6 @@
 using InvoiceTrackerApi.DTOs.Organization.Requests;
 using InvoiceTrackerApi.DTOs.Organization.Responses;
-using InvoiceTrackerApi.Models;
+using Shared.Database.Models;
 
 namespace InvoiceTrackerApi.Mappers;
 
@@ -18,9 +18,8 @@ public static class OrganizationMappingExtensions
             Address = organization.Address?.ToDto() ?? new AddressResponse
             {
                 Id = 0,
-                FirstLine = "",
+                Street = "",
                 City = "",
-                Code = ""
             }
         };
     }
@@ -39,10 +38,11 @@ public static class OrganizationMappingExtensions
         return new AddressResponse
         {
             Id = address.Id,
-            FirstLine = address.FirstLine,
-            SecondLine = address.SecondLine,
+            Street = address.Street,
             City = address.City,
-            Code = address.Code
+            State = address.State,
+            PostalCode = address.PostalCode,
+            Country = address.Country
         };
     }
 
@@ -50,10 +50,11 @@ public static class OrganizationMappingExtensions
     {
         return new Address
         {
-            FirstLine = request.FirstLine,
-            SecondLine = request.SecondLine,
+            Street = request.Street,
             City = request.City,
-            Code = request.Code
+            State = request.State,
+            PostalCode = request.PostalCode,
+            Country = request.Country
         };
     }
 

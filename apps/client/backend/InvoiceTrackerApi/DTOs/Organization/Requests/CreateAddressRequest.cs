@@ -4,18 +4,19 @@ namespace InvoiceTrackerApi.DTOs.Organization.Requests;
 
 public class CreateAddressRequest
 {
-    [Required(ErrorMessage = "First line is required")]
-    [MaxLength(200, ErrorMessage = "First line cannot exceed 200 characters")]
-    public required string FirstLine { get; set; }
+    [Required(ErrorMessage = "Street is required")]
+    [MaxLength(255, ErrorMessage = "Street cannot exceed 255 characters")]
+    public required string Street { get; set; }
     
-    [MaxLength(200, ErrorMessage = "Second line cannot exceed 200 characters")]
-    public string? SecondLine { get; set; }
-    
-    [Required(ErrorMessage = "City is required")]
     [MaxLength(100, ErrorMessage = "City cannot exceed 100 characters")]
-    public required string City { get; set; }
+    public string? City { get; set; }
     
-    [Required(ErrorMessage = "Code is required")]
-    [MaxLength(20, ErrorMessage = "Code cannot exceed 20 characters")]
-    public required string Code { get; set; }
+    [MaxLength(100, ErrorMessage = "State cannot exceed 100 characters")]
+    public string? State { get; set; }
+    
+    [MaxLength(20, ErrorMessage = "Postal code cannot exceed 20 characters")]
+    public string? PostalCode { get; set; }
+    
+    [MaxLength(100, ErrorMessage = "Country cannot exceed 100 characters")]
+    public string? Country { get; set; }
 }

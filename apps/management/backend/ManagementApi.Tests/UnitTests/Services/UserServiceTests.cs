@@ -1,8 +1,8 @@
 using FluentAssertions;
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.User;
 using ManagementApi.Exceptions.Application;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using ManagementApi.Services.Auth;
 using ManagementApi.Services.User;
 using ManagementApi.Tests.Helpers;

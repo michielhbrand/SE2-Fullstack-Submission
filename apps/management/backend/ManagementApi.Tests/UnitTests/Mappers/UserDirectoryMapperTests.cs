@@ -1,5 +1,5 @@
 using ManagementApi.Mappers;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using Xunit;
 
 namespace ManagementApi.Tests.UnitTests.Mappers;

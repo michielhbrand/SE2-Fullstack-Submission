@@ -15,12 +15,14 @@ public static class AuthenticationServiceExtensions
                 options.Authority = configuration["Keycloak:Authority"];
                 options.Audience = configuration["Keycloak:Audience"];
                 options.RequireHttpsMetadata = false; // For development only
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
+                    NameClaimType = "preferred_username",
                     RoleClaimType = ClaimTypes.Role
                 };
                 

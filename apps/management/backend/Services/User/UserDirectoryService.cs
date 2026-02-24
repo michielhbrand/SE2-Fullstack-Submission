@@ -1,8 +1,8 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.User;
 using ManagementApi.Exceptions.Application;
 using ManagementApi.Mappers;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using ManagementApi.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 

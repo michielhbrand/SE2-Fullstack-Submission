@@ -1,4 +1,4 @@
-using PdfGeneratorService.Models;
+using Shared.Database.Models;
 using PdfGeneratorService.Services.Storage;
 using PuppeteerSharp;
 using System.Text;
@@ -159,7 +159,7 @@ public class PdfGenerationService : IPdfGenerationService
             itemsHtml.AppendLine($@"
                 <tr>
                     <td>{item.Description}</td>
-                    <td class='text-right'>{item.Amount}</td>
+                    <td class='text-right'>{item.Quantity}</td>
                     <td class='text-right'>${item.PricePerUnit:F2}</td>
                     <td class='text-right'>${item.TotalPrice:F2}</td>
                 </tr>");
@@ -189,7 +189,7 @@ public class PdfGenerationService : IPdfGenerationService
             itemsHtml.AppendLine($@"
             <tr>
                 <td>{item.Description}</td>
-                <td style='text-align: center;'>{item.Amount}</td>
+                <td style='text-align: center;'>{item.Quantity}</td>
                 <td style='text-align: right;'>${item.PricePerUnit:F2}</td>
                 <td style='text-align: right;'>${item.TotalPrice:F2}</td>
             </tr>");

@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
-using PdfGeneratorService.Data;
+using Shared.Database.Data;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
 using System.Text.Json;

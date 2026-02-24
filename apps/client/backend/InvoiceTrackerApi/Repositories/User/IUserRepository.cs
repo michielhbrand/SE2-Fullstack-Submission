@@ -1,4 +1,4 @@
-using UserModel = InvoiceTrackerApi.Models.User;
+using UserModel = Shared.Database.Models.User;
 
 namespace InvoiceTrackerApi.Repositories.User;
 

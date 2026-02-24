@@ -1,6 +1,6 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
-using UserModel = InvoiceTrackerApi.Models.User;
+using UserModel = Shared.Database.Models.User;
 
 namespace InvoiceTrackerApi.Repositories.User;
 

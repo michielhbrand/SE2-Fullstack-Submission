@@ -5,13 +5,19 @@ import type { OrganizationResponse } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
 
 export const useOrganizationStore = defineStore('organization', () => {
-  const organizationIds = ref<number[]>([])
+  const organizations = ref<OrganizationResponse[]>([])
   const currentOrganization = ref<OrganizationResponse | null>(null)
   const isLoading = ref(false)
 
   // Computed
-  const hasOrganizations = computed(() => organizationIds.value.length > 0)
-  const currentOrganizationId = computed(() => currentOrganization.value?.id || null)
+  const organizationIds = computed(() =>
+    organizations.value
+      .map((org) => org.id)
+      .filter((id): id is number => id !== undefined)
+  )
+  const hasOrganizations = computed(() => organizations.value.length > 0)
+  const currentOrganizationId = computed(() => currentOrganization.value?.id ?? null)
+  const hasMultipleOrganizations = computed(() => organizations.value.length > 1)
 
   // Helper function to extract error message from API error response
   function extractErrorMessage(error: any, defaultMessage: string): string {
@@ -69,29 +75,38 @@ export const useOrganizationStore = defineStore('organization', () => {
   }
 
   // Actions
-  async function fetchOrganizationIds(): Promise<number[]> {
+  async function fetchOrganizations(): Promise<OrganizationResponse[]> {
     try {
       isLoading.value = true
-      console.log('[Organization Store] Fetching organization IDs...')
-      const organizations = await organizationApi.getOrganizations()
-      console.log('[Organization Store] Received organizations:', organizations)
+      console.log('[Organization Store] Fetching organizations...')
+      const fetchedOrgs = await organizationApi.getOrganizations()
+      console.log('[Organization Store] Received organizations:', fetchedOrgs)
       
-      // Extract organization IDs from the response
-      organizationIds.value = organizations
+      organizations.value = fetchedOrgs
+      
+      const ids = fetchedOrgs
         .map((org: OrganizationResponse) => org.id)
         .filter((id: number | undefined): id is number => id !== undefined)
       
-      console.log('[Organization Store] Extracted organization IDs:', organizationIds.value)
-      return organizationIds.value
+      console.log('[Organization Store] Extracted organization IDs:', ids)
+      return fetchedOrgs
     } catch (error: any) {
-      console.error('[Organization Store] Error fetching organization IDs:', error)
-      const errorMessage = extractErrorMessage(error, 'Failed to fetch organization IDs')
+      console.error('[Organization Store] Error fetching organizations:', error)
+      const errorMessage = extractErrorMessage(error, 'Failed to fetch organizations')
       toast.error(errorMessage)
-      organizationIds.value = []
+      organizations.value = []
       return []
     } finally {
       isLoading.value = false
     }
+  }
+
+  // Keep backward compatibility
+  async function fetchOrganizationIds(): Promise<number[]> {
+    const orgs = await fetchOrganizations()
+    return orgs
+      .map((org) => org.id)
+      .filter((id): id is number => id !== undefined)
   }
 
   async function fetchOrganizationDetails(organizationId: number): Promise<OrganizationResponse | null> {
@@ -112,27 +127,24 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   async function initializeOrganizationContext(): Promise<boolean> {
     try {
-      // Step 1: Fetch all organization IDs
-      const ids = await fetchOrganizationIds()
+      // Step 1: Fetch all organizations
+      const orgs = await fetchOrganizations()
       
-      if (ids.length === 0) {
+      if (orgs.length === 0) {
         toast.error('No organizations found for this admin user')
         return false
       }
       
-      // Step 2: Fetch details for the first organization
-      const firstOrgId = ids[0]
-      if (firstOrgId === undefined) {
-        toast.error('Invalid organization ID')
+      // Step 2: Set the first organization as current
+      const firstOrg = orgs[0]
+      if (!firstOrg || firstOrg.id === undefined) {
+        toast.error('Invalid organization data')
         return false
       }
       
-      const organization = await fetchOrganizationDetails(firstOrgId)
-      
-      if (!organization) {
-        toast.error('Failed to load organization details')
-        return false
-      }
+      // Use the full org data we already have instead of fetching again
+      currentOrganization.value = firstOrg
+      console.log('[Organization Store] Initialized with organization:', firstOrg.name, '(ID:', firstOrg.id, ')')
       
       return true
     } catch (error: any) {
@@ -143,22 +155,29 @@ export const useOrganizationStore = defineStore('organization', () => {
   }
 
   function clearOrganizationContext() {
-    organizationIds.value = []
+    organizations.value = []
     currentOrganization.value = null
   }
 
   async function switchOrganization(organizationId: number): Promise<boolean> {
-    if (!organizationIds.value.includes(organizationId)) {
+    // Check if the org is in our list
+    const org = organizations.value.find((o) => o.id === organizationId)
+    if (!org) {
       toast.error('Invalid organization ID')
       return false
     }
     
+    // Fetch full details for the selected org
     const organization = await fetchOrganizationDetails(organizationId)
+    if (organization) {
+      console.log('[Organization Store] Switched to organization:', organization.name, '(ID:', organization.id, ')')
+    }
     return organization !== null
   }
 
   return {
     // State
+    organizations,
     organizationIds,
     currentOrganization,
     isLoading,
@@ -166,8 +185,10 @@ export const useOrganizationStore = defineStore('organization', () => {
     // Computed
     hasOrganizations,
     currentOrganizationId,
+    hasMultipleOrganizations,
     
     // Actions
+    fetchOrganizations,
     fetchOrganizationIds,
     fetchOrganizationDetails,
     initializeOrganizationContext,

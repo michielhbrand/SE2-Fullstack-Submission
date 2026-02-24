@@ -3,11 +3,11 @@ using InvoiceTrackerApi.DTOs.Invoice.Responses;
 using InvoiceTrackerApi.DTOs.Common;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
-using InvoiceTrackerApi.Models;
+using Shared.Database.Models;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
 using InvoiceTrackerApi.Services.PdfStorage;
-using InvoiceModel = InvoiceTrackerApi.Models.Invoice;
+using InvoiceModel = Shared.Database.Models.Invoice;
 
 namespace InvoiceTrackerApi.Services.Invoice;
 

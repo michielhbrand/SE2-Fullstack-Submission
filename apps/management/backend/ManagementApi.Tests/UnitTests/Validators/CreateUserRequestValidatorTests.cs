@@ -1,6 +1,6 @@
 using FluentAssertions;
 using ManagementApi.DTOs.User;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using ManagementApi.Validators.User;
 
 namespace ManagementApi.Tests.UnitTests.Validators;

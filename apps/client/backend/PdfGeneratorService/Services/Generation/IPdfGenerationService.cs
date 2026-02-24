@@ -1,4 +1,4 @@
-using PdfGeneratorService.Models;
+using Shared.Database.Models;
 
 namespace PdfGeneratorService.Services.Generation;
 

@@ -1,6 +1,6 @@
 using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Invoice.Responses;
-using InvoiceTrackerApi.Models;
+using Shared.Database.Models;
 
 namespace InvoiceTrackerApi.Mappers;
 

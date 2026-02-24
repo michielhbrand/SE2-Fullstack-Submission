@@ -1,8 +1,8 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
 using ManagementApi.Exceptions.Application;
 using ManagementApi.Filters;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 

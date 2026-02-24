@@ -1,6 +1,6 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
-using TemplateModel = InvoiceTrackerApi.Models.Template;
+using TemplateModel = Shared.Database.Models.Template;
 
 namespace InvoiceTrackerApi.Repositories.Template;
 

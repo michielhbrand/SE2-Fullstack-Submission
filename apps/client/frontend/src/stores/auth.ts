@@ -390,6 +390,7 @@ export const useAuthStore = defineStore('auth', () => {
     lastName: string
     password: string
     role: string
+    organizationId?: number
   }): Promise<boolean> {
     try {
       const token = getAccessToken()

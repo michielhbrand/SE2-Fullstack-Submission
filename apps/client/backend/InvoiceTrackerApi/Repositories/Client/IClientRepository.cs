@@ -1,4 +1,4 @@
-using ClientModel = InvoiceTrackerApi.Models.Client;
+using ClientModel = Shared.Database.Models.Client;
 
 namespace InvoiceTrackerApi.Repositories.Client;
 

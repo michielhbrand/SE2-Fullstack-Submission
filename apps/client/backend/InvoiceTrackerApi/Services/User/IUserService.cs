@@ -1,6 +1,6 @@
 using InvoiceTrackerApi.DTOs.Auth.Requests;
-using InvoiceTrackerApi.Models;
 using InvoiceTrackerApi.Services.Auth;
+using UserRole = InvoiceTrackerApi.Services.Auth.UserRole;
 
 namespace InvoiceTrackerApi.Services.User;
 

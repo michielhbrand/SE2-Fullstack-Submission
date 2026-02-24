@@ -1,6 +1,6 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
-using QuoteModel = InvoiceTrackerApi.Models.Quote;
+using QuoteModel = Shared.Database.Models.Quote;
 
 namespace InvoiceTrackerApi.Repositories.Quote;
 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using InvoiceTrackerApi.DTOs.Common;
 using InvoiceTrackerApi.DTOs.Template.Requests;
 using InvoiceTrackerApi.DTOs.Template.Responses;
-using InvoiceTrackerApi.Models;
+using Shared.Database.Models;
 using InvoiceTrackerApi.Services.Template;
 
 namespace InvoiceTrackerApi.Controllers;

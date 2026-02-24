@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using InvoiceTrackerApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,13 +7,13 @@ namespace InvoiceTrackerApi.Repositories.Organization;
 /// <summary>
 /// Repository implementation for Organization data access
 /// </summary>
-public class OrganizationRepository : Repository<Models.Organization>, IOrganizationRepository
+public class OrganizationRepository : Repository<Shared.Database.Models.Organization>, IOrganizationRepository
 {
     public OrganizationRepository(ApplicationDbContext context) : base(context)
     {
     }
 
-    public async Task<IEnumerable<Models.Organization>> GetAllAsync()
+    public async Task<IEnumerable<Shared.Database.Models.Organization>> GetAllAsync()
     {
         try
         {
@@ -27,7 +27,7 @@ public class OrganizationRepository : Repository<Models.Organization>, IOrganiza
         }
     }
 
-    public async Task<Models.Organization?> GetByIdWithDetailsAsync(int id)
+    public async Task<Shared.Database.Models.Organization?> GetByIdWithDetailsAsync(int id)
     {
         try
         {

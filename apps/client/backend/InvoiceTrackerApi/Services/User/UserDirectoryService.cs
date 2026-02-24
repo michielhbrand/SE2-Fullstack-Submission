@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using InvoiceTrackerApi.DTOs.User;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Services.Auth;
@@ -191,7 +191,7 @@ public class UserDirectoryService : IUserDirectoryService
 
             if (userDirectory == null)
             {
-                userDirectory = new Models.UserDirectory
+                userDirectory = new Shared.Database.Models.UserDirectory
                 {
                     Id = userId,
                     Email = keycloakUser.Email,

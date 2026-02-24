@@ -4,7 +4,7 @@ using InvoiceTrackerApi.DTOs.Template.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Template;
-using TemplateModel = InvoiceTrackerApi.Models.Template;
+using TemplateModel = Shared.Database.Models.Template;
 
 namespace InvoiceTrackerApi.Services.Template;
 

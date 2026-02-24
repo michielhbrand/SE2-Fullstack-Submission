@@ -3,7 +3,7 @@ using System.Text.Json;
 using ManagementApi.DTOs.Auth;
 using ManagementApi.Exceptions;
 using ManagementApi.Exceptions.Application;
-using ManagementApi.Models;
+using Shared.Database.Models;
 
 namespace ManagementApi.Services.Auth;
 

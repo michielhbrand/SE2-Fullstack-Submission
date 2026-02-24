@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useOrganizationStore } from "../stores/organization";
-import { Button } from "../components/ui/index";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/index";
 
 const router = useRouter();
 const route = useRoute();
@@ -12,6 +12,17 @@ const organizationStore = useOrganizationStore();
 const menuOpen = ref(false);
 
 const currentOrg = computed(() => organizationStore.currentOrganization);
+const allOrgs = computed(() => organizationStore.organizations);
+const hasMultipleOrgs = computed(() => organizationStore.hasMultipleOrganizations);
+const selectedOrgId = computed({
+  get: () => currentOrg.value?.id?.toString() ?? '',
+  set: (val: string) => {
+    const orgId = parseInt(val, 10);
+    if (!isNaN(orgId)) {
+      organizationStore.switchOrganization(orgId);
+    }
+  }
+});
 
 const handleLogout = async () => {
   await authStore.logout();
@@ -58,9 +69,31 @@ const menuItems = [
           <div>
             <h1 class="text-3xl font-bold">Admin Portal</h1>
             <p class="mt-1 text-gray-300">Management Dashboard</p>
-            <p v-if="currentOrg" class="mt-1 text-sm text-gray-400">
-              Organization: <span class="font-semibold text-gray-200">{{ currentOrg.name }}</span>
-            </p>
+            <!-- Organization Selector -->
+            <div v-if="currentOrg" class="mt-2">
+              <!-- Multi-org dropdown -->
+              <div v-if="hasMultipleOrgs" class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Organization:</span>
+                <Select v-model="selectedOrgId">
+                  <SelectTrigger class="w-[240px] bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 h-8 text-sm">
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="org in allOrgs"
+                      :key="org.id"
+                      :value="org.id?.toString() ?? ''"
+                    >
+                      {{ org.name }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <!-- Single org display -->
+              <p v-else class="text-sm text-gray-400">
+                Organization: <span class="font-semibold text-gray-200">{{ currentOrg.name }}</span>
+              </p>
+            </div>
           </div>
           <Button
             @click="handleLogout"

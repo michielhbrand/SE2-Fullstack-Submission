@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using ManagementApi.DTOs.User;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using ManagementApi.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 

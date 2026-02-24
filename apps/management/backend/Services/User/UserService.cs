@@ -1,8 +1,8 @@
-using ManagementApi.Data;
+using Shared.Database.Data;
 using ManagementApi.DTOs.User;
 using ManagementApi.Exceptions.Application;
 using ManagementApi.Mappers;
-using ManagementApi.Models;
+using Shared.Database.Models;
 using ManagementApi.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,7 +53,7 @@ public class UserService : IUserService
             cancellationToken);
 
         // Create user in local database
-        var user = new Models.User
+        var user = new Shared.Database.Models.User
         {
             Id = keycloakUser.Id,
             Active = request.Active,

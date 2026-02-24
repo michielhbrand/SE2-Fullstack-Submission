@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using InvoiceTrackerApi.DTOs.Organization.Requests;
 using InvoiceTrackerApi.DTOs.Organization.Responses;
 using InvoiceTrackerApi.Exceptions;
@@ -42,7 +42,7 @@ public class OrganizationService : IOrganizationService
                 ? await _context.BankAccounts
                     .Where(a => org.BankAccountIds.Contains(a.Id))
                     .ToListAsync()
-                : new List<Models.BankAccount>();
+                : new List<Shared.Database.Models.BankAccount>();
             
             var response = org.ToDto();
             response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
@@ -65,7 +65,7 @@ public class OrganizationService : IOrganizationService
             ? await _context.BankAccounts
                 .Where(a => organization.BankAccountIds.Contains(a.Id))
                 .ToListAsync()
-            : new List<Models.BankAccount>();
+            : new List<Shared.Database.Models.BankAccount>();
 
         var response = organization.ToDto();
         response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
@@ -151,7 +151,7 @@ public class OrganizationService : IOrganizationService
             ? await _context.BankAccounts
                 .Where(a => updatedOrganization.BankAccountIds.Contains(a.Id))
                 .ToListAsync()
-            : new List<Models.BankAccount>();
+            : new List<Shared.Database.Models.BankAccount>();
 
         var response = updatedOrganization.ToDto();
         response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();
@@ -211,7 +211,7 @@ public class OrganizationService : IOrganizationService
         }
 
         // Add member
-        var member = new Models.OrganizationMember
+        var member = new Shared.Database.Models.OrganizationMember
         {
             OrganizationId = organizationId,
             UserId = userId,
@@ -364,7 +364,7 @@ public class OrganizationService : IOrganizationService
                         ? await _context.BankAccounts
                             .Where(a => org.BankAccountIds.Contains(a.Id))
                             .ToListAsync()
-                        : new List<Models.BankAccount>();
+                        : new List<Shared.Database.Models.BankAccount>();
 
                     var response = org.ToDto();
                     response.BankAccounts = bankAccounts.Select(a => a.ToDto()).ToList();

@@ -1,4 +1,4 @@
-using InvoiceTrackerApi.Data;
+using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceTrackerApi.Extensions;
