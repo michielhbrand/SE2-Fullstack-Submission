@@ -125,8 +125,8 @@ export const quoteApi = {
   },
 
   // Create a new quote
-  createQuote: async (quoteData: any) => {
-    return await client.quote_CreateQuote(quoteData)
+  createQuote: async (quoteData: any, organizationId?: number) => {
+    return await client.quote_CreateQuote(quoteData, organizationId)
   },
 
   // Update a quote

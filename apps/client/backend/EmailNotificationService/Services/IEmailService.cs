@@ -6,12 +6,12 @@ namespace EmailNotificationService.Services;
 public interface IEmailService
 {
     /// <summary>
-    /// Send a quote approval request email with Accept/Reject buttons
+    /// Send a quote approval request email with Accept/Reject buttons and optional PDF attachment
     /// </summary>
-    Task SendQuoteApprovalEmailAsync(string toEmail, string toName, int quoteId, int workflowId, string approveToken, string rejectToken);
+    Task SendQuoteApprovalEmailAsync(string toEmail, string toName, int quoteId, int workflowId, string approveToken, string rejectToken, byte[]? pdfAttachment = null);
 
     /// <summary>
-    /// Send an invoice generated notification email
+    /// Send an invoice payment request email with optional PDF attachment
     /// </summary>
-    Task SendInvoiceGeneratedEmailAsync(string toEmail, string toName, int invoiceId, int workflowId);
+    Task SendInvoiceGeneratedEmailAsync(string toEmail, string toName, int invoiceId, int workflowId, byte[]? pdfAttachment = null);
 }

@@ -1,5 +1,7 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Minio;
+using Minio.DataModel.Args;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
 using System.Text.Json;
@@ -177,14 +179,33 @@ public class QuoteApprovalRequestedConsumer : BackgroundService
                 return;
             }
 
+            // Fetch the quote PDF from MinIO if available
+            byte[]? pdfBytes = null;
+            if (!string.IsNullOrEmpty(quote.PdfStorageKey))
+            {
+                try
+                {
+                    pdfBytes = await FetchPdfFromMinioAsync(quote.PdfStorageKey);
+                    _logger.LogInformation("Fetched PDF for Quote {QuoteId} ({Size} bytes)", message.QuoteId, pdfBytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch PDF for Quote {QuoteId}. Email will be sent without attachment.", message.QuoteId);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Quote {QuoteId} has no PDF storage key. Email will be sent without attachment.", message.QuoteId);
+            }
+
             // Generate approval/rejection tokens
             var approveToken = tokenService.GenerateToken(message.WorkflowId, message.QuoteId, "approve");
             var rejectToken = tokenService.GenerateToken(message.WorkflowId, message.QuoteId, "reject");
 
-            // Send the email
+            // Send the email with PDF attachment
             await emailService.SendQuoteApprovalEmailAsync(
                 clientEmail, clientName, message.QuoteId, message.WorkflowId,
-                approveToken, rejectToken);
+                approveToken, rejectToken, pdfBytes);
 
             _logger.LogInformation(
                 "Quote approval email sent successfully for QuoteId: {QuoteId}, WorkflowId: {WorkflowId}",
@@ -195,6 +216,56 @@ public class QuoteApprovalRequestedConsumer : BackgroundService
             _logger.LogError(ex, "Error in ProcessQuoteApprovalRequestedAsync");
             throw;
         }
+    }
+
+    private async Task<byte[]> FetchPdfFromMinioAsync(string storageKey)
+    {
+        var endpoint = _configuration["MinIO:Endpoint"] ?? "localhost:9002";
+        var accessKey = _configuration["MinIO:AccessKey"] ?? "minioadmin";
+        var secretKey = _configuration["MinIO:SecretKey"] ?? "minioadmin";
+
+        var handler = new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            MaxConnectionsPerServer = 5
+        };
+
+        var httpClient = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromMinutes(2),
+            DefaultRequestVersion = new Version(1, 1)
+        };
+
+        var minioClient = new MinioClient()
+            .WithEndpoint(endpoint)
+            .WithCredentials(accessKey, secretKey)
+            .WithSSL(false)
+            .WithHttpClient(httpClient)
+            .Build();
+
+        // Parse storage key (format: "bucket/objectName")
+        var parts = storageKey.Split('/', 2);
+        if (parts.Length != 2)
+        {
+            throw new ArgumentException($"Invalid storage key format: {storageKey}. Expected 'bucket/objectName'");
+        }
+
+        var bucketName = parts[0];
+        var objectName = parts[1];
+
+        var memoryStream = new MemoryStream();
+
+        var getObjectArgs = new GetObjectArgs()
+            .WithBucket(bucketName)
+            .WithObject(objectName)
+            .WithCallbackStream(stream =>
+            {
+                stream.CopyTo(memoryStream);
+            });
+
+        await minioClient.GetObjectAsync(getObjectArgs);
+
+        return memoryStream.ToArray();
     }
 
     private class QuoteApprovalRequestedEvent

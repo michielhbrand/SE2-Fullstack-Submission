@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+import { useOrganizationStore } from '../stores/organization'
 import { clientApi, invoiceApi, quoteApi } from '../services/api'
 import { Button, Separator, ScrollArea, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/index'
 import packageJson from '../../package.json'
@@ -15,6 +16,7 @@ const route = useRoute()
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const organizationStore = useOrganizationStore()
 
 const lastScrollY = ref(0)
 const clients = ref<any[]>([])
@@ -105,7 +107,7 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
       }))
     }
 
-    await quoteApi.createQuote(quote)
+    await quoteApi.createQuote(quote, organizationStore.currentOrganizationId ?? undefined)
     
     uiStore.closeNewQuoteModal()
     uiStore.showSuccess('Quote created successfully')

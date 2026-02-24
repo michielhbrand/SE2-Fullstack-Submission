@@ -161,6 +161,16 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* Vuetify hover fix — vuetify/styles is intentionally not imported to avoid
+   conflicts with Tailwind, so the hover overlay renders at full opacity.
+   Force it to a subtle level. */
+.v-btn:hover > .v-btn__overlay {
+  opacity: 0.08 !important;
+}
+.v-btn > .v-btn__overlay {
+  opacity: 0 !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

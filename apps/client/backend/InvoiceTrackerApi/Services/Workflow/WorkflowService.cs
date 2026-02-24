@@ -1,9 +1,12 @@
 using InvoiceTrackerApi.DTOs.Common;
+using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Workflow.Requests;
 using InvoiceTrackerApi.DTOs.Workflow.Responses;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Workflow;
+using InvoiceTrackerApi.Services.Invoice;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Database.Models;
 using WorkflowModel = Shared.Database.Models.Workflow;
 
@@ -15,6 +18,8 @@ namespace InvoiceTrackerApi.Services.Workflow;
 public class WorkflowService : IWorkflowService
 {
     private readonly IWorkflowRepository _workflowRepository;
+    private readonly IKafkaProducerService _kafkaProducer;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<WorkflowService> _logger;
 
     /// <summary>
@@ -31,6 +36,7 @@ public class WorkflowService : IWorkflowService
         },
         [WorkflowStatus.PendingApproval] = new HashSet<string>
         {
+            WorkflowStatus.PendingApproval, // resend for approval
             WorkflowStatus.Approved,
             WorkflowStatus.Rejected,
             WorkflowStatus.Cancelled,
@@ -56,6 +62,7 @@ public class WorkflowService : IWorkflowService
         },
         [WorkflowStatus.SentForPayment] = new HashSet<string>
         {
+            WorkflowStatus.SentForPayment, // resend for payment
             WorkflowStatus.Paid,
             WorkflowStatus.Cancelled,
             WorkflowStatus.Terminated
@@ -80,6 +87,7 @@ public class WorkflowService : IWorkflowService
         [WorkflowEventType.ConvertedToInvoice] = WorkflowStatus.InvoiceCreated,
         [WorkflowEventType.InvoiceCreated] = WorkflowStatus.InvoiceCreated,
         [WorkflowEventType.SentForPayment] = WorkflowStatus.SentForPayment,
+        [WorkflowEventType.ResentForPayment] = WorkflowStatus.SentForPayment,
         [WorkflowEventType.MarkedAsPaid] = WorkflowStatus.Paid,
         [WorkflowEventType.Cancelled] = WorkflowStatus.Cancelled,
         [WorkflowEventType.Terminated] = WorkflowStatus.Terminated
@@ -87,9 +95,13 @@ public class WorkflowService : IWorkflowService
 
     public WorkflowService(
         IWorkflowRepository workflowRepository,
+        IKafkaProducerService kafkaProducer,
+        IServiceProvider serviceProvider,
         ILogger<WorkflowService> logger)
     {
         _workflowRepository = workflowRepository;
+        _kafkaProducer = kafkaProducer;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -257,6 +269,109 @@ public class WorkflowService : IWorkflowService
         _logger.LogInformation(
             "Event '{EventType}' added to workflow {WorkflowId}. New status: {Status}. By {User}",
             request.EventType, workflowId, workflow.Status, userId);
+
+        // Publish Kafka event for email notification when quote is sent for approval
+        if (request.EventType == WorkflowEventType.SentForApproval ||
+            request.EventType == WorkflowEventType.ResentForApproval)
+        {
+            try
+            {
+                if (workflow.QuoteId.HasValue)
+                {
+                    await _kafkaProducer.PublishQuoteApprovalRequestedEventAsync(
+                        workflow.QuoteId.Value, workflowId);
+
+                    _logger.LogInformation(
+                        "Quote approval requested event published for QuoteId: {QuoteId}, WorkflowId: {WorkflowId}",
+                        workflow.QuoteId.Value, workflowId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Cannot publish quote approval event — workflow {WorkflowId} has no linked QuoteId",
+                        workflowId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to publish quote approval requested event for WorkflowId: {WorkflowId}. " +
+                    "Workflow status updated but email notification not triggered.",
+                    workflowId);
+            }
+        }
+
+        // Publish Kafka event for email notification when invoice is sent for payment
+        if (request.EventType == WorkflowEventType.SentForPayment ||
+            request.EventType == WorkflowEventType.ResentForPayment)
+        {
+            try
+            {
+                if (workflow.InvoiceId.HasValue)
+                {
+                    await _kafkaProducer.PublishInvoiceGeneratedEventAsync(
+                        workflow.InvoiceId.Value, workflowId);
+
+                    _logger.LogInformation(
+                        "Invoice generated event published for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
+                        workflow.InvoiceId.Value, workflowId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Cannot publish invoice generated event — workflow {WorkflowId} has no linked InvoiceId",
+                        workflowId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to publish invoice generated event for WorkflowId: {WorkflowId}. " +
+                    "Workflow status updated but email notification not triggered.",
+                    workflowId);
+            }
+        }
+
+        // Auto-create invoice when quote is converted to invoice
+        if (request.EventType == WorkflowEventType.ConvertedToInvoice)
+        {
+            if (workflow.QuoteId.HasValue)
+            {
+                try
+                {
+                    // Resolve IInvoiceService lazily to avoid circular dependency
+                    var invoiceService = _serviceProvider.GetRequiredService<IInvoiceService>();
+                    var invoiceResult = await invoiceService.ConvertQuoteToInvoiceAsync(
+                        new ConvertQuoteToInvoiceRequest
+                        {
+                            QuoteId = workflow.QuoteId.Value
+                        },
+                        userId,
+                        workflow.OrganizationId);
+
+                    // Link the created invoice to the workflow
+                    workflow.InvoiceId = invoiceResult.Id;
+                    await _workflowRepository.UpdateAsync(workflow);
+
+                    _logger.LogInformation(
+                        "Invoice {InvoiceId} created from Quote {QuoteId} for Workflow {WorkflowId}",
+                        invoiceResult.Id, workflow.QuoteId.Value, workflowId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Failed to convert Quote {QuoteId} to Invoice for Workflow {WorkflowId}. " +
+                        "Workflow status updated but invoice was not created.",
+                        workflow.QuoteId, workflowId);
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Cannot convert to invoice — workflow {WorkflowId} has no linked QuoteId",
+                    workflowId);
+            }
+        }
 
         // Re-fetch with details for the response
         var result = await _workflowRepository.GetByIdWithDetailsAsync(workflowId);

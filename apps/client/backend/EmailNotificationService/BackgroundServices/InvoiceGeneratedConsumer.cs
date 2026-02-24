@@ -1,5 +1,7 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Minio;
+using Minio.DataModel.Args;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
 using System.Text.Json;
@@ -176,12 +178,31 @@ public class InvoiceGeneratedConsumer : BackgroundService
                 return;
             }
 
-            // Send the email
+            // Fetch the invoice PDF from MinIO if available
+            byte[]? pdfBytes = null;
+            if (!string.IsNullOrEmpty(invoice.PdfStorageKey))
+            {
+                try
+                {
+                    pdfBytes = await FetchPdfFromMinioAsync(invoice.PdfStorageKey);
+                    _logger.LogInformation("Fetched PDF for Invoice {InvoiceId} ({Size} bytes)", message.InvoiceId, pdfBytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch PDF for Invoice {InvoiceId}. Email will be sent without attachment.", message.InvoiceId);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Invoice {InvoiceId} has no PDF storage key. Email will be sent without attachment.", message.InvoiceId);
+            }
+
+            // Send the email with PDF attachment
             await emailService.SendInvoiceGeneratedEmailAsync(
-                clientEmail, clientName, message.InvoiceId, message.WorkflowId);
+                clientEmail, clientName, message.InvoiceId, message.WorkflowId, pdfBytes);
 
             _logger.LogInformation(
-                "Invoice generated email sent successfully for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
+                "Invoice payment email sent successfully for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
                 message.InvoiceId, message.WorkflowId);
         }
         catch (Exception ex)
@@ -189,6 +210,56 @@ public class InvoiceGeneratedConsumer : BackgroundService
             _logger.LogError(ex, "Error in ProcessInvoiceGeneratedAsync");
             throw;
         }
+    }
+
+    private async Task<byte[]> FetchPdfFromMinioAsync(string storageKey)
+    {
+        var endpoint = _configuration["MinIO:Endpoint"] ?? "localhost:9002";
+        var accessKey = _configuration["MinIO:AccessKey"] ?? "minioadmin";
+        var secretKey = _configuration["MinIO:SecretKey"] ?? "minioadmin";
+
+        var handler = new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            MaxConnectionsPerServer = 5
+        };
+
+        var httpClient = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromMinutes(2),
+            DefaultRequestVersion = new Version(1, 1)
+        };
+
+        var minioClient = new MinioClient()
+            .WithEndpoint(endpoint)
+            .WithCredentials(accessKey, secretKey)
+            .WithSSL(false)
+            .WithHttpClient(httpClient)
+            .Build();
+
+        // Parse storage key (format: "bucket/objectName")
+        var parts = storageKey.Split('/', 2);
+        if (parts.Length != 2)
+        {
+            throw new ArgumentException($"Invalid storage key format: {storageKey}. Expected 'bucket/objectName'");
+        }
+
+        var bucketName = parts[0];
+        var objectName = parts[1];
+
+        var memoryStream = new MemoryStream();
+
+        var getObjectArgs = new GetObjectArgs()
+            .WithBucket(bucketName)
+            .WithObject(objectName)
+            .WithCallbackStream(stream =>
+            {
+                stream.CopyTo(memoryStream);
+            });
+
+        await minioClient.GetObjectAsync(getObjectArgs);
+
+        return memoryStream.ToArray();
     }
 
     private class InvoiceGeneratedEvent

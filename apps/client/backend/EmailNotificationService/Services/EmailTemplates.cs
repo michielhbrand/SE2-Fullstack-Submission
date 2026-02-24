@@ -109,10 +109,10 @@ public static class EmailTemplates
     }
 
     /// <summary>
-    /// Invoice generated notification email
+    /// Invoice payment request email — asks client to settle and email proof of payment
     /// </summary>
-    public static string GetInvoiceGeneratedTemplate(
-        string clientName, int invoiceId, int workflowId, string viewUrl)
+    public static string GetInvoicePaymentTemplate(
+        string clientName, int invoiceId, int workflowId, string adminEmail)
     {
         return $@"
 <!DOCTYPE html>
@@ -120,7 +120,7 @@ public static class EmailTemplates
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Invoice Generated</title>
+    <title>Invoice — Payment Required</title>
 </head>
 <body style=""margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;"">
     <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #f4f4f5; padding: 40px 20px;"">
@@ -129,9 +129,9 @@ public static class EmailTemplates
                 <table role=""presentation"" width=""600"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"">
                     <!-- Header -->
                     <tr>
-                        <td style=""background-color: #2563eb; padding: 32px 40px; text-align: center;"">
+                        <td style=""background-color: #7c3aed; padding: 32px 40px; text-align: center;"">
                             <h1 style=""margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;"">
-                                Invoice Generated
+                                Payment Required
                             </h1>
                         </td>
                     </tr>
@@ -142,12 +142,12 @@ public static class EmailTemplates
                             <p style=""margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.6;"">
                                 Hello <strong>{clientName}</strong>,
                             </p>
-                            <p style=""margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;"">
-                                An invoice has been generated for you. You can view the details and track the workflow status using the link below.
+                            <p style=""margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.6;"">
+                                Please find attached your invoice for settlement. Kindly review the details below and arrange payment at your earliest convenience.
                             </p>
 
                             <!-- Invoice Info Card -->
-                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 32px;"">
+                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 24px;"">
                                 <tr>
                                     <td style=""padding: 20px;"">
                                         <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"">
@@ -156,25 +156,34 @@ public static class EmailTemplates
                                                 <td style=""color: #111827; font-size: 14px; font-weight: 600; text-align: right; padding-bottom: 8px;"">#{invoiceId}</td>
                                             </tr>
                                             <tr>
-                                                <td style=""color: #6b7280; font-size: 14px;"">Workflow Reference</td>
-                                                <td style=""color: #111827; font-size: 14px; font-weight: 600; text-align: right;"">#{workflowId}</td>
+                                                <td style=""color: #6b7280; font-size: 14px;"">Reference</td>
+                                                <td style=""color: #111827; font-size: 14px; font-weight: 600; text-align: right;"">WF-{workflowId}</td>
                                             </tr>
                                         </table>
                                     </td>
                                 </tr>
                             </table>
 
-                            <!-- View Button -->
-                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"">
+                            <!-- Instructions -->
+                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; margin-bottom: 24px;"">
                                 <tr>
-                                    <td align=""center"">
-                                        <a href=""{viewUrl}""
-                                           style=""display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 14px 40px; border-radius: 6px; text-align: center;"">
-                                            View Workflow
-                                        </a>
+                                    <td style=""padding: 20px;"">
+                                        <p style=""margin: 0 0 8px; color: #6b21a8; font-size: 14px; font-weight: 600;"">
+                                            How to complete payment:
+                                        </p>
+                                        <ol style=""margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;"">
+                                            <li>Review the attached invoice PDF for the amount due and banking details.</li>
+                                            <li>Make payment using your preferred method (EFT / bank transfer).</li>
+                                            <li>Email your proof of payment to <a href=""mailto:{adminEmail}"" style=""color: #7c3aed; font-weight: 600;"">{adminEmail}</a>, quoting invoice <strong>#{invoiceId}</strong>.</li>
+                                        </ol>
                                     </td>
                                 </tr>
                             </table>
+
+                            <p style=""margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;"">
+                                If you have any questions regarding this invoice, please contact us at
+                                <a href=""mailto:{adminEmail}"" style=""color: #7c3aed;"">{adminEmail}</a>.
+                            </p>
                         </td>
                     </tr>
 

@@ -42,6 +42,7 @@ public static class WorkflowEventType
     public const string ConvertedToInvoice = "ConvertedToInvoice";
     public const string InvoiceCreated = "InvoiceCreated";
     public const string SentForPayment = "SentForPayment";
+    public const string ResentForPayment = "ResentForPayment";
     public const string MarkedAsPaid = "MarkedAsPaid";
     public const string Cancelled = "Cancelled";
     public const string Terminated = "Terminated";

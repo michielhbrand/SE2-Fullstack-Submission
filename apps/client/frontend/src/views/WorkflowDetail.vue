@@ -4,19 +4,24 @@ import { useRoute, useRouter } from 'vue-router'
 import { workflowApi } from '../services/api'
 import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
+import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
+import WorkflowEventModal from '../components/modals/WorkflowEventModal.vue'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
+const refreshing = ref(false)
 const workflow = ref<any>(null)
 const actionLoading = ref(false)
 
 // Event action dialog state
 const showEventDialog = ref(false)
 const selectedEventType = ref('')
-const eventDescription = ref('')
+
+// Cancel confirmation dialog state
+const showCancelDialog = ref(false)
 
 const workflowId = computed(() => Number(route.params.id))
 
@@ -41,6 +46,18 @@ const fetchWorkflow = async () => {
   }
 }
 
+const refreshWorkflow = async () => {
+  refreshing.value = true
+  try {
+    workflow.value = await workflowApi.getWorkflow(workflowId.value)
+  } catch (error: any) {
+    console.error('Failed to refresh workflow:', error)
+    toast.error('Failed to refresh workflow')
+  } finally {
+    refreshing.value = false
+  }
+}
+
 // Determine which actions are available based on current status
 const availableActions = computed(() => {
   if (!workflow.value) return []
@@ -55,6 +72,7 @@ const availableActions = computed(() => {
       { eventType: 'SentForPayment', label: 'Send for Payment', icon: 'mdi-cash-fast', color: 'purple' },
     ],
     PendingApproval: [
+      { eventType: 'ResentForApproval', label: 'Resend for Approval', icon: 'mdi-send-clock', color: 'amber' },
       { eventType: 'Approved', label: 'Approve', icon: 'mdi-check-circle', color: 'green' },
       { eventType: 'Rejected', label: 'Reject', icon: 'mdi-close-circle', color: 'red', requiresDescription: true },
     ],
@@ -68,6 +86,7 @@ const availableActions = computed(() => {
       { eventType: 'SentForPayment', label: 'Send for Payment', icon: 'mdi-cash-fast', color: 'purple' },
     ],
     SentForPayment: [
+      { eventType: 'ResentForPayment', label: 'Resend for Payment', icon: 'mdi-cash-fast', color: 'purple' },
       { eventType: 'MarkedAsPaid', label: 'Mark as Paid', icon: 'mdi-cash-check', color: 'emerald' },
     ],
   }
@@ -96,16 +115,10 @@ const canCancel = computed(() => {
   return !isTerminalStatus.value
 })
 
-const canTerminate = computed(() => {
-  if (!workflow.value) return false
-  return !isTerminalStatus.value
-})
-
 // Execute a workflow action
 const executeAction = async (eventType: string, requiresDescription = false) => {
   if (requiresDescription) {
     selectedEventType.value = eventType
-    eventDescription.value = ''
     showEventDialog.value = true
     return
   }
@@ -123,13 +136,13 @@ const executeAction = async (eventType: string, requiresDescription = false) => 
   }
 }
 
-const submitEventWithDescription = async () => {
+const submitEventWithDescription = async (description: string) => {
   actionLoading.value = true
   showEventDialog.value = false
   try {
     workflow.value = await workflowApi.addEvent(workflowId.value, {
       eventType: selectedEventType.value,
-      description: eventDescription.value || undefined,
+      description: description || undefined,
     })
     toast.success(`Action "${getEventLabel(selectedEventType.value)}" completed`)
   } catch (error: any) {
@@ -141,8 +154,12 @@ const submitEventWithDescription = async () => {
   }
 }
 
-const cancelWorkflow = async () => {
-  if (!confirm('Are you sure you want to cancel this workflow?')) return
+const cancelWorkflow = () => {
+  showCancelDialog.value = true
+}
+
+const confirmCancelWorkflow = async () => {
+  showCancelDialog.value = false
   actionLoading.value = true
   try {
     workflow.value = await workflowApi.cancelWorkflow(workflowId.value)
@@ -155,19 +172,6 @@ const cancelWorkflow = async () => {
   }
 }
 
-const terminateWorkflow = async () => {
-  if (!confirm('Are you sure you want to terminate this workflow? This action cannot be undone.')) return
-  actionLoading.value = true
-  try {
-    workflow.value = await workflowApi.terminateWorkflow(workflowId.value)
-    toast.success('Workflow terminated')
-  } catch (error: any) {
-    console.error('Failed to terminate workflow:', error)
-    toast.error(error.response?.data?.message || 'Failed to terminate workflow')
-  } finally {
-    actionLoading.value = false
-  }
-}
 
 // Status styling helpers
 const getStatusColor = (status: string): string => {
@@ -213,6 +217,7 @@ const getEventLabel = (eventType: string): string => {
     Rejected: 'Rejected',
     QuoteModified: 'Quote Modified',
     ResentForApproval: 'Resent for Approval',
+    ResentForPayment: 'Resent for Payment',
     ConvertedToInvoice: 'Converted to Invoice',
     InvoiceCreated: 'Invoice Created',
     SentForPayment: 'Sent for Payment',
@@ -231,6 +236,7 @@ const getEventIcon = (eventType: string): string => {
     Rejected: 'mdi-close-circle',
     QuoteModified: 'mdi-pencil',
     ResentForApproval: 'mdi-send-clock',
+    ResentForPayment: 'mdi-cash-fast',
     ConvertedToInvoice: 'mdi-file-replace',
     InvoiceCreated: 'mdi-file-document-plus',
     SentForPayment: 'mdi-cash-fast',
@@ -249,6 +255,7 @@ const getEventDotColor = (eventType: string): string => {
     Rejected: 'red',
     QuoteModified: 'blue',
     ResentForApproval: 'amber',
+    ResentForPayment: 'purple',
     ConvertedToInvoice: 'indigo',
     InvoiceCreated: 'blue',
     SentForPayment: 'purple',
@@ -364,9 +371,21 @@ const formatRelativeTime = (dateStr: string): string => {
           </div>
 
           <!-- Actions Card -->
-          <div v-if="availableActions.length > 0 || canCancel || canTerminate" class="bg-white rounded-lg shadow mb-6">
+          <div v-if="availableActions.length > 0 || canCancel" class="bg-white rounded-lg shadow mb-6">
             <div class="p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Available Actions</h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Available Actions</h3>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  :loading="refreshing"
+                  @click="refreshWorkflow"
+                  title="Refresh workflow"
+                >
+                  <v-icon size="20">mdi-refresh</v-icon>
+                </v-btn>
+              </div>
               <div class="flex flex-wrap gap-3">
                 <!-- Workflow progression actions -->
                 <v-btn
@@ -381,9 +400,9 @@ const formatRelativeTime = (dateStr: string): string => {
                   {{ action.label }}
                 </v-btn>
 
-                <v-divider v-if="availableActions.length > 0 && (canCancel || canTerminate)" vertical class="mx-2" />
+                <v-divider v-if="availableActions.length > 0 && canCancel" vertical class="mx-2" />
 
-                <!-- Cancel / Terminate -->
+                <!-- Cancel -->
                 <v-btn
                   v-if="canCancel"
                   color="orange"
@@ -393,16 +412,6 @@ const formatRelativeTime = (dateStr: string): string => {
                 >
                   <v-icon start>mdi-cancel</v-icon>
                   Cancel
-                </v-btn>
-                <v-btn
-                  v-if="canTerminate"
-                  color="red"
-                  variant="outlined"
-                  :loading="actionLoading"
-                  @click="terminateWorkflow"
-                >
-                  <v-icon start>mdi-stop-circle</v-icon>
-                  Terminate
                 </v-btn>
               </div>
             </div>
@@ -481,33 +490,20 @@ const formatRelativeTime = (dateStr: string): string => {
     </div>
 
     <!-- Event description dialog -->
-    <v-dialog v-model="showEventDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h6">
-          {{ getEventLabel(selectedEventType) }}
-        </v-card-title>
-        <v-card-text>
-          <v-textarea
-            v-model="eventDescription"
-            label="Description (optional)"
-            placeholder="Add a note about this action..."
-            rows="3"
-            variant="outlined"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showEventDialog = false">Cancel</v-btn>
-          <v-btn
-            color="primary"
-            variant="flat"
-            :loading="actionLoading"
-            @click="submitEventWithDescription"
-          >
-            Confirm
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <WorkflowEventModal
+      :show="showEventDialog"
+      :event-label="getEventLabel(selectedEventType)"
+      :loading="actionLoading"
+      @close="showEventDialog = false"
+      @confirm="submitEventWithDescription"
+    />
+
+    <!-- Cancel workflow confirmation dialog -->
+    <CancelWorkflowModal
+      :show="showCancelDialog"
+      :loading="actionLoading"
+      @close="showCancelDialog = false"
+      @confirm="confirmCancelWorkflow"
+    />
   </Layout>
 </template>

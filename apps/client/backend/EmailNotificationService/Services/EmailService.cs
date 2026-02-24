@@ -20,7 +20,7 @@ public class EmailService : IEmailService
 
     public async Task SendQuoteApprovalEmailAsync(
         string toEmail, string toName, int quoteId, int workflowId,
-        string approveToken, string rejectToken)
+        string approveToken, string rejectToken, byte[]? pdfAttachment = null)
     {
         var baseUrl = _configuration["App:BaseUrl"] ?? "http://localhost:5002";
 
@@ -32,32 +32,34 @@ public class EmailService : IEmailService
 
         var subject = $"Quote #{quoteId} — Approval Required";
 
-        await SendEmailAsync(toEmail, toName, subject, htmlBody);
+        await SendEmailAsync(toEmail, toName, subject, htmlBody,
+            pdfAttachment != null ? ($"Quote-{quoteId}.pdf", pdfAttachment) : null);
 
         _logger.LogInformation(
-            "Quote approval email sent to {Email} for Quote #{QuoteId}, Workflow #{WorkflowId}",
-            toEmail, quoteId, workflowId);
+            "Quote approval email sent to {Email} for Quote #{QuoteId}, Workflow #{WorkflowId} (PDF attached: {HasPdf})",
+            toEmail, quoteId, workflowId, pdfAttachment != null);
     }
 
     public async Task SendInvoiceGeneratedEmailAsync(
-        string toEmail, string toName, int invoiceId, int workflowId)
+        string toEmail, string toName, int invoiceId, int workflowId, byte[]? pdfAttachment = null)
     {
-        var frontendUrl = _configuration["App:FrontendUrl"] ?? "http://localhost:5173";
-        var viewUrl = $"{frontendUrl}/workflows/{workflowId}";
+        var adminEmail = _configuration["App:AdminEmail"] ?? "admin@invoicetracker.com";
 
-        var htmlBody = EmailTemplates.GetInvoiceGeneratedTemplate(
-            toName, invoiceId, workflowId, viewUrl);
+        var htmlBody = EmailTemplates.GetInvoicePaymentTemplate(
+            toName, invoiceId, workflowId, adminEmail);
 
-        var subject = $"Invoice #{invoiceId} — Generated";
+        var subject = $"Invoice #{invoiceId} — Payment Required";
 
-        await SendEmailAsync(toEmail, toName, subject, htmlBody);
+        await SendEmailAsync(toEmail, toName, subject, htmlBody,
+            pdfAttachment != null ? ($"Invoice-{invoiceId}.pdf", pdfAttachment) : null);
 
         _logger.LogInformation(
-            "Invoice generated email sent to {Email} for Invoice #{InvoiceId}, Workflow #{WorkflowId}",
-            toEmail, invoiceId, workflowId);
+            "Invoice payment email sent to {Email} for Invoice #{InvoiceId}, Workflow #{WorkflowId} (PDF attached: {HasPdf})",
+            toEmail, invoiceId, workflowId, pdfAttachment != null);
     }
 
-    private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
+    private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody,
+        (string FileName, byte[] Data)? attachment = null)
     {
         var smtpHost = _configuration["Smtp:Host"] ?? "localhost";
         var smtpPort = int.Parse(_configuration["Smtp:Port"] ?? "1025");
@@ -76,6 +78,13 @@ public class EmailService : IEmailService
         {
             HtmlBody = htmlBody
         };
+
+        // Attach PDF if provided
+        if (attachment.HasValue)
+        {
+            bodyBuilder.Attachments.Add(attachment.Value.FileName, attachment.Value.Data, new MimeKit.ContentType("application", "pdf"));
+        }
+
         message.Body = bodyBuilder.ToMessageBody();
 
         using var client = new SmtpClient();
