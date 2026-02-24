@@ -11,7 +11,7 @@ public interface IQuoteService
 {
     Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int page, int pageSize);
     Task<QuoteResponse> GetQuoteByIdAsync(int id);
-    Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy);
+    Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy, int organizationId);
     Task<QuoteResponse> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy);
     Task DeleteQuoteAsync(int id);
     Task<string?> GetQuotePdfUrlAsync(int id);

@@ -194,9 +194,11 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
       </div>
     </header>
 
+    <!-- Sidebar + Content wrapper -->
+    <div class="flex pt-16 min-h-screen">
     <!-- Sidebar -->
     <aside
-      class="fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40"
+      class="flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-16 h-[calc(100vh-4rem)]"
       :class="uiStore.sidebarCollapsed ? 'w-16' : 'w-64'"
     >
       <div class="flex flex-col h-full">
@@ -258,18 +260,20 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
             </router-link>
 
             <router-link
-              to="/invoices"
+              to="/workflows"
               class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
               :class="[
                 uiStore.sidebarCollapsed ? 'justify-left' : '',
-                route.path === '/invoices' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
+                route.path.startsWith('/workflows') ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
               ]"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
               </svg>
-              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Invoices</span>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Workflows</span>
             </router-link>
+
+            <Separator class="my-3" />
 
             <router-link
               to="/quotes"
@@ -283,6 +287,20 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
               <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Quotes</span>
+            </router-link>
+
+            <router-link
+              to="/invoices"
+              class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              :class="[
+                uiStore.sidebarCollapsed ? 'justify-left' : '',
+                route.path === '/invoices' ? 'text-gray-900 bg-gray-100' : 'text-gray-700'
+              ]"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <span v-if="!uiStore.sidebarCollapsed" class="transition-opacity duration-200">Invoices</span>
             </router-link>
 
             <router-link
@@ -311,11 +329,11 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
 
     <!-- Main Content -->
     <main
-      class="transition-all duration-300 ease-in-out pt-16 pl-16"
-      :class="uiStore.sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'"
+      class="flex-1 min-w-0 transition-all duration-300 ease-in-out"
     >
       <slot />
     </main>
+    </div>
 
     <!-- New Invoice Modal -->
     <NewInvoiceModal

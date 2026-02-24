@@ -1,12 +1,15 @@
 using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Invoice.Responses;
+using InvoiceTrackerApi.DTOs.Workflow.Requests;
 using InvoiceTrackerApi.DTOs.Common;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
 using Shared.Database.Models;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
+using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Services.PdfStorage;
+using InvoiceTrackerApi.Services.Workflow;
 using InvoiceModel = Shared.Database.Models.Invoice;
 
 namespace InvoiceTrackerApi.Services.Invoice;
@@ -17,22 +20,28 @@ namespace InvoiceTrackerApi.Services.Invoice;
 public class InvoiceService : IInvoiceService
 {
     private readonly IInvoiceRepository _invoiceRepository;
+    private readonly IQuoteRepository _quoteRepository;
     private readonly IClientRepository _clientRepository;
     private readonly IKafkaProducerService _kafkaProducer;
     private readonly IPdfStorageService _pdfStorageService;
+    private readonly IWorkflowService _workflowService;
     private readonly ILogger<InvoiceService> _logger;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
+        IQuoteRepository quoteRepository,
         IClientRepository clientRepository,
         IKafkaProducerService kafkaProducer,
         IPdfStorageService pdfStorageService,
+        IWorkflowService workflowService,
         ILogger<InvoiceService> logger)
     {
         _invoiceRepository = invoiceRepository;
+        _quoteRepository = quoteRepository;
         _clientRepository = clientRepository;
         _kafkaProducer = kafkaProducer;
         _pdfStorageService = pdfStorageService;
+        _workflowService = workflowService;
         _logger = logger;
     }
 
@@ -72,7 +81,7 @@ public class InvoiceService : IInvoiceService
         return invoice.ToDto();
     }
 
-    public async Task<InvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, string modifiedBy)
+    public async Task<InvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, string modifiedBy, int organizationId)
     {
         // Business rule validation: Check if client exists
         var clientExists = await _clientRepository.ExistsAsync(request.ClientId);
@@ -91,6 +100,7 @@ public class InvoiceService : IInvoiceService
         {
             ClientId = request.ClientId,
             TemplateId = request.TemplateId,
+            OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
             ModifiedBy = modifiedBy,
             LastModifiedDate = DateTime.UtcNow,
@@ -107,8 +117,6 @@ public class InvoiceService : IInvoiceService
         _logger.LogInformation("Invoice {InvoiceId} created by {User}", createdInvoice.Id, modifiedBy);
 
         // Publish Kafka event for PDF generation
-        // Note: If Kafka publishing fails, we keep the invoice in the database
-        // The PDF can be regenerated later via a retry mechanism or manual intervention
         try
         {
             await _kafkaProducer.PublishInvoiceCreatedEventAsync(createdInvoice.Id);
@@ -116,12 +124,27 @@ public class InvoiceService : IInvoiceService
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Failed to publish Kafka event for Invoice {InvoiceId}. Invoice saved but PDF generation not triggered. Manual intervention may be required.",
+                "Failed to publish Kafka event for Invoice {InvoiceId}. Invoice saved but PDF generation not triggered.",
                 createdInvoice.Id);
-            
-            // We do NOT delete the invoice - it remains in the database without a PDF
-            // The PdfStorageKey will be null, indicating PDF generation is pending/failed
-            // This allows for retry mechanisms or manual PDF generation later
+        }
+
+        // Auto-create InvoiceFirst workflow
+        try
+        {
+            await _workflowService.CreateWorkflowAsync(new CreateWorkflowRequest
+            {
+                Type = WorkflowType.InvoiceFirst,
+                ClientId = request.ClientId,
+                InvoiceId = createdInvoice.Id
+            }, organizationId, modifiedBy);
+
+            _logger.LogInformation("Workflow auto-created for Invoice {InvoiceId}", createdInvoice.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to auto-create workflow for Invoice {InvoiceId}. Invoice exists but workflow was not created.",
+                createdInvoice.Id);
         }
 
         return createdInvoice.ToDto();
@@ -202,5 +225,59 @@ public class InvoiceService : IInvoiceService
         }
 
         return await _pdfStorageService.GetPresignedUrlAsync(invoice.PdfStorageKey);
+    }
+
+    public async Task<InvoiceResponse> ConvertQuoteToInvoiceAsync(ConvertQuoteToInvoiceRequest request, string modifiedBy, int organizationId)
+    {
+        // Fetch the quote with details
+        var quote = await _quoteRepository.GetByIdWithDetailsAsync(request.QuoteId);
+
+        if (quote == null)
+        {
+            throw new NotFoundException("Quote", request.QuoteId);
+        }
+
+        // Business rule: quote must have items
+        if (quote.Items == null || !quote.Items.Any())
+        {
+            throw new BusinessRuleException("Cannot convert a quote with no items to an invoice");
+        }
+
+        // Create invoice from quote data
+        var invoice = new InvoiceModel
+        {
+            ClientId = quote.ClientId,
+            TemplateId = request.TemplateId ?? quote.TemplateId,
+            OrganizationId = organizationId,
+            DateCreated = DateTime.UtcNow,
+            ModifiedBy = modifiedBy,
+            LastModifiedDate = DateTime.UtcNow,
+            Items = quote.Items.Select(item => new InvoiceItem
+            {
+                Description = item.Description,
+                Quantity = item.Quantity,
+                PricePerUnit = item.PricePerUnit
+            }).ToList()
+        };
+
+        var createdInvoice = await _invoiceRepository.AddAsync(invoice);
+
+        _logger.LogInformation(
+            "Invoice {InvoiceId} created from Quote {QuoteId} by {User}",
+            createdInvoice.Id, request.QuoteId, modifiedBy);
+
+        // Publish Kafka event for PDF generation
+        try
+        {
+            await _kafkaProducer.PublishInvoiceCreatedEventAsync(createdInvoice.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to publish Kafka event for Invoice {InvoiceId} (converted from Quote {QuoteId}). Invoice saved but PDF generation not triggered.",
+                createdInvoice.Id, request.QuoteId);
+        }
+
+        return createdInvoice.ToDto();
     }
 }

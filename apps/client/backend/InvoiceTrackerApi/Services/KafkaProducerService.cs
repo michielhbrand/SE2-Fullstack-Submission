@@ -9,6 +9,8 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly string _invoiceTopic = "invoice-created";
     private readonly string _quoteTopic = "quote-created";
+    private readonly string _quoteApprovalTopic = "quote-approval-requested";
+    private readonly string _invoiceGeneratedTopic = "invoice-generated";
 
     public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
     {
@@ -76,6 +78,66 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error publishing quote created event for QuoteId: {QuoteId}", quoteId);
+            throw;
+        }
+    }
+
+    public async Task PublishQuoteApprovalRequestedEventAsync(int quoteId, int workflowId)
+    {
+        try
+        {
+            var message = new
+            {
+                QuoteId = quoteId,
+                WorkflowId = workflowId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var messageJson = JsonSerializer.Serialize(message);
+
+            var result = await _producer.ProduceAsync(_quoteApprovalTopic, new Message<string, string>
+            {
+                Key = quoteId.ToString(),
+                Value = messageJson
+            });
+
+            _logger.LogInformation(
+                "Quote approval requested event published to Kafka. QuoteId: {QuoteId}, WorkflowId: {WorkflowId}, Topic: {Topic}",
+                quoteId, workflowId, _quoteApprovalTopic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing quote approval requested event for QuoteId: {QuoteId}", quoteId);
+            throw;
+        }
+    }
+
+    public async Task PublishInvoiceGeneratedEventAsync(int invoiceId, int workflowId)
+    {
+        try
+        {
+            var message = new
+            {
+                InvoiceId = invoiceId,
+                WorkflowId = workflowId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var messageJson = JsonSerializer.Serialize(message);
+
+            var result = await _producer.ProduceAsync(_invoiceGeneratedTopic, new Message<string, string>
+            {
+                Key = invoiceId.ToString(),
+                Value = messageJson
+            });
+
+            _logger.LogInformation(
+                "Invoice generated event published to Kafka. InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}, Topic: {Topic}",
+                invoiceId, workflowId, _invoiceGeneratedTopic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing invoice generated event for InvoiceId: {InvoiceId}", invoiceId);
             throw;
         }
     }

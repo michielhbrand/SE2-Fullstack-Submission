@@ -1,5 +1,6 @@
 using InvoiceTrackerApi.DTOs.Quote.Requests;
 using InvoiceTrackerApi.DTOs.Quote.Responses;
+using InvoiceTrackerApi.DTOs.Workflow.Requests;
 using InvoiceTrackerApi.DTOs.Common;
 using InvoiceTrackerApi.Exceptions;
 using InvoiceTrackerApi.Mappers;
@@ -7,6 +8,7 @@ using Shared.Database.Models;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Services.PdfStorage;
+using InvoiceTrackerApi.Services.Workflow;
 using QuoteModel = Shared.Database.Models.Quote;
 
 namespace InvoiceTrackerApi.Services.Quote;
@@ -20,6 +22,7 @@ public class QuoteService : IQuoteService
     private readonly IClientRepository _clientRepository;
     private readonly IKafkaProducerService _kafkaProducer;
     private readonly IPdfStorageService _pdfStorageService;
+    private readonly IWorkflowService _workflowService;
     private readonly ILogger<QuoteService> _logger;
 
     public QuoteService(
@@ -27,12 +30,14 @@ public class QuoteService : IQuoteService
         IClientRepository clientRepository,
         IKafkaProducerService kafkaProducer,
         IPdfStorageService pdfStorageService,
+        IWorkflowService workflowService,
         ILogger<QuoteService> logger)
     {
         _quoteRepository = quoteRepository;
         _clientRepository = clientRepository;
         _kafkaProducer = kafkaProducer;
         _pdfStorageService = pdfStorageService;
+        _workflowService = workflowService;
         _logger = logger;
     }
 
@@ -72,7 +77,7 @@ public class QuoteService : IQuoteService
         return quote.ToDto();
     }
 
-    public async Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy)
+    public async Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy, int organizationId)
     {
         // Business rule validation: Check if client exists
         var clientExists = await _clientRepository.ExistsAsync(request.ClientId);
@@ -91,6 +96,7 @@ public class QuoteService : IQuoteService
         {
             ClientId = request.ClientId,
             TemplateId = request.TemplateId,
+            OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
             ModifiedBy = modifiedBy,
             LastModifiedDate = DateTime.UtcNow,
@@ -107,8 +113,6 @@ public class QuoteService : IQuoteService
         _logger.LogInformation("Quote {QuoteId} created by {User}", createdQuote.Id, modifiedBy);
 
         // Publish Kafka event for PDF generation
-        // Note: If Kafka publishing fails, we keep the quote in the database
-        // The PDF can be regenerated later via a retry mechanism or manual intervention
         try
         {
             await _kafkaProducer.PublishQuoteCreatedEventAsync(createdQuote.Id);
@@ -116,12 +120,27 @@ public class QuoteService : IQuoteService
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Failed to publish Kafka event for Quote {QuoteId}. Quote saved but PDF generation not triggered. Manual intervention may be required.",
+                "Failed to publish Kafka event for Quote {QuoteId}. Quote saved but PDF generation not triggered.",
                 createdQuote.Id);
-            
-            // We do NOT delete the quote - it remains in the database without a PDF
-            // The PdfStorageKey will be null, indicating PDF generation is pending/failed
-            // This allows for retry mechanisms or manual PDF generation later
+        }
+
+        // Auto-create QuoteFirst workflow
+        try
+        {
+            await _workflowService.CreateWorkflowAsync(new CreateWorkflowRequest
+            {
+                Type = WorkflowType.QuoteFirst,
+                ClientId = request.ClientId,
+                QuoteId = createdQuote.Id
+            }, organizationId, modifiedBy);
+
+            _logger.LogInformation("Workflow auto-created for Quote {QuoteId}", createdQuote.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to auto-create workflow for Quote {QuoteId}. Quote exists but workflow was not created.",
+                createdQuote.Id);
         }
 
         return createdQuote.ToDto();

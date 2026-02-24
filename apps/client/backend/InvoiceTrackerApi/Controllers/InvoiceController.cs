@@ -97,7 +97,7 @@ public class InvoiceController : AuthenticatedControllerBase
     [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<InvoiceResponse>> CreateInvoice([FromBody] CreateInvoiceRequest request)
+    public async Task<ActionResult<InvoiceResponse>> CreateInvoice([FromBody] CreateInvoiceRequest request, [FromQuery] int organizationId)
     {
         if (!ModelState.IsValid)
         {
@@ -106,7 +106,7 @@ public class InvoiceController : AuthenticatedControllerBase
 
         var userEmail = GetCurrentUserIdentifier();
 
-        var invoice = await _invoiceService.CreateInvoiceAsync(request, userEmail);
+        var invoice = await _invoiceService.CreateInvoiceAsync(request, userEmail, organizationId);
 
         return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
     }
@@ -150,4 +150,47 @@ public class InvoiceController : AuthenticatedControllerBase
         await _invoiceService.DeleteInvoiceAsync(id);
         return NoContent();
     }
+
+    /// <summary>
+    /// Convert a quote into an invoice
+    /// </summary>
+    /// <param name="request">Quote conversion data</param>
+    /// <returns>Created invoice</returns>
+    [HttpPost("from-quote")]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<InvoiceResponse>> ConvertQuoteToInvoice([FromBody] CreateInvoiceFromQuoteRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var userEmail = GetCurrentUserIdentifier();
+
+        // For now, use organizationId from the request or default
+        // In a full implementation, this would come from the user's org membership
+        var invoice = await _invoiceService.ConvertQuoteToInvoiceAsync(
+            new DTOs.Invoice.Requests.ConvertQuoteToInvoiceRequest
+            {
+                QuoteId = request.QuoteId,
+                TemplateId = request.TemplateId
+            },
+            userEmail,
+            request.OrganizationId);
+
+        return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
+    }
+}
+
+/// <summary>
+/// Request body for the from-quote endpoint
+/// </summary>
+public class CreateInvoiceFromQuoteRequest
+{
+    public int QuoteId { get; set; }
+    public string? TemplateId { get; set; }
+    public int OrganizationId { get; set; }
 }

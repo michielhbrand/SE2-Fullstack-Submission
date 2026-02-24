@@ -22,6 +22,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<OrganizationMember> OrganizationMembers { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserDirectory> UserDirectory { get; set; }
+    public DbSet<Workflow> Workflows { get; set; }
+    public DbSet<WorkflowEvent> WorkflowEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +41,11 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasMany(e => e.Items);
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.OrganizationId);
         });
 
         // Configure InvoiceItem entity
@@ -52,6 +59,11 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasMany(e => e.Items);
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.OrganizationId);
         });
 
         // Configure QuoteItem entity
@@ -132,6 +144,56 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<BankAccount>(entity =>
         {
             entity.HasIndex(e => e.OrganizationId);
+        });
+
+        // Configure Workflow entity
+        modelBuilder.Entity<Workflow>(entity =>
+        {
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Quote)
+                .WithMany()
+                .HasForeignKey(e => e.QuoteId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Invoice)
+                .WithMany()
+                .HasForeignKey(e => e.InvoiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Client)
+                .WithMany()
+                .HasForeignKey(e => e.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.Events)
+                .WithOne(ev => ev.Workflow)
+                .HasForeignKey(ev => ev.WorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.QuoteId);
+            entity.HasIndex(e => e.InvoiceId);
+            entity.HasIndex(e => e.ClientId);
+        });
+
+        // Configure WorkflowEvent entity
+        modelBuilder.Entity<WorkflowEvent>(entity =>
+        {
+            entity.Property(e => e.OccurredAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.EventType).IsRequired().HasMaxLength(50);
+
+            entity.HasIndex(e => e.WorkflowId);
+            entity.HasIndex(e => e.OccurredAt);
         });
 
         // Configure UserDirectory entity

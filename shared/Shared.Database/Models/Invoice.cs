@@ -30,5 +30,11 @@ public class Invoice
     [MaxLength(255)]
     public string? TemplateId { get; set; }
 
+    [Required]
+    public int OrganizationId { get; set; }
+
+    [ForeignKey(nameof(OrganizationId))]
+    public Organization? Organization { get; set; }
+
     public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
 }

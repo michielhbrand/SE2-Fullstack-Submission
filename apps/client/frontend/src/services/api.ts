@@ -193,9 +193,14 @@ export const invoiceApi = {
 
 // Organization API functions
 export const organizationApi = {
-  // Get all organizations
+  // Get all organizations (admin)
   getOrganizations: async () => {
     return await client.organization_GetOrganizations()
+  },
+
+  // Get organizations for the current user
+  getMyOrganizations: async () => {
+    return await client.organizationMember_GetMyOrganizations()
   },
 
   // Get a specific organization
@@ -229,6 +234,54 @@ export const healthApi = {
   // Get health status
   getHealth: async () => {
     return await client.health_GetHealth()
+  }
+}
+
+// Workflow API functions
+export const workflowApi = {
+  // Get paginated list of workflows for an organization
+  getWorkflows: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
+    return await client.workflow_GetWorkflows(organizationId, page, pageSize)
+  },
+
+  // Get a specific workflow by ID with all events
+  getWorkflow: async (id: number) => {
+    return await client.workflow_GetWorkflow(id)
+  },
+
+  // Create a new workflow
+  createWorkflow: async (data: { type: string; clientId: number; quoteId?: number; invoiceId?: number }, organizationId: number) => {
+    return await client.workflow_CreateWorkflow(data, organizationId)
+  },
+
+  // Add an event to a workflow
+  addEvent: async (workflowId: number, data: { eventType: string; description?: string }) => {
+    return await client.workflow_AddEvent(workflowId, data)
+  },
+
+  // Cancel a workflow
+  cancelWorkflow: async (id: number) => {
+    return await client.workflow_CancelWorkflow(id)
+  },
+
+  // Terminate a workflow
+  terminateWorkflow: async (id: number) => {
+    return await client.workflow_TerminateWorkflow(id)
+  },
+
+  // Get workflow by quote ID
+  getWorkflowByQuote: async (quoteId: number) => {
+    return await client.workflow_GetWorkflowByQuote(quoteId)
+  },
+
+  // Get workflow by invoice ID
+  getWorkflowByInvoice: async (invoiceId: number) => {
+    return await client.workflow_GetWorkflowByInvoice(invoiceId)
+  },
+
+  // Convert quote to invoice
+  convertQuoteToInvoice: async (data: { quoteId: number; templateId?: string; organizationId: number }) => {
+    return await client.invoice_ConvertQuoteToInvoice(data)
   }
 }
 

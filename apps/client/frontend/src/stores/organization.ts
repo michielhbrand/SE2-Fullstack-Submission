@@ -78,20 +78,29 @@ export const useOrganizationStore = defineStore('organization', () => {
   async function fetchOrganizations(): Promise<OrganizationResponse[]> {
     try {
       isLoading.value = true
-      console.log('[Organization Store] Fetching organizations...')
       const fetchedOrgs = await organizationApi.getOrganizations()
-      console.log('[Organization Store] Received organizations:', fetchedOrgs)
       
       organizations.value = fetchedOrgs
       
-      const ids = fetchedOrgs
-        .map((org: OrganizationResponse) => org.id)
-        .filter((id: number | undefined): id is number => id !== undefined)
-      
-      console.log('[Organization Store] Extracted organization IDs:', ids)
       return fetchedOrgs
     } catch (error: any) {
-      console.error('[Organization Store] Error fetching organizations:', error)
+      const errorMessage = extractErrorMessage(error, 'Failed to fetch organizations')
+      toast.error(errorMessage)
+      organizations.value = []
+      return []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function fetchMyOrganizations(): Promise<OrganizationResponse[]> {
+    try {
+      isLoading.value = true
+      const fetchedOrgs = await organizationApi.getMyOrganizations()
+      
+      organizations.value = fetchedOrgs
+      return fetchedOrgs
+    } catch (error: any) {
       const errorMessage = extractErrorMessage(error, 'Failed to fetch organizations')
       toast.error(errorMessage)
       organizations.value = []
@@ -125,13 +134,18 @@ export const useOrganizationStore = defineStore('organization', () => {
     }
   }
 
-  async function initializeOrganizationContext(): Promise<boolean> {
+  async function initializeOrganizationContext(isAdmin: boolean = true): Promise<boolean> {
     try {
-      // Step 1: Fetch all organizations
-      const orgs = await fetchOrganizations()
+      // Step 1: Fetch organizations (admin gets all, regular user gets their own)
+      let orgs: OrganizationResponse[]
+      if (isAdmin) {
+        orgs = await fetchOrganizations()
+      } else {
+        orgs = await fetchMyOrganizations()
+      }
       
       if (orgs.length === 0) {
-        toast.error('No organizations found for this admin user')
+        console.warn('[Organization Store] No organizations found for user')
         return false
       }
       
@@ -144,7 +158,6 @@ export const useOrganizationStore = defineStore('organization', () => {
       
       // Use the full org data we already have instead of fetching again
       currentOrganization.value = firstOrg
-      console.log('[Organization Store] Initialized with organization:', firstOrg.name, '(ID:', firstOrg.id, ')')
       
       return true
     } catch (error: any) {
@@ -169,9 +182,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     
     // Fetch full details for the selected org
     const organization = await fetchOrganizationDetails(organizationId)
-    if (organization) {
-      console.log('[Organization Store] Switched to organization:', organization.name, '(ID:', organization.id, ')')
-    }
+
     return organization !== null
   }
 

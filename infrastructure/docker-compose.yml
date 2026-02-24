@@ -110,6 +110,15 @@ services:
     networks:
       - microservices-network
 
+  invoice-tracker-mailhog:
+    image: mailhog/mailhog:latest
+    container_name: invoice-tracker-mailhog
+    ports:
+      - "1025:1025"   # SMTP port
+      - "8025:8025"   # Web UI port
+    networks:
+      - microservices-network
+
 volumes:
   keycloak_data:
   postgres_data:

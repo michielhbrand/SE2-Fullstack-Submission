@@ -7,6 +7,8 @@ import Clients from '../views/Clients.vue'
 import Invoices from '../views/Invoices.vue'
 import Quotes from '../views/Quotes.vue'
 import Templates from '../views/Templates.vue'
+import Workflows from '../views/Workflows.vue'
+import WorkflowDetail from '../views/WorkflowDetail.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import Users from '../views/admin/Users.vue'
 import PaymentDetails from '../views/admin/PaymentDetails.vue'
@@ -85,6 +87,18 @@ const router = createRouter({
       path: '/templates',
       name: 'Templates',
       component: Templates,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/workflows',
+      name: 'Workflows',
+      component: Workflows,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/workflows/:id',
+      name: 'WorkflowDetail',
+      component: WorkflowDetail,
       meta: { requiresAuth: true },
     },
   ],

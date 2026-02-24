@@ -98,7 +98,7 @@ public class QuoteController : AuthenticatedControllerBase
     [ProducesResponseType(typeof(QuoteResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<QuoteResponse>> CreateQuote([FromBody] CreateQuoteRequest request)
+    public async Task<ActionResult<QuoteResponse>> CreateQuote([FromBody] CreateQuoteRequest request, [FromQuery] int organizationId)
     {
         if (!ModelState.IsValid)
         {
@@ -107,7 +107,7 @@ public class QuoteController : AuthenticatedControllerBase
 
         var userEmail = GetCurrentUserIdentifier();
 
-        var quote = await _quoteService.CreateQuoteAsync(request, userEmail);
+        var quote = await _quoteService.CreateQuoteAsync(request, userEmail, organizationId);
 
         return CreatedAtAction(nameof(GetQuote), new { id = quote.Id }, quote);
     }

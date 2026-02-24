@@ -215,15 +215,13 @@ export const useAuthStore = defineStore('auth', () => {
       // Set up automatic logout when token expires
       setupTokenExpirationCheck(response.expires_in)
 
-      // If admin login, fetch organization context
-      if (isAdminLogin) {
-        const organizationStore = useOrganizationStore()
-        const success = await organizationStore.initializeOrganizationContext()
-        
-        if (!success) {
-          toast.warning('Logged in successfully, but failed to load organization context')
-          // Continue with login even if organization context fails
-        }
+      // Fetch organization context for all users
+      const organizationStore = useOrganizationStore()
+      const success = await organizationStore.initializeOrganizationContext(isAdminLogin)
+      
+      if (!success) {
+        toast.warning('Logged in successfully, but failed to load organization context')
+        // Continue with login even if organization context fails
       }
 
       return true
