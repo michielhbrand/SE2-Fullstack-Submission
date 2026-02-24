@@ -38,5 +38,11 @@ public class Invoice
     [ForeignKey(nameof(OrganizationId))]
     public Organization? Organization { get; set; }
 
+    /// <summary>
+    /// The date by which the invoice must be paid
+    /// </summary>
+    [Required]
+    public DateTime PayByDate { get; set; }
+
     public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
 }

@@ -57,7 +57,7 @@ const paginationPages = computed(() => {
 
 const getTotalAmount = (invoice: any) => {
   return invoice.items?.reduce((sum: number, item: any) =>
-    sum + (item.amount * item.pricePerUnit), 0) || 0
+    sum + (item.total || (item.quantity * item.unitPrice) || 0), 0) || 0
 }
 
 const previewPdf = async (invoiceId: number) => {
@@ -113,6 +113,7 @@ const previewPdf = async (invoiceId: number) => {
                   <TableHead>Items</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Pay By</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>PDF</TableHead>
                 </TableRow>
@@ -124,6 +125,12 @@ const previewPdf = async (invoiceId: number) => {
                   <TableCell>{{ invoice.items?.length || 0 }} item(s)</TableCell>
                   <TableCell class="font-medium">R {{ getTotalAmount(invoice).toFixed(2) }}</TableCell>
                   <TableCell>{{ new Date(invoice.dateCreated).toLocaleDateString() }}</TableCell>
+                  <TableCell>
+                    <span v-if="invoice.payByDate" :class="new Date(invoice.payByDate) < new Date() ? 'text-red-600 font-medium' : ''">
+                      {{ new Date(invoice.payByDate).toLocaleDateString() }}
+                    </span>
+                    <span v-else class="text-gray-400">—</span>
+                  </TableCell>
                   <TableCell>
                     <Badge :variant="invoice.notificationSent ? 'default' : 'secondary'">
                       {{ invoice.notificationSent ? 'Sent' : 'Pending' }}
@@ -162,7 +169,7 @@ const previewPdf = async (invoiceId: number) => {
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="invoices.length === 0">
-                  <TableCell colspan="7" class="text-center text-gray-500">
+                  <TableCell colspan="8" class="text-center text-gray-500">
                     No invoices found
                   </TableCell>
                 </TableRow>

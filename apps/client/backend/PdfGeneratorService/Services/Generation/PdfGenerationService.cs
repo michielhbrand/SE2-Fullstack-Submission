@@ -223,6 +223,7 @@ public class PdfGenerationService : IPdfGenerationService
         return template
             .Replace("{InvoiceId}", invoice.Id.ToString())
             .Replace("{DateCreated}", invoice.DateCreated.ToString("MMMM dd, yyyy"))
+            .Replace("{PayByDate}", invoice.PayByDate.ToString("MMMM dd, yyyy"))
             .Replace("{ClientName}", invoice.Client?.Name ?? "")
             .Replace("{ClientSurname}", invoice.Client?.Surname ?? "")
             .Replace("{ClientAddress}", invoice.Client?.Address ?? "")

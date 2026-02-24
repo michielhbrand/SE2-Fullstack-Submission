@@ -102,6 +102,7 @@ public class InvoiceService : IInvoiceService
             TemplateId = request.TemplateId,
             OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
+            PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),
             ModifiedBy = modifiedBy,
             LastModifiedDate = DateTime.UtcNow,
             Items = request.Items.Select(item => new InvoiceItem
@@ -250,6 +251,7 @@ public class InvoiceService : IInvoiceService
             TemplateId = request.TemplateId ?? quote.TemplateId,
             OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
+            PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),
             ModifiedBy = modifiedBy,
             LastModifiedDate = DateTime.UtcNow,
             Items = quote.Items.Select(item => new InvoiceItem

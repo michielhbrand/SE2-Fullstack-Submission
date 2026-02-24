@@ -16,6 +16,7 @@ public class InvoiceResponse
     public string? ModifiedBy { get; set; }
     public string? PdfStorageKey { get; set; }
     public int? TemplateId { get; set; }
+    public DateTime PayByDate { get; set; }
     public List<InvoiceItemResponse> Items { get; set; } = new();
 }
 

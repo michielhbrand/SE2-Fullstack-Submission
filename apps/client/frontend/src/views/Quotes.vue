@@ -57,7 +57,7 @@ const paginationPages = computed(() => {
 
 const getTotalAmount = (quote: any) => {
   return quote.items?.reduce((sum: number, item: any) =>
-    sum + (item.amount * item.pricePerUnit), 0) || 0
+    sum + (item.total || (item.quantity * item.unitPrice) || 0), 0) || 0
 }
 
 const previewPdf = async (quoteId: number) => {

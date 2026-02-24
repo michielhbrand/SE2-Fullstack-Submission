@@ -34,7 +34,7 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'save', data: { clientId: number, items: InvoiceItem[], templateId?: number }): void
+  (e: 'save', data: { clientId: number, items: InvoiceItem[], templateId?: number, payByDays: number }): void
 }
 
 const props = defineProps<Props>()
@@ -44,6 +44,7 @@ const organizationStore = useOrganizationStore()
 
 const selectedClientId = ref<number | null>(null)
 const selectedTemplateId = ref<number | null>(null)
+const payByDays = ref<number>(30)
 const invoiceItems = ref<InvoiceItem[]>([{ description: '', amount: 1, pricePerUnit: 0 }])
 const formErrors = ref<Record<string, string>>({})
 const templates = ref<TemplateOption[]>([])
@@ -105,6 +106,10 @@ const validateForm = () => {
   if (!selectedTemplateId.value) {
     formErrors.value.template = 'Please select a template'
   }
+
+  if (!payByDays.value || payByDays.value < 1 || payByDays.value > 365) {
+    formErrors.value.payByDays = 'Pay by days must be between 1 and 365'
+  }
   
   invoiceItems.value.forEach((item, index) => {
     if (!item.description.trim()) {
@@ -130,7 +135,8 @@ const handleSave = () => {
   emit('save', {
     clientId: selectedClientId.value,
     items: invoiceItems.value,
-    templateId: selectedTemplateId.value ?? undefined
+    templateId: selectedTemplateId.value ?? undefined,
+    payByDays: payByDays.value
   })
 }
 
@@ -140,6 +146,13 @@ const handleClose = () => {
 
 const totalInvoiceAmount = computed(() => {
   return invoiceItems.value.reduce((sum, item) => sum + (item.amount * item.pricePerUnit), 0)
+})
+
+const computedPayByDate = computed(() => {
+  const days = payByDays.value || 30
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 })
 
 const filteredClients = computed(() => {
@@ -221,6 +234,7 @@ const handleClickOutside = (event: MouseEvent) => {
 const resetForm = () => {
   selectedClientId.value = null
   selectedTemplateId.value = templates.value.length > 0 ? templates.value[0]!.id : null
+  payByDays.value = 30
   invoiceItems.value = [{ description: '', amount: 1, pricePerUnit: 0 }]
   formErrors.value = {}
   templateSearchQuery.value = ''
@@ -398,6 +412,27 @@ onUnmounted(() => {
           <p v-if="!loadingTemplates && templates.length === 0" class="mt-1 text-sm text-yellow-600">
             No templates available. Please contact administrator.
           </p>
+        </div>
+
+        <!-- Pay By Days -->
+        <div>
+          <Label for="pay-by-days">Days until due *</Label>
+          <div class="flex items-center gap-3 mt-1">
+            <Input
+              id="pay-by-days"
+              v-model.number="payByDays"
+              type="number"
+              min="1"
+              max="365"
+              placeholder="30"
+              class="w-32"
+              :class="formErrors.payByDays ? 'border-red-500' : ''"
+            />
+            <span class="text-sm text-gray-500">
+              Due date: {{ computedPayByDate }}
+            </span>
+          </div>
+          <p v-if="formErrors.payByDays" class="mt-1 text-sm text-red-600">{{ formErrors.payByDays }}</p>
         </div>
 
         <!-- Invoice Items -->

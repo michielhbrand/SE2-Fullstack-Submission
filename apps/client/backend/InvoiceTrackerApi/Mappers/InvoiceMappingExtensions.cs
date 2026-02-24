@@ -22,6 +22,7 @@ public static class InvoiceMappingExtensions
             ModifiedBy = invoice.ModifiedBy,
             PdfStorageKey = invoice.PdfStorageKey,
             TemplateId = invoice.TemplateId,
+            PayByDate = invoice.PayByDate,
             Items = invoice.Items.Select(i => i.ToDto()).ToList()
         };
     }

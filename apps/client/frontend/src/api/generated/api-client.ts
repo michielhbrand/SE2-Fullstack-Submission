@@ -3567,6 +3567,7 @@ export interface InvoiceResponse {
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
     templateId?: number | null;
+    payByDate?: Date;
     items?: InvoiceItemResponse[];
 }
 
@@ -3586,6 +3587,7 @@ export interface PdfUrlResponse {
 export interface CreateInvoiceRequest {
     clientId: number;
     templateId?: number | null;
+    payByDays?: number;
     items: CreateInvoiceItemRequest[];
 }
 
@@ -3606,6 +3608,7 @@ export interface CreateInvoiceFromQuoteRequest {
     quoteId?: number;
     templateId?: number | null;
     organizationId?: number;
+    payByDays?: number;
 }
 
 export interface OrganizationResponse {
@@ -3837,6 +3840,7 @@ export interface CreateWorkflowRequest {
 export interface AddWorkflowEventRequest {
     eventType: string;
     description?: string | null;
+    payByDays?: number;
 }
 
 export class ApiException extends Error {

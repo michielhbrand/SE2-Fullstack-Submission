@@ -69,11 +69,12 @@ watch(() => uiStore.showNewQuoteModal, (newVal) => {
   if (newVal) fetchClients()
 })
 
-const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: number }) => {
+const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: number, payByDays: number }) => {
   try {
     const invoice = {
       clientId: data.clientId,
       templateId: data.templateId,
+      payByDays: data.payByDays,
       items: data.items.map(item => ({
         description: item.description,
         quantity: item.amount,
@@ -81,7 +82,7 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
       }))
     }
 
-    await invoiceApi.createInvoice(invoice)
+    await invoiceApi.createInvoice(invoice, organizationStore.currentOrganizationId ?? undefined)
     
     uiStore.closeNewInvoiceModal()
     uiStore.showSuccess('Invoice created successfully')

@@ -159,7 +159,8 @@ public class InvoiceController : AuthenticatedControllerBase
             new DTOs.Invoice.Requests.ConvertQuoteToInvoiceRequest
             {
                 QuoteId = request.QuoteId,
-                TemplateId = request.TemplateId
+                TemplateId = request.TemplateId,
+                PayByDays = request.PayByDays
             },
             userEmail,
             request.OrganizationId);
@@ -176,4 +177,5 @@ public class CreateInvoiceFromQuoteRequest
     public int QuoteId { get; set; }
     public int? TemplateId { get; set; }
     public int OrganizationId { get; set; }
+    public int PayByDays { get; set; } = 30;
 }

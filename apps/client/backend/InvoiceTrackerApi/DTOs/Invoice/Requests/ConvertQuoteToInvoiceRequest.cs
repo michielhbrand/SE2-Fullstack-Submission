@@ -17,4 +17,10 @@ public class ConvertQuoteToInvoiceRequest
     /// Optional template ID for the invoice PDF
     /// </summary>
     public int? TemplateId { get; set; }
+
+    /// <summary>
+    /// Number of days from today until the invoice is due. Defaults to 30 if not specified.
+    /// </summary>
+    [Range(1, 365, ErrorMessage = "Pay by days must be between 1 and 365")]
+    public int PayByDays { get; set; } = 30;
 }

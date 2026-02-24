@@ -186,8 +186,8 @@ export const invoiceApi = {
   },
 
   // Create a new invoice
-  createInvoice: async (invoiceData: any) => {
-    return await client.invoice_CreateInvoice(invoiceData)
+  createInvoice: async (invoiceData: any, organizationId?: number) => {
+    return await client.invoice_CreateInvoice(invoiceData, organizationId)
   },
 
   // Update an invoice
@@ -270,7 +270,7 @@ export const workflowApi = {
   },
 
   // Add an event to a workflow
-  addEvent: async (workflowId: number, data: { eventType: string; description?: string }) => {
+  addEvent: async (workflowId: number, data: { eventType: string; description?: string; payByDays?: number }) => {
     return await client.workflow_AddEvent(workflowId, data)
   },
 

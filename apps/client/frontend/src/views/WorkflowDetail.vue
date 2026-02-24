@@ -6,6 +6,7 @@ import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
 import WorkflowEventModal from '../components/modals/WorkflowEventModal.vue'
+import ConvertToInvoiceModal from '../components/modals/ConvertToInvoiceModal.vue'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -22,6 +23,9 @@ const selectedEventType = ref('')
 
 // Cancel confirmation dialog state
 const showCancelDialog = ref(false)
+
+// Convert to invoice dialog state
+const showConvertToInvoiceDialog = ref(false)
 
 const workflowId = computed(() => Number(route.params.id))
 
@@ -117,6 +121,12 @@ const canCancel = computed(() => {
 
 // Execute a workflow action
 const executeAction = async (eventType: string, requiresDescription = false) => {
+  // Intercept ConvertedToInvoice to show pay-by-days dialog
+  if (eventType === 'ConvertedToInvoice') {
+    showConvertToInvoiceDialog.value = true
+    return
+  }
+
   if (requiresDescription) {
     selectedEventType.value = eventType
     showEventDialog.value = true
@@ -148,6 +158,24 @@ const submitEventWithDescription = async (description: string) => {
   } catch (error: any) {
     console.error('Failed to execute action:', error)
     const message = error.response?.data?.message || error.response?.data?.Message || 'Action failed'
+    toast.error(message)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmConvertToInvoice = async (payByDays: number) => {
+  actionLoading.value = true
+  showConvertToInvoiceDialog.value = false
+  try {
+    workflow.value = await workflowApi.addEvent(workflowId.value, {
+      eventType: 'ConvertedToInvoice',
+      payByDays,
+    })
+    toast.success('Quote converted to invoice successfully')
+  } catch (error: any) {
+    console.error('Failed to convert to invoice:', error)
+    const message = error.response?.data?.message || error.response?.data?.Message || 'Failed to convert to invoice'
     toast.error(message)
   } finally {
     actionLoading.value = false
@@ -504,6 +532,14 @@ const formatRelativeTime = (dateStr: string): string => {
       :loading="actionLoading"
       @close="showCancelDialog = false"
       @confirm="confirmCancelWorkflow"
+    />
+
+    <!-- Convert to invoice dialog -->
+    <ConvertToInvoiceModal
+      :show="showConvertToInvoiceDialog"
+      :loading="actionLoading"
+      @close="showConvertToInvoiceDialog = false"
+      @confirm="confirmConvertToInvoice"
     />
   </Layout>
 </template>

@@ -344,7 +344,8 @@ public class WorkflowService : IWorkflowService
                     var invoiceResult = await invoiceService.ConvertQuoteToInvoiceAsync(
                         new ConvertQuoteToInvoiceRequest
                         {
-                            QuoteId = workflow.QuoteId.Value
+                            QuoteId = workflow.QuoteId.Value,
+                            PayByDays = request.PayByDays
                         },
                         userId,
                         workflow.OrganizationId);

@@ -19,4 +19,10 @@ public class AddWorkflowEventRequest
     /// </summary>
     [MaxLength(1000)]
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Number of days until invoice is due (only used for ConvertedToInvoice event). Defaults to 30.
+    /// </summary>
+    [Range(1, 365, ErrorMessage = "Pay by days must be between 1 and 365")]
+    public int PayByDays { get; set; } = 30;
 }
