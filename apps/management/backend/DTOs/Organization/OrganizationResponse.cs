@@ -1,3 +1,5 @@
+using ManagementApi.DTOs.PaymentPlan;
+
 namespace ManagementApi.DTOs.Organization;
 
 public record OrganizationResponse
@@ -11,6 +13,7 @@ public record OrganizationResponse
     public string? Website { get; init; }
     public bool Active { get; init; }
     public AddressResponse? Address { get; init; }
+    public PaymentPlanResponse? PaymentPlan { get; init; }
     public int MemberCount { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }

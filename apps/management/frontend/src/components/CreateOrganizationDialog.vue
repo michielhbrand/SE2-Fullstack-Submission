@@ -5,8 +5,9 @@ import Input from "./ui/Input.vue";
 import Label from "./ui/Label.vue";
 import Button from "./ui/Button.vue";
 import { organizationService } from "../services/organizations";
+import { paymentPlanService } from "../services/paymentPlans";
 import { toast } from "vue-sonner";
-import type { CreateOrganizationRequest } from "../api/generated/api-client";
+import type { CreateOrganizationRequest, PaymentPlanResponse } from "../api/generated/api-client";
 import { getErrorMessage } from "../lib/error-utils";
 
 interface Props {
@@ -23,6 +24,19 @@ const emit = defineEmits<{
 }>();
 
 const isSubmitting = ref(false);
+const paymentPlans = ref<PaymentPlanResponse[]>([]);
+const selectedPlanId = ref<number>(1);
+
+const fetchPlans = async () => {
+  try {
+    paymentPlans.value = await paymentPlanService.getAll();
+    if (paymentPlans.value.length > 0 && !selectedPlanId.value) {
+      selectedPlanId.value = paymentPlans.value[0]!.Id!;
+    }
+  } catch {
+    // Plans will fall back to default (Basic = 1)
+  }
+};
 
 const formData = reactive<CreateOrganizationRequest>({
   Name: "",
@@ -77,7 +91,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true;
 
   try {
-    await organizationService.create(formData);
+    await organizationService.create({ ...formData, PaymentPlanId: selectedPlanId.value });
     toast.success("Organization created successfully");
     emit("success");
     emit("update:open", false);
@@ -90,12 +104,13 @@ const handleSubmit = async () => {
   }
 };
 
-// Reset form when dialog is opened
+// Reset form and fetch plans when dialog is opened
 watch(
   () => props.open,
   (newValue) => {
     if (newValue) {
       resetForm();
+      fetchPlans();
     }
   },
 );
@@ -190,6 +205,37 @@ watch(
               :disabled="isSubmitting"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Payment Plan Section -->
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">
+          Payment Plan <span class="text-red-500">*</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label
+            v-for="plan in paymentPlans"
+            :key="plan.Id"
+            :class="[
+              'flex flex-col gap-1 border rounded-lg p-4 cursor-pointer transition-colors',
+              selectedPlanId === plan.Id
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-400',
+            ]"
+          >
+            <input
+              type="radio"
+              :value="plan.Id"
+              v-model="selectedPlanId"
+              class="sr-only"
+            />
+            <span class="font-semibold text-gray-900">{{ plan.Name }}</span>
+            <span class="text-sm text-gray-600">
+              {{ plan.MaxUsers === -1 ? 'Unlimited users' : `Up to ${plan.MaxUsers} users` }}
+            </span>
+            <span class="text-sm font-medium text-blue-700">R{{ plan.MonthlyCostRand?.toLocaleString('en-ZA') }}/mo</span>
+          </label>
         </div>
       </div>
 

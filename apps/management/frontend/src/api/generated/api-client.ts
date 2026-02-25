@@ -532,6 +532,151 @@ export class ManagementApiClient {
         return Promise.resolve<void>(null as any);
     }
 
+    getPaymentPlans( cancelToken?: CancelToken): Promise<PaymentPlanResponse[]> {
+        let url_ = this.baseUrl + "/api/v1/payment-plans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPaymentPlans(_response);
+        });
+    }
+
+    protected processGetPaymentPlans(response: AxiosResponse): Promise<PaymentPlanResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PaymentPlanResponse[]>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PaymentPlanResponse[]>(null as any);
+    }
+
+    updatePaymentPlan(id: number, request: UpdatePaymentPlanRequest, cancelToken?: CancelToken): Promise<PaymentPlanResponse> {
+        let url_ = this.baseUrl + "/api/v1/payment-plans/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdatePaymentPlan(_response);
+        });
+    }
+
+    protected processUpdatePaymentPlan(response: AxiosResponse): Promise<PaymentPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PaymentPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PaymentPlanResponse>(null as any);
+    }
+
     createUser(request: CreateUserRequest, cancelToken?: CancelToken): Promise<UserResponse> {
         let url_ = this.baseUrl + "/api/users";
         url_ = url_.replace(/[?&]$/, "");
@@ -1249,6 +1394,7 @@ export interface OrganizationResponse {
     Website?: string | null;
     Active?: boolean;
     Address?: AddressResponse | null;
+    PaymentPlan?: PaymentPlanResponse | null;
     MemberCount?: number;
     CreatedAt?: Date;
     UpdatedAt?: Date | null;
@@ -1263,6 +1409,13 @@ export interface AddressResponse {
     Country?: string | null;
 }
 
+export interface PaymentPlanResponse {
+    Id?: number;
+    Name?: string;
+    MaxUsers?: number;
+    MonthlyCostRand?: number;
+}
+
 export interface CreateOrganizationRequest {
     Name?: string;
     TaxNumber?: string | null;
@@ -1271,6 +1424,7 @@ export interface CreateOrganizationRequest {
     Phone?: string | null;
     Website?: string | null;
     Address?: CreateAddressRequest | null;
+    PaymentPlanId?: number | null;
 }
 
 export interface CreateAddressRequest {
@@ -1290,6 +1444,11 @@ export interface UpdateOrganizationRequest {
     Website?: string | null;
     Active?: boolean | null;
     Address?: CreateAddressRequest | null;
+    PaymentPlanId?: number | null;
+}
+
+export interface UpdatePaymentPlanRequest {
+    MonthlyCostRand?: number | null;
 }
 
 export interface UserResponse {

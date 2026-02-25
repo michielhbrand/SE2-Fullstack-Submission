@@ -59,6 +59,14 @@ public static class UpdateOrganizationEndpoint
             org.Website = request.Website;
         if (request.Active.HasValue)
             org.Active = request.Active.Value;
+
+        if (request.PaymentPlanId.HasValue)
+        {
+            var planExists = await db.PaymentPlans.AnyAsync(p => p.Id == request.PaymentPlanId.Value, cancellationToken);
+            if (!planExists)
+                throw new NotFoundException("PaymentPlan", request.PaymentPlanId.Value);
+            org.PaymentPlanId = request.PaymentPlanId.Value;
+        }
         
         if (request.Address != null)
         {

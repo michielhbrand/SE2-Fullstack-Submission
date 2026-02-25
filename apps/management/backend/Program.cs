@@ -1,6 +1,7 @@
 using FluentValidation;
 using ManagementApi.Endpoints.Auth;
 using ManagementApi.Endpoints.Organization;
+using ManagementApi.Endpoints.PaymentPlan;
 using ManagementApi.Endpoints.User;
 using ManagementApi.Exceptions;
 using ManagementApi.Extensions;
@@ -61,6 +62,7 @@ app.MapHealthChecks("/health");
 
 app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
+app.MapPaymentPlanEndpoints();
 app.MapUserEndpoints();
 
 app.Run();

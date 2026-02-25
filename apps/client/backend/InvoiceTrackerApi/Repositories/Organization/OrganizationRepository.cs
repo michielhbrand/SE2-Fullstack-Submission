@@ -19,6 +19,7 @@ public class OrganizationRepository : Repository<Shared.Database.Models.Organiza
         {
             return await _dbSet
                 .Include(o => o.Address)
+                .Include(o => o.PaymentPlan)
                 .ToListAsync();
         }
         catch (Exception ex) when (ex is not AppException)
@@ -33,6 +34,7 @@ public class OrganizationRepository : Repository<Shared.Database.Models.Organiza
         {
             return await _dbSet
                 .Include(o => o.Address)
+                .Include(o => o.PaymentPlan)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
         catch (Exception ex) when (ex is not AppException)

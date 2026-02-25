@@ -1,4 +1,5 @@
 using ManagementApi.DTOs.Organization;
+using ManagementApi.DTOs.PaymentPlan;
 using Shared.Database.Models;
 
 namespace ManagementApi.Mappers;
@@ -26,6 +27,13 @@ public static class OrganizationMapper
             Website = organization.Website,
             Active = organization.Active,
             Address = organization.Address?.ToResponse(),
+            PaymentPlan = organization.PaymentPlan == null ? null : new PaymentPlanResponse
+            {
+                Id = organization.PaymentPlan.Id,
+                Name = organization.PaymentPlan.Name,
+                MaxUsers = organization.PaymentPlan.MaxUsers,
+                MonthlyCostRand = organization.PaymentPlan.MonthlyCostRand
+            },
             MemberCount = organization.Members?.Count ?? 0,
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt

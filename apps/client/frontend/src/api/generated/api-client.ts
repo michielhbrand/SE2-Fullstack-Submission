@@ -3851,6 +3851,8 @@ export interface OrganizationResponse {
     id?: number;
     name?: string;
     vatRate?: number;
+    paymentPlanName?: string | null;
+    paymentPlanMaxUsers?: number | null;
     address?: AddressResponse;
     bankAccounts?: BankAccountResponse[];
 }

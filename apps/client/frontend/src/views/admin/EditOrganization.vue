@@ -137,6 +137,24 @@ const handleReset = () => {
           <p class="mt-1 text-xs text-gray-500">Organization name cannot be changed</p>
         </div>
 
+        <!-- Payment Plan (read-only) -->
+        <div class="border-t pt-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Subscription Plan</h3>
+          <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm text-gray-500">Current Plan</p>
+              <p class="text-base font-semibold text-gray-900">{{ organization.paymentPlanName ?? 'Basic' }}</p>
+            </div>
+            <div class="border-l pl-4">
+              <p class="text-sm text-gray-500">User Limit</p>
+              <p class="text-base font-semibold text-gray-900">
+                {{ organization.paymentPlanMaxUsers === -1 ? 'Unlimited' : (organization.paymentPlanMaxUsers ?? 5) }}
+              </p>
+            </div>
+            <p class="ml-auto text-xs text-gray-400">Contact your system administrator to change your plan</p>
+          </div>
+        </div>
+
         <!-- VAT Rate Section -->
         <div class="border-t pt-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Tax Settings</h3>

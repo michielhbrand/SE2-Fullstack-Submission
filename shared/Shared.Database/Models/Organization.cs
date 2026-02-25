@@ -24,8 +24,13 @@ public class Organization
     /// </summary>
     public decimal VatRate { get; set; } = 15.00m;
     
+    public int PaymentPlanId { get; set; } = 1;
+
+    [ForeignKey(nameof(PaymentPlanId))]
+    public PaymentPlan? PaymentPlan { get; set; }
+
     public int? AddressId { get; set; }
-    
+
     [ForeignKey(nameof(AddressId))]
     public Address? Address { get; set; }
     

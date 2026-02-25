@@ -17,6 +17,9 @@ public record CreateOrganizationRequest
     public string? Phone { get; init; }
     public string? Website { get; init; }
     public CreateAddressRequest? Address { get; init; }
+
+    /// <summary>Payment plan ID to assign. Defaults to 1 (Basic) if not provided.</summary>
+    public int? PaymentPlanId { get; init; }
 }
 
 public record CreateAddressRequest
@@ -38,4 +41,7 @@ public record UpdateOrganizationRequest
     public string? Website { get; init; }
     public bool? Active { get; init; }
     public CreateAddressRequest? Address { get; init; }
+
+    /// <summary>Payment plan ID to assign to this organization.</summary>
+    public int? PaymentPlanId { get; init; }
 }

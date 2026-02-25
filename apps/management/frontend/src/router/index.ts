@@ -4,6 +4,7 @@ import Login from "../views/Login.vue";
 import Dashboard from "../views/Dashboard.vue";
 import Organizations from "../views/Organizations.vue";
 import OrganizationDetails from "../views/OrganizationDetails.vue";
+import PaymentPlans from "../views/PaymentPlans.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +35,12 @@ const router = createRouter({
       path: "/organizations/:id",
       name: "OrganizationDetails",
       component: OrganizationDetails,
+      meta: { requiresAuth: true, requiresSystemAdmin: true },
+    },
+    {
+      path: "/payment-plans",
+      name: "PaymentPlans",
+      component: PaymentPlans,
       meta: { requiresAuth: true, requiresSystemAdmin: true },
     },
   ],

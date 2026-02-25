@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserDirectory> UserDirectory { get; set; }
     public DbSet<Workflow> Workflows { get; set; }
     public DbSet<WorkflowEvent> WorkflowEvents { get; set; }
+    public DbSet<PaymentPlan> PaymentPlans { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -101,9 +102,25 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.OrganizationId);
         });
 
+        // Configure PaymentPlan entity and seed default plans
+        modelBuilder.Entity<PaymentPlan>(entity =>
+        {
+            entity.Property(e => e.MonthlyCostRand).HasPrecision(10, 2);
+            entity.HasData(
+                new PaymentPlan { Id = 1, Name = "Basic",    MaxUsers = 5,  MonthlyCostRand = 500m  },
+                new PaymentPlan { Id = 2, Name = "Advanced", MaxUsers = 15, MonthlyCostRand = 2500m },
+                new PaymentPlan { Id = 3, Name = "Ultimate", MaxUsers = -1, MonthlyCostRand = 4000m }
+            );
+        });
+
         // Configure Organization entity
         modelBuilder.Entity<Organization>(entity =>
         {
+            entity.HasOne(e => e.PaymentPlan)
+                .WithMany()
+                .HasForeignKey(e => e.PaymentPlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(e => e.Address)
                 .WithMany()
                 .HasForeignKey(e => e.AddressId)

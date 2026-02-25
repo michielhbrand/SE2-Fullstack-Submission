@@ -247,6 +247,18 @@ public class OrganizationService : IOrganizationService
             throw new ConflictException($"User {userId} is already a member of this organization");
         }
 
+        // Enforce payment plan user limit
+        var plan = await _context.PaymentPlans.FindAsync(organization.PaymentPlanId);
+        if (plan != null && plan.MaxUsers != -1)
+        {
+            var currentMembers = await _memberRepository.GetMembersByOrganizationIdAsync(organizationId);
+            if (currentMembers.Count() >= plan.MaxUsers)
+            {
+                throw new BusinessRuleException(
+                    $"Your {plan.Name} plan allows a maximum of {plan.MaxUsers} users. Upgrade your plan to add more members.");
+            }
+        }
+
         // Add member
         var member = new Shared.Database.Models.OrganizationMember
         {

@@ -34,6 +34,7 @@ public static class GetOrganizationByIdEndpoint
         var org = await db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
+            .Include(o => o.PaymentPlan)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         if (org == null)

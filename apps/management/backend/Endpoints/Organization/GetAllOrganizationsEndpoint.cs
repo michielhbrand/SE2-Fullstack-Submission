@@ -34,6 +34,7 @@ public static class GetAllOrganizationsEndpoint
         var queryable = db.Organizations
             .Include(o => o.Address)
             .Include(o => o.Members)
+            .Include(o => o.PaymentPlan)
             .AsQueryable();
 
         // Apply search filter

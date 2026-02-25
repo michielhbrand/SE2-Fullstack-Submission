@@ -1,8 +1,10 @@
 using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
+using ManagementApi.Exceptions.Application;
 using ManagementApi.Mappers;
 using ManagementApi.Filters;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace ManagementApi.Endpoints.Organization;
 
@@ -31,6 +33,12 @@ public static class CreateOrganizationEndpoint
         var logger = loggerFactory.CreateLogger("CreateOrganization");
         logger.LogInformation("Creating new organization: {OrganizationName}", request.Name);
 
+        // Resolve payment plan (default to Basic / Id=1)
+        var planId = request.PaymentPlanId ?? 1;
+        var planExists = await db.PaymentPlans.AnyAsync(p => p.Id == planId, cancellationToken);
+        if (!planExists)
+            throw new NotFoundException("PaymentPlan", planId);
+
         var organization = new Shared.Database.Models.Organization
         {
             Name = request.Name,
@@ -39,6 +47,7 @@ public static class CreateOrganizationEndpoint
             Email = request.Email,
             Phone = request.Phone,
             Website = request.Website,
+            PaymentPlanId = planId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -60,6 +69,9 @@ public static class CreateOrganizationEndpoint
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Successfully created organization with ID: {OrganizationId}", organization.Id);
+
+        // Reload with PaymentPlan navigation property for the response
+        await db.Entry(organization).Reference(o => o.PaymentPlan).LoadAsync(cancellationToken);
 
         var response = organization.ToResponse();
 

@@ -155,6 +155,9 @@ const getSortIcon = (column: SortColumn) => {
                 </svg>
               </div>
             </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Plan
+            </th>
             <th
               class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
@@ -231,6 +234,21 @@ const getSortIcon = (column: SortColumn) => {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ new Date(org.CreatedAt!).toLocaleDateString() }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span
+                v-if="org.PaymentPlan"
+                :class="[
+                  'px-2 py-1 inline-flex text-xs font-semibold rounded-full border',
+                  org.PaymentPlan.Name === 'Basic'    ? 'bg-gray-100 text-gray-800 border-gray-300'  :
+                  org.PaymentPlan.Name === 'Advanced' ? 'bg-blue-100 text-blue-800 border-blue-300'  :
+                  org.PaymentPlan.Name === 'Ultimate' ? 'bg-yellow-100 text-yellow-800 border-yellow-400' :
+                  'bg-gray-100 text-gray-700 border-gray-300'
+                ]"
+              >
+                {{ org.PaymentPlan.Name }}
+              </span>
+              <span v-else class="text-gray-400 text-xs">—</span>
             </td>
             <td
               class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
