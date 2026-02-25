@@ -5,14 +5,11 @@ import Dashboard from "../views/Dashboard.vue";
 import Organizations from "../views/Organizations.vue";
 import OrganizationDetails from "../views/OrganizationDetails.vue";
 import PaymentPlans from "../views/PaymentPlans.vue";
+import AppLayout from "../components/AppLayout.vue";
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: "/",
-      redirect: "/dashboard",
-    },
     {
       path: "/login",
       name: "Login",
@@ -20,28 +17,32 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
-      path: "/dashboard",
-      name: "Dashboard",
-      component: Dashboard,
+      path: "/",
+      component: AppLayout,
+      redirect: "/dashboard",
       meta: { requiresAuth: true, requiresSystemAdmin: true },
-    },
-    {
-      path: "/organizations",
-      name: "Organizations",
-      component: Organizations,
-      meta: { requiresAuth: true, requiresSystemAdmin: true },
-    },
-    {
-      path: "/organizations/:id",
-      name: "OrganizationDetails",
-      component: OrganizationDetails,
-      meta: { requiresAuth: true, requiresSystemAdmin: true },
-    },
-    {
-      path: "/payment-plans",
-      name: "PaymentPlans",
-      component: PaymentPlans,
-      meta: { requiresAuth: true, requiresSystemAdmin: true },
+      children: [
+        {
+          path: "dashboard",
+          name: "Dashboard",
+          component: Dashboard,
+        },
+        {
+          path: "organizations",
+          name: "Organizations",
+          component: Organizations,
+        },
+        {
+          path: "organizations/:id",
+          name: "OrganizationDetails",
+          component: OrganizationDetails,
+        },
+        {
+          path: "payment-plans",
+          name: "PaymentPlans",
+          component: PaymentPlans,
+        },
+      ],
     },
   ],
 });

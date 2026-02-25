@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 import Button from "../components/ui/Button.vue";
 import Card from "../components/ui/Card.vue";
@@ -9,7 +8,6 @@ import { paymentPlanService } from "../services/paymentPlans";
 import type { PaymentPlanResponse } from "../api/generated/api-client";
 import { getErrorMessage } from "../lib/error-utils";
 
-const router = useRouter();
 const plans = ref<PaymentPlanResponse[]>([]);
 const isLoading = ref(false);
 const editingId = ref<number | null>(null);
@@ -44,7 +42,7 @@ const saveCost = async (plan: PaymentPlanResponse) => {
   isSaving.value = true;
   try {
     await paymentPlanService.updateCost(plan.Id!, editCost.value);
-    toast.success(`${plan.Name} plan cost updated to R${editCost.value}`);
+    toast.success(`${plan.Name} plan updated to R${editCost.value}`);
     editingId.value = null;
     await fetchPlans();
   } catch (error) {
@@ -57,12 +55,16 @@ const saveCost = async (plan: PaymentPlanResponse) => {
 const userLimitLabel = (maxUsers: number | undefined) =>
   maxUsers === -1 ? "Unlimited" : `${maxUsers} users`;
 
-const planColor = (name: string | undefined) => {
+const planBadgeClass = (name: string | undefined) => {
   switch (name?.toLowerCase()) {
-    case "basic":    return "bg-gray-100 text-gray-800 border-gray-300";
-    case "advanced": return "bg-blue-100 text-blue-800 border-blue-300";
-    case "ultimate": return "bg-yellow-100 text-yellow-800 border-yellow-400";
-    default:         return "bg-gray-100 text-gray-800 border-gray-300";
+    case "basic":
+      return "bg-gray-100 text-gray-700 border border-gray-200";
+    case "advanced":
+      return "bg-blue-100 text-blue-700 border border-blue-200";
+    case "ultimate":
+      return "bg-amber-100 text-amber-700 border border-amber-200";
+    default:
+      return "bg-gray-100 text-gray-700 border border-gray-200";
   }
 };
 
@@ -70,46 +72,43 @@ onMounted(fetchPlans);
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center gap-4">
-            <Button variant="outline" size="sm" @click="router.push('/dashboard')">
-              <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Button>
-            <h1 class="text-2xl font-bold text-gray-900">Payment Plans</h1>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <p class="text-gray-600 mb-6">
-        Manage the monthly costs for each subscription plan. User limits are system-defined and cannot be changed here.
+  <div class="min-h-full bg-gray-50">
+    <!-- Page header -->
+    <div class="bg-white border-b border-gray-200 px-8 py-6">
+      <h1 class="text-2xl font-bold text-gray-900">Payment Plans</h1>
+      <p class="text-sm text-gray-500 mt-0.5">
+        Manage subscription tier pricing
       </p>
+    </div>
 
+    <div class="px-8 py-6 max-w-3xl">
       <!-- Loading -->
-      <div v-if="isLoading" class="flex justify-center py-12">
-        <svg class="animate-spin h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
+      <div v-if="isLoading" class="flex items-center justify-center py-16">
+        <div
+          class="h-7 w-7 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"
+        />
       </div>
 
-      <!-- Plans table -->
       <Card v-else class="overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="text-left px-6 py-3 font-semibold text-gray-700">Plan</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-700">User Limit</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-700">Monthly Cost (R)</th>
-              <th class="px-6 py-3"></th>
+              <th
+                class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
+              >
+                Plan
+              </th>
+              <th
+                class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
+              >
+                User Limit
+              </th>
+              <th
+                class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
+              >
+                Monthly Cost (R)
+              </th>
+              <th class="px-6 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -119,36 +118,53 @@ onMounted(fetchPlans);
               class="border-b border-gray-100 last:border-0"
             >
               <td class="px-6 py-4">
-                <span :class="['inline-block px-3 py-1 rounded-full text-xs font-semibold border', planColor(plan.Name)]">
+                <span
+                  :class="[
+                    'inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold',
+                    planBadgeClass(plan.Name),
+                  ]"
+                >
                   {{ plan.Name }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-gray-700">{{ userLimitLabel(plan.MaxUsers) }}</td>
+              <td class="px-6 py-4 text-gray-600">
+                {{ userLimitLabel(plan.MaxUsers) }}
+              </td>
               <td class="px-6 py-4">
-                <div v-if="editingId === plan.Id" class="flex items-center gap-2">
+                <div
+                  v-if="editingId === plan.Id"
+                  class="flex items-center gap-2"
+                >
                   <Input
                     v-model.number="editCost"
                     type="number"
                     min="0"
                     step="50"
-                    class="w-32"
+                    class="w-28"
                     @keyup.enter="saveCost(plan)"
                     @keyup.escape="cancelEdit"
                   />
-                  <Button size="sm" @click="saveCost(plan)" :disabled="isSaving">
+                  <Button size="sm" :disabled="isSaving" @click="saveCost(plan)">
                     {{ isSaving ? "Saving..." : "Save" }}
                   </Button>
-                  <Button size="sm" variant="outline" @click="cancelEdit" :disabled="isSaving">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    :disabled="isSaving"
+                    @click="cancelEdit"
+                  >
                     Cancel
                   </Button>
                 </div>
-                <span v-else class="text-gray-900 font-medium">R {{ plan.MonthlyCostRand?.toLocaleString('en-ZA') }}</span>
+                <span v-else class="font-medium text-gray-900">
+                  R {{ plan.MonthlyCostRand?.toLocaleString("en-ZA") }}
+                </span>
               </td>
               <td class="px-6 py-4 text-right">
                 <button
                   v-if="editingId !== plan.Id"
+                  class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                   @click="startEdit(plan)"
-                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   Edit cost
                 </button>
@@ -158,9 +174,10 @@ onMounted(fetchPlans);
         </table>
       </Card>
 
-      <p class="mt-4 text-xs text-gray-400">
-        Plan names and user limits are system-defined. Only the monthly cost can be updated.
+      <p class="mt-3 text-xs text-gray-400">
+        Plan names and user limits are system-defined. Only the monthly cost can
+        be updated.
       </p>
-    </main>
+    </div>
   </div>
 </template>

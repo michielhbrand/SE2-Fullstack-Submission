@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { toast } from "vue-sonner";
+import { ChevronRight, Pencil, Plus } from "lucide-vue-next";
 import Button from "../components/ui/Button.vue";
 import Card from "../components/ui/Card.vue";
 import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
@@ -40,7 +41,6 @@ const fetchOrganization = async () => {
     router.push("/organizations");
     return;
   }
-
   isLoading.value = true;
   try {
     const org = await organizationService.getById(organizationId.value);
@@ -51,7 +51,6 @@ const fetchOrganization = async () => {
     }
     organization.value = org;
   } catch (error: any) {
-    console.error("Failed to fetch organization:", error);
     toast.error(getErrorMessage(error, "Failed to fetch organization"));
     router.push("/organizations");
   } finally {
@@ -61,43 +60,16 @@ const fetchOrganization = async () => {
 
 const fetchMembers = async () => {
   if (!organizationId.value) return;
-
   isLoadingMembers.value = true;
   try {
     members.value = await apiClient.getOrganizationMembers(
-      organizationId.value,
+      organizationId.value
     );
   } catch (error: any) {
-    console.error("Failed to fetch members:", error);
     toast.error(getErrorMessage(error, "Failed to fetch members"));
   } finally {
     isLoadingMembers.value = false;
   }
-};
-
-const openEditDialog = () => {
-  isEditDialogOpen.value = true;
-};
-
-const openAddMemberDialog = () => {
-  isAddMemberDialogOpen.value = true;
-};
-
-const openEditMemberDialog = (member: OrganizationMemberResponse) => {
-  selectedMember.value = member;
-  isEditMemberDialogOpen.value = true;
-};
-
-const handleOrganizationUpdated = () => {
-  fetchOrganization();
-};
-
-const handleMemberAdded = () => {
-  fetchMembers();
-};
-
-const handleMemberUpdated = () => {
-  fetchMembers();
 };
 
 const openRemoveMemberDialog = (member: OrganizationMemberResponse) => {
@@ -107,26 +79,33 @@ const openRemoveMemberDialog = (member: OrganizationMemberResponse) => {
 
 const handleRemoveMember = async () => {
   if (!organizationId.value || !memberToRemove.value?.UserId) return;
-
   try {
     await apiClient.removeUserFromOrganization(
       organizationId.value,
-      memberToRemove.value.UserId,
+      memberToRemove.value.UserId
     );
     toast.success("Member removed successfully");
     isRemoveMemberDialogOpen.value = false;
     memberToRemove.value = null;
     fetchMembers();
   } catch (error: any) {
-    console.error("Failed to remove member:", error);
     toast.error(getErrorMessage(error, "Failed to remove member"));
     isRemoveMemberDialogOpen.value = false;
     memberToRemove.value = null;
   }
 };
 
-const goBack = () => {
-  router.push("/organizations");
+const planBadgeClass = (name?: string) => {
+  switch (name?.toLowerCase()) {
+    case "basic":
+      return "bg-gray-100 text-gray-700 border border-gray-200";
+    case "advanced":
+      return "bg-blue-100 text-blue-700 border border-blue-200";
+    case "ultimate":
+      return "bg-amber-100 text-amber-700 border border-amber-200";
+    default:
+      return "bg-gray-100 text-gray-600 border border-gray-200";
+  }
 };
 
 onMounted(() => {
@@ -136,374 +115,407 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header
-      class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm"
-    >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center gap-4">
-            <Button variant="outline" size="sm" @click="goBack">
-              <svg
-                class="h-4 w-4 mr-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Back to Organizations
-            </Button>
-            <h1 class="text-2xl font-bold text-gray-900">
-              {{ organization?.Name || "Organization Details" }}
-            </h1>
-          </div>
-          <div v-if="organization" class="flex items-center gap-3">
-            <Button variant="outline" @click="openEditDialog">
-              <svg
-                class="h-4 w-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Edit
-            </Button>
-          </div>
-        </div>
-      </div>
-    </header>
+  <div class="min-h-full bg-gray-50">
+    <!-- Page header -->
+    <div class="bg-white border-b border-gray-200 px-8 py-5">
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
+        <button
+          @click="router.push('/organizations')"
+          class="hover:text-gray-700 transition-colors"
+        >
+          Organizations
+        </button>
+        <ChevronRight class="h-3.5 w-3.5 text-gray-400" />
+        <span class="text-gray-900 font-medium truncate">
+          {{ organization?.Name ?? "Loading..." }}
+        </span>
+      </nav>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Loading State -->
-      <Card v-if="isLoading" class="p-6">
-        <div class="text-center py-12">
-          <div
-            class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
-          ></div>
-          <p class="mt-4 text-gray-600">Loading organization...</p>
-        </div>
-      </Card>
-
-      <!-- Organization Details -->
-      <div v-else-if="organization" class="space-y-6">
-        <!-- Status Badge -->
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-gray-900">
+            {{ organization?.Name ?? "Organization Details" }}
+          </h1>
           <span
+            v-if="organization"
             :class="[
-              'px-3 py-1 inline-flex text-sm font-semibold rounded-full',
+              'px-2.5 py-0.5 text-xs font-semibold rounded-full',
               organization.Active
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800',
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-600',
             ]"
           >
             {{ organization.Active ? "Active" : "Inactive" }}
           </span>
-          <span class="text-sm text-gray-500">
-            Created on
-            {{ new Date(organization.CreatedAt!).toLocaleDateString() }}
+          <span
+            v-if="organization?.PaymentPlan"
+            :class="[
+              'px-2.5 py-0.5 text-xs font-semibold rounded-full',
+              planBadgeClass(organization.PaymentPlan.Name),
+            ]"
+          >
+            {{ organization.PaymentPlan.Name }}
           </span>
         </div>
+        <Button
+          v-if="organization"
+          variant="outline"
+          @click="isEditDialogOpen = true"
+        >
+          <Pencil class="h-4 w-4 mr-2" />
+          Edit
+        </Button>
+      </div>
+    </div>
 
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex items-center justify-center py-24">
+      <div
+        class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"
+      />
+    </div>
+
+    <div v-else-if="organization" class="px-8 py-6 space-y-6">
+      <!-- Info grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Organization Information -->
-        <Card class="p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+        <Card class="p-5">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4">
             Organization Information
           </h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="text-sm font-medium text-gray-500">Name</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Name || "—" }}
-              </p>
+          <dl class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Name
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Name || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Registration No.
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.RegistrationNumber || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Tax Number
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.TaxNumber || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Email
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Email || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Phone
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Phone || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Website
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  <a
+                    v-if="organization.Website"
+                    :href="organization.Website"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-blue-600 hover:underline"
+                  >
+                    {{ organization.Website }}
+                  </a>
+                  <span v-else>—</span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Created
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{
+                    new Date(organization.CreatedAt!).toLocaleDateString(
+                      "en-ZA"
+                    )
+                  }}
+                </dd>
+              </div>
             </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500"
-                >Registration Number</label
-              >
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.RegistrationNumber || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500"
-                >Tax Number</label
-              >
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.TaxNumber || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500">Email</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Email || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500">Phone</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Phone || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500">Website</label>
-              <p class="mt-1 text-sm text-gray-900">
-                <a
-                  v-if="organization.Website"
-                  :href="organization.Website"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-blue-600 hover:text-blue-800 hover:underline"
+          </dl>
+        </Card>
+
+        <!-- Address + Plan info -->
+        <div class="space-y-4">
+          <!-- Address -->
+          <Card v-if="organization.Address" class="p-5">
+            <h2 class="text-sm font-semibold text-gray-700 mb-4">Address</h2>
+            <dl class="grid grid-cols-2 gap-3">
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Street
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Address.Street || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  City
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Address.City || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  State/Province
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Address.State || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Postal Code
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Address.PostalCode || "—" }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Country
+                </dt>
+                <dd class="mt-0.5 text-sm text-gray-900">
+                  {{ organization.Address.Country || "—" }}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          <!-- Payment plan summary -->
+          <Card v-if="organization.PaymentPlan" class="p-5">
+            <h2 class="text-sm font-semibold text-gray-700 mb-4">
+              Subscription
+            </h2>
+            <div class="flex items-center justify-between">
+              <div>
+                <span
+                  :class="[
+                    'px-2.5 py-1 text-xs font-semibold rounded-full',
+                    planBadgeClass(organization.PaymentPlan.Name),
+                  ]"
                 >
-                  {{ organization.Website }}
-                </a>
-                <span v-else>—</span>
-              </p>
+                  {{ organization.PaymentPlan.Name }}
+                </span>
+                <p class="text-xs text-gray-400 mt-2">
+                  {{
+                    organization.PaymentPlan.MaxUsers === -1
+                      ? "Unlimited users"
+                      : `Up to ${organization.PaymentPlan.MaxUsers} users`
+                  }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-lg font-bold text-gray-900">
+                  R
+                  {{
+                    organization.PaymentPlan.MonthlyCostRand?.toLocaleString(
+                      "en-ZA"
+                    )
+                  }}
+                </p>
+                <p class="text-xs text-gray-400">per month</p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
+      </div>
 
-        <!-- Address Information -->
-        <Card v-if="organization.Address" class="p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Address</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="text-sm font-medium text-gray-500">Street</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Address.Street || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500">City</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Address.City || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500"
-                >State/Province</label
+      <!-- Members Section -->
+      <Card class="p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-sm font-semibold text-gray-700">Members</h2>
+            <p class="text-xs text-gray-400 mt-0.5">
+              {{ members.length }} member{{ members.length !== 1 ? "s" : "" }}
+            </p>
+          </div>
+          <Button size="sm" @click="isAddMemberDialogOpen = true">
+            <Plus class="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="isLoadingMembers" class="text-center py-8">
+          <div
+            class="inline-block h-6 w-6 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"
+          />
+        </div>
+
+        <!-- Members table -->
+        <div v-else-if="members.length > 0" class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100">
+                <th
+                  class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2"
+                >
+                  Member
+                </th>
+                <th
+                  class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2"
+                >
+                  Email
+                </th>
+                <th
+                  class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2"
+                >
+                  Role
+                </th>
+                <th
+                  class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2"
+                >
+                  Status
+                </th>
+                <th
+                  class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2"
+                >
+                  Joined
+                </th>
+                <th class="pb-2" />
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="member in members"
+                :key="member.UserId"
+                class="border-b border-gray-50 last:border-0"
               >
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Address.State || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500"
-                >Postal Code</label
-              >
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Address.PostalCode || "—" }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-500">Country</label>
-              <p class="mt-1 text-sm text-gray-900">
-                {{ organization.Address.Country || "—" }}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Members Section -->
-        <Card class="p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Members</h2>
-            <Button size="sm" @click="openAddMemberDialog">
-              <svg
-                class="h-4 w-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Add Member
-            </Button>
-          </div>
-
-          <!-- Loading State -->
-          <div v-if="isLoadingMembers" class="text-center py-8">
-            <div
-              class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
-            ></div>
-            <p class="mt-4 text-gray-600">Loading members...</p>
-          </div>
-
-          <!-- Members List -->
-          <div v-else-if="members.length > 0" class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                <td class="py-3 font-medium text-gray-800">
+                  {{
+                    member.FirstName || member.LastName
+                      ? `${member.FirstName ?? ""} ${member.LastName ?? ""}`.trim()
+                      : "—"
+                  }}
+                </td>
+                <td class="py-3 text-gray-600">{{ member.Email }}</td>
+                <td class="py-3">
+                  <span
+                    :class="[
+                      'px-2 py-0.5 text-xs font-semibold rounded-full',
+                      member.Role?.toLowerCase() === 'orgadmin'
+                        ? 'bg-blue-100 text-blue-700'
+                        : member.Role?.toLowerCase() === 'systemadmin'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-600',
+                    ]"
                   >
-                    Member
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Joined
-                  </th>
-                  <th scope="col" class="relative px-6 py-3">
-                    <span class="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="member in members" :key="member.UserId">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">
-                      {{
-                        member.FirstName || member.LastName
-                          ? `${member.FirstName || ""} ${member.LastName || ""}`.trim()
-                          : "—"
-                      }}
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ member.Email }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span
-                      :class="[
-                        'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
-                        member.Role?.toLowerCase() === 'orgadmin'
-                          ? 'bg-blue-100 text-blue-800'
-                          : member.Role?.toLowerCase() === 'systemadmin'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-800',
-                      ]"
-                    >
-                      {{
-                        member.Role?.toLowerCase() === "orgadmin"
-                          ? "Org Admin"
-                          : member.Role?.toLowerCase() === "systemadmin"
+                    {{
+                      member.Role?.toLowerCase() === "orgadmin"
+                        ? "Org Admin"
+                        : member.Role?.toLowerCase() === "systemadmin"
                           ? "System Admin"
                           : "Org User"
-                      }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span
-                      :class="[
-                        'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
-                        member.Active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800',
-                      ]"
-                    >
-                      {{ member.Active ? "Active" : "Inactive" }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ new Date(member.JoinedAt!).toLocaleDateString() }}
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                    }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <span
+                    :class="[
+                      'px-2 py-0.5 text-xs font-semibold rounded-full',
+                      member.Active
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-600',
+                    ]"
                   >
-                    <div class="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        @click="openEditMemberDialog(member)"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        @click="openRemoveMemberDialog(member)"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    {{ member.Active ? "Active" : "Inactive" }}
+                  </span>
+                </td>
+                <td class="py-3 text-gray-500 text-xs">
+                  {{ new Date(member.JoinedAt!).toLocaleDateString("en-ZA") }}
+                </td>
+                <td class="py-3 text-right">
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      @click="
+                        selectedMember = member;
+                        isEditMemberDialogOpen = true;
+                      "
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      @click="openRemoveMemberDialog(member)"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-          <!-- Empty State -->
-          <div v-else class="text-center py-8">
-            <svg
-              class="h-12 w-12 text-gray-400 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <p class="text-gray-600 mb-4">No members yet</p>
-            <Button size="sm" @click="openAddMemberDialog"
-              >Add your first member</Button
-            >
-          </div>
-        </Card>
-      </div>
-    </main>
+        <!-- Empty state -->
+        <div v-else class="text-center py-8">
+          <svg
+            class="h-10 w-10 text-gray-300 mx-auto mb-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+          <p class="text-sm text-gray-500 mb-3">No members yet</p>
+          <Button size="sm" @click="isAddMemberDialogOpen = true">
+            Add first member
+          </Button>
+        </div>
+      </Card>
+    </div>
 
     <EditOrganizationDialog
       v-model:open="isEditDialogOpen"
       :organization="organization"
-      @success="handleOrganizationUpdated"
+      @success="fetchOrganization"
     />
-
     <AddMemberDialog
       v-if="organizationId"
       v-model:open="isAddMemberDialogOpen"
       :organization-id="organizationId"
-      @success="handleMemberAdded"
+      @success="fetchMembers"
     />
-
     <EditMemberDialog
       v-model:open="isEditMemberDialogOpen"
       :member="selectedMember"
-      @success="handleMemberUpdated"
+      @success="fetchMembers"
     />
-
     <RemoveMemberDialog
       v-model:open="isRemoveMemberDialogOpen"
       :member="memberToRemove"

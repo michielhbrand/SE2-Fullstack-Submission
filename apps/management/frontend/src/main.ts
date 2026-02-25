@@ -7,6 +7,8 @@ import { useAuthStore } from "./stores/auth";
 
 import "vue-sonner/style.css";
 
+import VueApexCharts from "vue3-apexcharts";
+
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
@@ -28,6 +30,7 @@ const app = createApp(App);
 app.use(pinia);
 app.use(router);
 app.use(vuetify);
+app.use(VueApexCharts);
 
 // Initialize auth store
 const authStore = useAuthStore();
