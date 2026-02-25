@@ -1,208 +1,154 @@
-# SE2 FullStack Submission - Monorepo
+# SE2 Fullstack Submission
 
-A monorepo containing two full-stack applications: a **Client/SaaS Application** for invoice tracking and a **Management Application** for organization and user management.
-
-## 📁 Project Structure
+## System Architecture
 
 ```
-Minimal-FullStack-V1/
-├── apps/
-│   ├── client/              # Client/SaaS Application (Invoice Tracker)
-│   │   ├── backend/         # .NET 8 API with microservices
-│   │   └── frontend/        # Vue.js + TypeScript frontend
-│   │
-│   └── management/          # Management Application
-│       ├── backend/         # .NET 8 Management API
-│       └── frontend/        # Vue.js + TypeScript frontend
-│
-├── infrastructure/          # Shared infrastructure services
-│   ├── docker-compose.yml   # Keycloak, PostgreSQL, Kafka, MinIO, etc.
-│   └── keycloak-realm.json  # Keycloak realm configuration
-│
-├── docs/                    # Shared documentation
-│   ├── HYBRID_USER_DATA_MODEL.md
-│   ├── IMPLEMENTATION_SUMMARY.md
-│   ├── INVOICE_TRACKER_USER_DIRECTORY.md
-│   ├── KEYCLOAK_EVENT_SYNC.md
-│   └── PDF_GENERATION_SYSTEM.md
-│
-└── README.md               # This file
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            FRONTENDS                                    │
+│                                                                         │
+│   Client Frontend (Vue 3 + Vite) :5173                                  │
+│   Management Frontend (Vue 3 + Vite) :5174                              │
+└──────────────┬──────────────────────────────┬───────────────────────────┘
+               │ REST                         │ REST
+               ▼                              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           BACKEND APIs                                  │
+│                                                                         │
+│   InvoiceTrackerApi (.NET 8) :5000          ManagementApi (.NET 8) :5002│
+└──────┬──────────┬──────────┬────────────────────┬──────────┬────────────┘
+       │          │          │                    │          │
+       │ OIDC/JWT │ EF Core  │ Produce Events     │ OIDC/JWT │ EF Core
+       ▼          ▼          ▼                    ▼          ▼
+┌───────────┐ ┌────────┐ ┌────────┐        ┌───────────┐ ┌────────┐
+│ Keycloak  │ │Postgres│ │ Kafka  │        │ Keycloak  │ │Postgres│
+│   :9090   │ │ :5433  │ │ :9093  │        │  (shared) │ │(shared)│
+└───────────┘ └────────┘ └───┬────┘        └───────────┘ └────────┘
+                             │ Consume Events
+                    ┌────────┴─────────┐
+                    ▼                  ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          MICROSERVICES                                  │
+│                                                                         │
+│   PdfGeneratorService (.NET 8) :5001                                    │
+│     ├── EF Core ──► PostgreSQL                                          │
+│     └── Store PDFs ──► MinIO :9002                                      │
+│                                                                         │
+│   EmailNotificationService (.NET 8) :5003                               │
+│     ├── EF Core ──► PostgreSQL                                          │
+│     ├── Retrieve PDFs ──► MinIO                                         │
+│     └── SMTP ──► MailHog :1025 / :8025                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         INFRASTRUCTURE                                  │
+│                                                                         │
+│   Keycloak :9090          PostgreSQL :5433        Kafka :9093           │
+│   MinIO :9002             MailHog :1025/:8025     Kafka UI :8088        │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Applications
+## System Description
 
-### Client Application (Invoice Tracker)
+This is a monorepo containing two full-stack applications: a **Client Application** (Invoice Tracker SaaS) and a **Management Application** (organization & user administration). Both share a common PostgreSQL database and Keycloak identity provider.
 
-A SaaS application for managing invoices, quotes, clients, and templates.
+The Client Application backend (InvoiceTrackerApi) is the main API handling invoices, quotes, clients, templates, workflows, and organizations. It produces Kafka events consumed by two microservices: **PdfGeneratorService** (generates PDFs from HTML templates and stores them in MinIO) and **EmailNotificationService** (sends email notifications via SMTP with PDF attachments).
 
-**Backend** (`apps/client/backend/`)
-- **InvoiceTrackerApi**: Main API service (Port: 5000)
-- **PdfGeneratorService**: Microservice for PDF generation
-- **Tech Stack**: .NET 8, Entity Framework Core, PostgreSQL, Kafka, MinIO
+The Management Application backend (ManagementApi) provides system-wide organization and user management with rate limiting. Both frontends are built with Vue 3, TypeScript, Vite, and Tailwind CSS, communicating with their respective APIs via auto-generated TypeScript clients (NSwag).
 
-**Frontend** (`apps/client/frontend/`)
-- **Tech Stack**: Vue.js 3, TypeScript, Vite, Tailwind CSS, Vuetify
-- **Port**: 5173 (dev server)
+## Running Locally
 
-### Management Application
+### Prerequisites
 
-An administrative application for managing organizations and users.
+| Tool | Version |
+|---|---|
+| Docker & Docker Compose | Latest |
+| .NET SDK | 8.0+ |
+| Node.js | 18+ |
 
-**Backend** (`apps/management/backend/`)
-- **ManagementApi**: Organization and user management API (Port: 5002)
-- **Tech Stack**: .NET 8, Entity Framework Core, PostgreSQL, Keycloak
-
-**Frontend** (`apps/management/frontend/`)
-- **Tech Stack**: Vue.js 3, TypeScript, Vite, Tailwind CSS
-- **Port**: 5174 (dev server)
-
-## 🛠️ Infrastructure Services
-
-The `infrastructure/` directory contains Docker Compose configuration for shared services:
-
-- **Keycloak** (Port: 9090) - Authentication & authorization
-- **PostgreSQL** - Multiple databases for different services
-- **Kafka** (Port: 9093) - Event streaming
-- **Zookeeper** (Port: 2181) - Kafka coordination
-- **MinIO** (Ports: 9002, 9003) - Object storage for PDFs
-- **Kafka UI** (Port: 8088) - Kafka management interface
-
-### Starting Infrastructure
+### Step 1 — Start Infrastructure
 
 ```bash
 cd infrastructure
 docker-compose up -d
 ```
 
-## 📦 Getting Started
+Wait ~30 seconds for Keycloak to initialize. Verify services are running:
 
-### Prerequisites
+| Service | URL |
+|---|---|
+| Keycloak | http://localhost:9090 (admin / admin) |
+| Kafka UI | http://localhost:8088 |
+| MinIO Console | http://localhost:9003 (minioadmin / minioadmin) |
+| MailHog | http://localhost:8025 |
 
-- .NET 8 SDK
-- Node.js 18+ and npm
-- Docker and Docker Compose
-- NSwag CLI (for API client generation): `dotnet tool install -g NSwag.ConsoleCore`
+### Step 2 — Start Backend Services
 
-### Client Application Setup
+Each service runs in its own terminal:
 
-**Backend:**
+**InvoiceTrackerApi:**
+
 ```bash
 cd apps/client/backend/InvoiceTrackerApi
-dotnet restore
 dotnet run
 ```
 
-**Frontend:**
+→ http://localhost:5000 (Swagger: http://localhost:5000/swagger)
+
+**PdfGeneratorService:**
+
+```bash
+cd apps/client/backend/PdfGeneratorService
+dotnet run
+```
+
+→ http://localhost:5001
+
+**EmailNotificationService:**
+
+```bash
+cd apps/client/backend/EmailNotificationService
+dotnet run
+```
+
+→ http://localhost:5003
+
+**ManagementApi:**
+
+```bash
+cd apps/management/backend
+ASPNETCORE_ENVIRONMENT=Development dotnet run
+```
+
+→ http://localhost:5002 (Swagger: http://localhost:5002/swagger)
+
+### Step 3 — Start Frontend Dev Servers
+
+**Client Frontend:**
+
 ```bash
 cd apps/client/frontend
 npm install
 npm run dev
 ```
 
-### Management Application Setup
+→ http://localhost:5173
 
-**Backend:**
-```bash
-cd apps/management/backend
-dotnet restore
-ASPNETCORE_ENVIRONMENT=Development dotnet run
-```
+**Management Frontend:**
 
-**Frontend:**
 ```bash
 cd apps/management/frontend
 npm install
 npm run dev
 ```
 
-## 🔄 API Client Generation
+→ http://localhost:5174
 
-Both applications use NSwag to generate TypeScript API clients from OpenAPI specifications.
+### Step 4 — Login
 
-**Client Application:**
-```bash
-cd apps/client/backend/InvoiceTrackerApi
-./generate-client.sh
-```
+Use the seeded Keycloak users:
 
-**Management Application:**
-```bash
-cd apps/management/backend
-./generate-client.sh
-```
-
-## 🗄️ Database Migrations
-
-**Client Application:**
-```bash
-cd apps/client/backend/InvoiceTrackerApi
-dotnet ef migrations add <MigrationName>
-dotnet ef database update
-```
-
-**Management Application:**
-```bash
-cd apps/management/backend
-dotnet ef migrations add <MigrationName>
-dotnet ef database update
-```
-
-## 🔐 Authentication
-
-Both applications use Keycloak for authentication:
-- **Admin Console**: http://localhost:9090
-- **Default Credentials**: admin / admin
-- **Realm Configuration**: `infrastructure/keycloak-realm.json`
-
-## 📚 Documentation
-
-Detailed documentation is available in the `docs/` directory:
-
-- **HYBRID_USER_DATA_MODEL.md** - User data model architecture
-- **IMPLEMENTATION_SUMMARY.md** - Implementation overview
-- **INVOICE_TRACKER_USER_DIRECTORY.md** - User directory service
-- **KEYCLOAK_EVENT_SYNC.md** - Keycloak event synchronization
-- **PDF_GENERATION_SYSTEM.md** - PDF generation architecture
-
-## 🏗️ Architecture
-
-This monorepo follows an **Apps-First Organization** pattern:
-
-- **Clear Boundaries**: Each application is self-contained under `apps/`
-- **Consistent Structure**: Both apps follow identical organizational patterns
-- **Shared Resources**: Infrastructure and documentation are centralized
-- **Independent Deployment**: Each app can be deployed independently
-- **Scalable**: Easy to add new applications to the monorepo
-
-## 🧪 Development Workflow
-
-1. Start infrastructure services: `cd infrastructure && docker-compose up -d`
-2. Start backend services for the app you're working on
-3. Start frontend dev server for the app you're working on
-4. Make changes and test
-5. Generate API clients when backend changes: `./generate-client.sh`
-6. Commit changes
-
-## 📝 Environment Variables
-
-**Client Frontend** (`apps/client/frontend/.env`):
-```
-VITE_API_URL=http://localhost:5000
-```
-
-**Management Frontend** (`apps/management/frontend/.env`):
-```
-VITE_API_URL=http://localhost:5002
-```
-
-## 🤝 Contributing
-
-When adding new features:
-1. Keep application-specific code within the respective `apps/` directory
-2. Place shared infrastructure in `infrastructure/`
-3. Document architectural decisions in `docs/`
-4. Update this README when adding new services or applications
-
-## 📄 License
-
-[Add your license information here]
+| Username | Password | Role |
+|---|---|---|
+| `testuser` | `password123` | orgUser |
+| `admin` | `admin123` | orgAdmin |
+| `system` | `system123` | systemAdmin |
