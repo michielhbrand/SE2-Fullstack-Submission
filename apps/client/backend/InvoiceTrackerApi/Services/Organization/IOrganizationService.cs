@@ -20,4 +20,9 @@ public interface IOrganizationService
     Task<OrganizationMemberResponse> UpdateMemberRoleAsync(int organizationId, string userId, UpdateMemberRoleRequest request, string requestingUserId);
     Task<IEnumerable<OrganizationMemberResponse>> GetOrganizationMembersAsync(int organizationId);
     Task<IEnumerable<OrganizationResponse>> GetUserOrganizationsAsync(string userId);
+
+    // Bank account methods
+    Task<BankAccountResponse> AddBankAccountAsync(int organizationId, CreateBankAccountRequest request);
+    Task DeleteBankAccountAsync(int organizationId, int bankAccountId);
+    Task<BankAccountResponse> SetActiveBankAccountAsync(int organizationId, int bankAccountId);
 }

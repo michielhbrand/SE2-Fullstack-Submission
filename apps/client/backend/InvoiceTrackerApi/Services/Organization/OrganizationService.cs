@@ -125,6 +125,38 @@ public class OrganizationService : IOrganizationService
             existingOrganization.AddressId = request.AddressId.Value;
         }
 
+        // Update inline address fields if any are provided
+        var hasAddressFields = request.Street != null || request.City != null ||
+                               request.State != null || request.PostalCode != null ||
+                               request.Country != null;
+        if (hasAddressFields)
+        {
+            if (existingOrganization.AddressId.HasValue && existingOrganization.Address != null)
+            {
+                if (request.Street != null) existingOrganization.Address.Street = request.Street;
+                if (request.City != null) existingOrganization.Address.City = request.City;
+                if (request.State != null) existingOrganization.Address.State = request.State;
+                if (request.PostalCode != null) existingOrganization.Address.PostalCode = request.PostalCode;
+                if (request.Country != null) existingOrganization.Address.Country = request.Country;
+                _context.Addresses.Update(existingOrganization.Address);
+            }
+            else
+            {
+                // No existing address — create one
+                var newAddress = new Shared.Database.Models.Address
+                {
+                    Street = request.Street ?? "",
+                    City = request.City,
+                    State = request.State,
+                    PostalCode = request.PostalCode,
+                    Country = request.Country
+                };
+                _context.Addresses.Add(newAddress);
+                await _context.SaveChangesAsync();
+                existingOrganization.AddressId = newAddress.Id;
+            }
+        }
+
         if (request.BankAccountIds != null)
         {
             // Verify all bank accounts exist and belong to this organization
@@ -312,6 +344,75 @@ public class OrganizationService : IOrganizationService
             UserId = userId,
             Role = request.Role
         };
+    }
+
+    public async Task<BankAccountResponse> AddBankAccountAsync(int organizationId, CreateBankAccountRequest request)
+    {
+        var organization = await _organizationRepository.GetByIdWithDetailsAsync(organizationId);
+        if (organization == null)
+            throw new NotFoundException("Organization", organizationId);
+
+        var bankAccount = request.ToModel(organizationId);
+
+        // First bank account for the org is automatically set as active
+        var existingCount = await _context.BankAccounts.CountAsync(b => b.OrganizationId == organizationId);
+        bankAccount.Active = existingCount == 0;
+
+        _context.BankAccounts.Add(bankAccount);
+        await _context.SaveChangesAsync();
+
+        organization.BankAccountIds.Add(bankAccount.Id);
+        await _organizationRepository.UpdateAsync(organization);
+
+        _logger.LogInformation("Bank account {BankAccountId} added to organization {OrganizationId}", bankAccount.Id, organizationId);
+
+        return bankAccount.ToDto();
+    }
+
+    public async Task DeleteBankAccountAsync(int organizationId, int bankAccountId)
+    {
+        var bankAccount = await _context.BankAccounts
+            .FirstOrDefaultAsync(b => b.Id == bankAccountId && b.OrganizationId == organizationId);
+
+        if (bankAccount == null)
+            throw new NotFoundException("BankAccount", bankAccountId);
+
+        if (bankAccount.Active)
+            throw new BusinessRuleException("Cannot delete the active bank account. Set another account as active first.");
+
+        var organization = await _organizationRepository.GetByIdWithDetailsAsync(organizationId);
+        if (organization != null)
+        {
+            organization.BankAccountIds.Remove(bankAccountId);
+            await _organizationRepository.UpdateAsync(organization);
+        }
+
+        _context.BankAccounts.Remove(bankAccount);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Bank account {BankAccountId} deleted from organization {OrganizationId}", bankAccountId, organizationId);
+    }
+
+    public async Task<BankAccountResponse> SetActiveBankAccountAsync(int organizationId, int bankAccountId)
+    {
+        var targetAccount = await _context.BankAccounts
+            .FirstOrDefaultAsync(b => b.Id == bankAccountId && b.OrganizationId == organizationId);
+
+        if (targetAccount == null)
+            throw new NotFoundException("BankAccount", bankAccountId);
+
+        var allAccounts = await _context.BankAccounts
+            .Where(b => b.OrganizationId == organizationId)
+            .ToListAsync();
+
+        foreach (var acc in allAccounts)
+            acc.Active = acc.Id == bankAccountId;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Bank account {BankAccountId} set as active for organization {OrganizationId}", bankAccountId, organizationId);
+
+        return targetAccount.ToDto();
     }
 
     public async Task<IEnumerable<OrganizationMemberResponse>> GetOrganizationMembersAsync(int organizationId)

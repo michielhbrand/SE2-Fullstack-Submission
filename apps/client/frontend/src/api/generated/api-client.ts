@@ -1475,6 +1475,221 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
+    organization_AddBankAccount(id: number, request: CreateBankAccountRequest, cancelToken?: CancelToken): Promise<BankAccountResponse> {
+        let url_ = this.baseUrl + "/api/organization/{id}/bank-accounts";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganization_AddBankAccount(_response);
+        });
+    }
+
+    protected processOrganization_AddBankAccount(response: AxiosResponse): Promise<BankAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<BankAccountResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BankAccountResponse>(null as any);
+    }
+
+    organization_DeleteBankAccount(id: number, accountId: number, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/organization/{id}/bank-accounts/{accountId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (accountId === undefined || accountId === null)
+            throw new globalThis.Error("The parameter 'accountId' must be defined.");
+        url_ = url_.replace("{accountId}", encodeURIComponent("" + accountId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganization_DeleteBankAccount(_response);
+        });
+    }
+
+    protected processOrganization_DeleteBankAccount(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    organization_SetActiveBankAccount(id: number, accountId: number, cancelToken?: CancelToken): Promise<BankAccountResponse> {
+        let url_ = this.baseUrl + "/api/organization/{id}/bank-accounts/{accountId}/set-active";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (accountId === undefined || accountId === null)
+            throw new globalThis.Error("The parameter 'accountId' must be defined.");
+        url_ = url_.replace("{accountId}", encodeURIComponent("" + accountId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOrganization_SetActiveBankAccount(_response);
+        });
+    }
+
+    protected processOrganization_SetActiveBankAccount(response: AxiosResponse): Promise<BankAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<BankAccountResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BankAccountResponse>(null as any);
+    }
+
     organizationMember_AddMember(orgId: number, userId: string, request: AddOrganizationMemberRequest, cancelToken?: CancelToken): Promise<OrganizationMemberResponse> {
         let url_ = this.baseUrl + "/api/organizations/{orgId}/members/{userId}";
         if (orgId === undefined || orgId === null)
@@ -3635,6 +3850,7 @@ export interface CreateInvoiceFromQuoteRequest {
 export interface OrganizationResponse {
     id?: number;
     name?: string;
+    vatRate?: number;
     address?: AddressResponse;
     bankAccounts?: BankAccountResponse[];
 }
@@ -3673,7 +3889,21 @@ export interface CreateAddressRequest {
 export interface UpdateOrganizationRequest {
     name?: string | null;
     addressId?: number | null;
+    street?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+    vatRate?: number | null;
     bankAccountIds?: number[] | null;
+}
+
+export interface CreateBankAccountRequest {
+    bankName: string;
+    branchCode: string;
+    accountNumber: string;
+    accountType: string;
+    active?: boolean;
 }
 
 export interface OrganizationMemberResponse {

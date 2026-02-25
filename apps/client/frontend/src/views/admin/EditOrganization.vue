@@ -42,7 +42,7 @@ const loadOrganization = async () => {
           organization.value = fullOrg;
           
           // Populate form fields
-          vatRate.value = (fullOrg as any).vatRate ?? 15;
+          vatRate.value = fullOrg.vatRate ?? 15;
           if (fullOrg.address) {
             street.value = fullOrg.address.street || "";
             city.value = fullOrg.address.city || "";
@@ -74,7 +74,12 @@ const handleSave = async () => {
   try {
     await generatedClient.organization_UpdateOrganization(organization.value.id, {
       vatRate: vatRate.value,
-    } as any);
+      street: street.value || null,
+      city: city.value || null,
+      state: state.value || null,
+      postalCode: postalCode.value || null,
+      country: country.value || null,
+    });
     
     toast.success("Organization settings saved successfully");
     
@@ -93,7 +98,7 @@ const handleSave = async () => {
 };
 
 const handleReset = () => {
-  vatRate.value = (organization.value as any)?.vatRate ?? 15;
+  vatRate.value = organization.value?.vatRate ?? 15;
   if (organization.value?.address) {
     street.value = organization.value.address.street || "";
     city.value = organization.value.address.city || "";
@@ -168,8 +173,7 @@ const handleReset = () => {
                 id="street"
                 v-model="street"
                 placeholder="123 Main Street"
-                disabled
-                class="mt-1 bg-gray-100 cursor-not-allowed"
+                class="mt-1"
               />
             </div>
 
@@ -181,8 +185,7 @@ const handleReset = () => {
                   id="city"
                   v-model="city"
                   placeholder="Cape Town"
-                  disabled
-                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                  class="mt-1"
                 />
               </div>
 
@@ -192,8 +195,7 @@ const handleReset = () => {
                   id="state"
                   v-model="state"
                   placeholder="Western Cape"
-                  disabled
-                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                  class="mt-1"
                 />
               </div>
             </div>
@@ -206,8 +208,7 @@ const handleReset = () => {
                   id="postal-code"
                   v-model="postalCode"
                   placeholder="8001"
-                  disabled
-                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                  class="mt-1"
                 />
               </div>
 
@@ -217,13 +218,10 @@ const handleReset = () => {
                   id="country"
                   v-model="country"
                   placeholder="South Africa"
-                  disabled
-                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                  class="mt-1"
                 />
               </div>
             </div>
-
-            <p class="text-xs text-gray-500">Address editing requires additional backend API support. Contact your system administrator to update address details.</p>
           </div>
         </div>
 
@@ -292,7 +290,7 @@ const handleReset = () => {
           <div class="mt-2 text-sm text-amber-700">
             <ul class="list-disc list-inside space-y-1">
               <li>Organization name cannot be changed through this interface</li>
-              <li>Address information is displayed from the database and used on invoices and quotes</li>
+              <li>Address information is used on invoices and quotes</li>
               <li>VAT rate is applied when generating PDFs with VAT-exclusive pricing</li>
             </ul>
           </div>

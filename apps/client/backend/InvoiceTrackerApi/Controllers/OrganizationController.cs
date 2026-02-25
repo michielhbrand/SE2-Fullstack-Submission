@@ -111,4 +111,48 @@ public class OrganizationController : AuthenticatedControllerBase
         await _organizationService.DeleteOrganizationAsync(id);
         return NoContent();
     }
+
+    /// <summary>
+    /// Add a bank account to an organization
+    /// </summary>
+    [HttpPost("{id}/bank-accounts")]
+    [ProducesResponseType(typeof(BankAccountResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BankAccountResponse>> AddBankAccount(int id, [FromBody] CreateBankAccountRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var bankAccount = await _organizationService.AddBankAccountAsync(id, request);
+        return CreatedAtAction(nameof(GetOrganization), new { id }, bankAccount);
+    }
+
+    /// <summary>
+    /// Delete a bank account from an organization
+    /// </summary>
+    [HttpDelete("{id}/bank-accounts/{accountId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteBankAccount(int id, int accountId)
+    {
+        await _organizationService.DeleteBankAccountAsync(id, accountId);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Set a bank account as the active account for an organization
+    /// </summary>
+    [HttpPut("{id}/bank-accounts/{accountId}/set-active")]
+    [ProducesResponseType(typeof(BankAccountResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BankAccountResponse>> SetActiveBankAccount(int id, int accountId)
+    {
+        var bankAccount = await _organizationService.SetActiveBankAccountAsync(id, accountId);
+        return Ok(bankAccount);
+    }
 }
