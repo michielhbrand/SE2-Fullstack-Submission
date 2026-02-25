@@ -61,44 +61,6 @@
   ],
   "users": [
     {
-      "username": "testuser",
-      "enabled": true,
-      "email": "testuser@example.com",
-      "firstName": "Test",
-      "lastName": "User",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": ["orgUser"]
-    },
-    {
-      "username": "admin",
-      "enabled": true,
-      "email": "admin@example.com",
-      "firstName": "Admin",
-      "lastName": "User",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "admin123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": ["orgUser", "orgAdmin"],
-      "clientRoles": {
-        "realm-management": [
-          "view-users",
-          "manage-users",
-          "query-users",
-          "query-groups"
-        ]
-      }
-    },
-    {
       "username": "system",
       "enabled": true,
       "email": "system@example.com",
