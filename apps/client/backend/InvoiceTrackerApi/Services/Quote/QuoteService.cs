@@ -191,6 +191,18 @@ public class QuoteService : IQuoteService
 
         _logger.LogInformation("Quote {QuoteId} updated by {User}", id, modifiedBy);
 
+        // Re-publish the quote-created event so PdfGeneratorService regenerates the PDF with the new data
+        try
+        {
+            await _kafkaProducer.PublishQuoteCreatedEventAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to publish PDF regeneration event for Quote {QuoteId}. Quote saved but PDF not regenerated.",
+                id);
+        }
+
         return existingQuote.ToDto();
     }
 

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { workflowApi } from '../services/api'
+import { workflowApi, quoteApi, invoiceApi } from '../services/api'
 import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
 import WorkflowEventModal from '../components/modals/WorkflowEventModal.vue'
 import ConvertToInvoiceModal from '../components/modals/ConvertToInvoiceModal.vue'
+import EditQuoteModal from '../components/modals/EditQuoteModal.vue'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -26,6 +27,9 @@ const showCancelDialog = ref(false)
 
 // Convert to invoice dialog state
 const showConvertToInvoiceDialog = ref(false)
+
+// Edit quote dialog state (for rejected workflow revision)
+const showEditQuoteDialog = ref(false)
 
 const workflowId = computed(() => Number(route.params.id))
 
@@ -80,9 +84,7 @@ const availableActions = computed(() => {
       { eventType: 'Approved', label: 'Approve', icon: 'mdi-check-circle', color: 'green' },
       { eventType: 'Rejected', label: 'Reject', icon: 'mdi-close-circle', color: 'red', requiresDescription: true },
     ],
-    Rejected: [
-      { eventType: 'QuoteModified', label: 'Modify Quote', icon: 'mdi-pencil', color: 'blue', requiresDescription: true },
-    ],
+    Rejected: [],
     Approved: [
       { eventType: 'ConvertedToInvoice', label: 'Convert to Invoice', icon: 'mdi-file-replace', color: 'blue' },
     ],
@@ -106,6 +108,11 @@ const availableActions = computed(() => {
     actions.push(...transitionMap[status])
   }
 
+  // For Rejected status: once the quote has been edited, allow resending for approval
+  if (status === 'Rejected' && hasModifiedAfterRejection.value) {
+    actions.push({ eventType: 'ResentForApproval', label: 'Resend for Approval', icon: 'mdi-send', color: 'amber' })
+  }
+
   return actions
 })
 
@@ -117,6 +124,19 @@ const isTerminalStatus = computed(() => {
 const canCancel = computed(() => {
   if (!workflow.value) return false
   return !isTerminalStatus.value
+})
+
+// True once the quote has been edited (QuoteModified event) after the most recent rejection
+const hasModifiedAfterRejection = computed(() => {
+  if (!workflow.value?.events?.length) return false
+  const lastRejectedAt = workflow.value.events
+    .filter((e: any) => e.eventType === 'Rejected')
+    .map((e: any) => new Date(e.occurredAt).getTime())
+    .sort((a: number, b: number) => b - a)[0]
+  if (!lastRejectedAt) return false
+  return workflow.value.events.some(
+    (e: any) => e.eventType === 'QuoteModified' && new Date(e.occurredAt).getTime() > lastRejectedAt
+  )
 })
 
 // Execute a workflow action
@@ -184,6 +204,11 @@ const confirmConvertToInvoice = async (payByDays: number) => {
 
 const cancelWorkflow = () => {
   showCancelDialog.value = true
+}
+
+const onQuoteSaved = async () => {
+  // Refresh the workflow so the timeline and actions reflect the new QuoteModified event
+  await refreshWorkflow()
 }
 
 const confirmCancelWorkflow = async () => {
@@ -305,6 +330,44 @@ const formatDateTime = (dateStr: string): string => {
   })
 }
 
+// PDF links in timeline
+const loadingPdf = ref<string | null>(null)
+
+// Events whose PDF is the linked quote document
+const QUOTE_PDF_EVENTS = new Set([
+  'QuoteCreated', 'SentForApproval', 'ResentForApproval',
+  'Approved', 'Rejected', 'QuoteModified',
+])
+// Events whose PDF is the linked invoice document
+const INVOICE_PDF_EVENTS = new Set([
+  'ConvertedToInvoice', 'InvoiceCreated', 'SentForPayment',
+  'ResentForPayment', 'MarkedAsPaid',
+])
+
+const getEventPdfType = (eventType: string): 'quote' | 'invoice' | null => {
+  if (QUOTE_PDF_EVENTS.has(eventType)) return 'quote'
+  if (INVOICE_PDF_EVENTS.has(eventType)) return 'invoice'
+  return null
+}
+
+const openPdf = async (type: 'quote' | 'invoice', id: number) => {
+  const key = `${type}-${id}`
+  if (loadingPdf.value === key) return
+  loadingPdf.value = key
+  try {
+    const response = type === 'quote'
+      ? await quoteApi.getPdfUrl(id)
+      : await invoiceApi.getPdfUrl(id)
+    if (response.url) window.open(response.url, '_blank')
+    else toast.error('PDF not available yet')
+  } catch (error: any) {
+    if (error.response?.status === 404) toast.error('PDF not yet generated for this document')
+    else toast.error('Failed to load PDF')
+  } finally {
+    loadingPdf.value = null
+  }
+}
+
 const formatRelativeTime = (dateStr: string): string => {
   const date = new Date(dateStr)
   const now = new Date()
@@ -399,7 +462,7 @@ const formatRelativeTime = (dateStr: string): string => {
           </div>
 
           <!-- Actions Card -->
-          <div v-if="availableActions.length > 0 || canCancel" class="bg-white rounded-lg shadow mb-6">
+          <div v-if="availableActions.length > 0 || canCancel || workflow.status === 'Rejected'" class="bg-white rounded-lg shadow mb-6">
             <div class="p-6">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">Available Actions</h3>
@@ -415,7 +478,22 @@ const formatRelativeTime = (dateStr: string): string => {
                 </v-btn>
               </div>
               <div class="flex flex-wrap gap-3">
-                <!-- Workflow progression actions -->
+
+                <!-- Edit Quote — shown whenever workflow is Rejected (with or without prior modification) -->
+                <Button
+                  v-if="workflow.status === 'Rejected'"
+                  variant="outline"
+                  class="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  :disabled="actionLoading"
+                  @click="showEditQuoteDialog = true"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                  Edit Quote
+                </Button>
+
+                <!-- Workflow progression actions (ResentForApproval appears here once quote is modified) -->
                 <v-btn
                   v-for="action in availableActions"
                   :key="action.eventType"
@@ -428,7 +506,7 @@ const formatRelativeTime = (dateStr: string): string => {
                   {{ action.label }}
                 </v-btn>
 
-                <v-divider v-if="availableActions.length > 0 && canCancel" vertical class="mx-2" />
+                <v-divider v-if="(availableActions.length > 0 || workflow.status === 'Rejected') && canCancel" vertical class="mx-2" />
 
                 <!-- Cancel -->
                 <v-btn
@@ -442,6 +520,14 @@ const formatRelativeTime = (dateStr: string): string => {
                   Cancel
                 </v-btn>
               </div>
+
+              <!-- Hint when rejected but not yet edited -->
+              <p
+                v-if="workflow.status === 'Rejected' && !hasModifiedAfterRejection"
+                class="mt-3 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2"
+              >
+                Edit the quote to address the client's feedback, then "Resend for Approval" will become available.
+              </p>
             </div>
           </div>
 
@@ -494,6 +580,40 @@ const formatRelativeTime = (dateStr: string): string => {
                       <p v-if="event.description" class="mt-2 text-sm text-gray-700 bg-white rounded p-2 border border-gray-200">
                         {{ event.description }}
                       </p>
+
+                      <!-- PDF link for quote-related events -->
+                      <button
+                        v-if="getEventPdfType(event.eventType) === 'quote' && workflow.quoteId"
+                        @click="openPdf('quote', workflow.quoteId)"
+                        :disabled="loadingPdf === `quote-${workflow.quoteId}`"
+                        class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg v-if="loadingPdf === `quote-${workflow.quoteId}`" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                        <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        View Quote PDF
+                      </button>
+
+                      <!-- PDF link for invoice-related events -->
+                      <button
+                        v-if="getEventPdfType(event.eventType) === 'invoice' && workflow.invoiceId"
+                        @click="openPdf('invoice', workflow.invoiceId)"
+                        :disabled="loadingPdf === `invoice-${workflow.invoiceId}`"
+                        class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg v-if="loadingPdf === `invoice-${workflow.invoiceId}`" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                        <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        View Invoice PDF
+                      </button>
                     </div>
                   </v-timeline-item>
                 </v-timeline>
@@ -540,6 +660,15 @@ const formatRelativeTime = (dateStr: string): string => {
       :loading="actionLoading"
       @close="showConvertToInvoiceDialog = false"
       @confirm="confirmConvertToInvoice"
+    />
+
+    <!-- Edit quote dialog (rejection revision flow) -->
+    <EditQuoteModal
+      :show="showEditQuoteDialog"
+      :quote-id="workflow?.quoteId ?? null"
+      :workflow-id="workflowId"
+      @close="showEditQuoteDialog = false"
+      @saved="onQuoteSaved"
     />
   </Layout>
 </template>

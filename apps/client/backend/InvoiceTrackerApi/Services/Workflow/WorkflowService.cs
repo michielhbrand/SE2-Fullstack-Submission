@@ -270,6 +270,26 @@ public class WorkflowService : IWorkflowService
             "Event '{EventType}' added to workflow {WorkflowId}. New status: {Status}. By {User}",
             request.EventType, workflowId, workflow.Status, userId);
 
+        // Gate: ResentForApproval requires a QuoteModified event after the last Rejected event
+        if (request.EventType == WorkflowEventType.ResentForApproval)
+        {
+            var lastRejectedAt = workflow.Events
+                .Where(e => e.EventType == WorkflowEventType.Rejected)
+                .OrderByDescending(e => e.OccurredAt)
+                .FirstOrDefault()?.OccurredAt;
+
+            var hasModifiedAfterRejection = workflow.Events.Any(e =>
+                e.EventType == WorkflowEventType.QuoteModified &&
+                (lastRejectedAt == null || e.OccurredAt > lastRejectedAt));
+
+            if (!hasModifiedAfterRejection)
+            {
+                throw new BusinessRuleException(
+                    "The quote must be edited before resending for approval. " +
+                    "Please update the quote to address the client's concerns, then try again.");
+            }
+        }
+
         // Publish Kafka event for email notification when quote is sent for approval
         if (request.EventType == WorkflowEventType.SentForApproval ||
             request.EventType == WorkflowEventType.ResentForApproval)
