@@ -225,7 +225,7 @@ public class PdfGenerationService : IPdfGenerationService
             .Replace("{DateCreated}", invoice.DateCreated.ToString("MMMM dd, yyyy"))
             .Replace("{PayByDate}", invoice.PayByDate.ToString("MMMM dd, yyyy"))
             .Replace("{ClientName}", invoice.Client?.Name ?? "")
-            .Replace("{ClientSurname}", invoice.Client?.Surname ?? "")
+            .Replace("{ClientSurname}", "")
             .Replace("{ClientAddress}", invoice.Client?.Address ?? "")
             .Replace("{ClientCellphone}", invoice.Client?.Cellphone ?? "")
             .Replace("{InvoiceItems}", itemsHtml.ToString())
@@ -255,7 +255,7 @@ public class PdfGenerationService : IPdfGenerationService
             .Replace("{{QuoteId}}", quote.Id.ToString())
             .Replace("{{DateCreated}}", quote.DateCreated.ToString("MMMM dd, yyyy"))
             .Replace("{{ClientName}}", quote.Client?.Name ?? "")
-            .Replace("{{ClientSurname}}", quote.Client?.Surname ?? "")
+            .Replace("{{ClientSurname}}", "")
             .Replace("{{ClientAddress}}", quote.Client?.Address ?? "")
             .Replace("{{ClientCellphone}}", quote.Client?.Cellphone ?? "")
             .Replace("{{Total}}", $"{total:F2}");

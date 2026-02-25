@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Textarea, Input, Label } from '../ui/index'
+import { Checkbox } from '../ui/checkbox'
 import { toast } from 'vue-sonner'
 
 interface ClientForm {
   id: number
   name: string
-  surname: string
   email: string
   cellphone: string
   address: string
-  company: string
+  isCompany: boolean
+  vatNumber: string
 }
 
 interface Props {
@@ -29,11 +30,11 @@ const emit = defineEmits<Emits>()
 const editClient = ref<ClientForm>({
   id: 0,
   name: '',
-  surname: '',
   email: '',
   cellphone: '',
   address: '',
-  company: ''
+  isCompany: false,
+  vatNumber: ''
 })
 
 const formErrors = ref<Record<string, string>>({})
@@ -42,11 +43,7 @@ const validateForm = () => {
   formErrors.value = {}
   
   if (!editClient.value.name.trim()) {
-    formErrors.value.name = 'Name is required'
-  }
-  
-  if (!editClient.value.surname.trim()) {
-    formErrors.value.surname = 'Surname is required'
+    formErrors.value.name = 'Full name / company name is required'
   }
   
   if (!editClient.value.email.trim()) {
@@ -80,11 +77,11 @@ watch(() => props.client, (newClient) => {
     editClient.value = {
       id: newClient.id,
       name: newClient.name,
-      surname: newClient.surname,
       email: newClient.email,
       cellphone: newClient.cellphone,
       address: newClient.address || '',
-      company: newClient.company || ''
+      isCompany: newClient.isCompany || false,
+      vatNumber: newClient.vatNumber || ''
     }
     formErrors.value = {}
   }
@@ -99,26 +96,25 @@ watch(() => props.client, (newClient) => {
       </DialogHeader>
 
       <div class="space-y-4">
+        <div class="flex items-center space-x-2">
+          <Checkbox
+            id="edit-isCompany"
+            :checked="editClient.isCompany"
+            @update:checked="(val: boolean) => editClient.isCompany = val"
+          />
+          <Label for="edit-isCompany">This client is a company</Label>
+        </div>
+
         <div>
-          <Label for="edit-name">Name *</Label>
+          <Label for="edit-name">Full Name / Company Name *</Label>
           <Input
             id="edit-name"
             v-model="editClient.name"
             type="text"
+            placeholder="Enter full name or company name"
             :class="formErrors.name ? 'border-red-500' : ''"
           />
           <p v-if="formErrors.name" class="mt-1 text-sm text-red-600">{{ formErrors.name }}</p>
-        </div>
-
-        <div>
-          <Label for="edit-surname">Surname *</Label>
-          <Input
-            id="edit-surname"
-            v-model="editClient.surname"
-            type="text"
-            :class="formErrors.surname ? 'border-red-500' : ''"
-          />
-          <p v-if="formErrors.surname" class="mt-1 text-sm text-red-600">{{ formErrors.surname }}</p>
         </div>
 
         <div>
@@ -154,11 +150,12 @@ watch(() => props.client, (newClient) => {
         </div>
 
         <div>
-          <Label for="edit-company">Company</Label>
+          <Label for="edit-vatNumber">VAT Number</Label>
           <Input
-            id="edit-company"
-            v-model="editClient.company"
+            id="edit-vatNumber"
+            v-model="editClient.vatNumber"
             type="text"
+            placeholder="Enter VAT number (optional)"
           />
         </div>
       </div>

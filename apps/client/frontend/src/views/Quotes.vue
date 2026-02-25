@@ -119,7 +119,7 @@ const previewPdf = async (quoteId: number) => {
               </TableHeader>
               <TableBody>
                 <TableRow v-for="quote in quotes" :key="quote.id">
-                  <TableCell class="font-medium">{{ quote.client?.name }} {{ quote.client?.surname }}</TableCell>
+                  <TableCell class="font-medium">{{ quote.client?.name }}</TableCell>
                   <TableCell>{{ quote.client?.cellphone }}</TableCell>
                   <TableCell>{{ quote.items?.length || 0 }} item(s)</TableCell>
                   <TableCell class="font-medium">R {{ getTotalAmount(quote).toFixed(2) }}</TableCell>

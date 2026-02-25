@@ -3514,11 +3514,11 @@ export interface PaginatedResponseOfClientResponse {
 export interface ClientResponse {
     id?: number;
     name?: string;
-    surname?: string;
     email?: string;
     cellphone?: string;
     address?: string | null;
-    company?: string | null;
+    isCompany?: boolean;
+    vatNumber?: string | null;
     dateCreated?: Date;
     lastModifiedDate?: Date | null;
     modifiedBy?: string | null;
@@ -3534,21 +3534,21 @@ export interface PaginationMetadata {
 
 export interface CreateClientRequest {
     name: string;
-    surname: string;
     email: string;
     cellphone: string;
     address?: string | null;
-    company?: string | null;
+    isCompany: boolean;
+    vatNumber?: string | null;
     keycloakUserId?: string | null;
 }
 
 export interface UpdateClientRequest {
     name: string;
-    surname: string;
     email: string;
     cellphone: string;
     address?: string | null;
-    company?: string | null;
+    isCompany: boolean;
+    vatNumber?: string | null;
     keycloakUserId?: string | null;
 }
 

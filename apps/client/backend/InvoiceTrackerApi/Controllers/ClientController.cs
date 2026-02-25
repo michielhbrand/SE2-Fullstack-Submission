@@ -30,7 +30,7 @@ public class ClientController : AuthenticatedControllerBase
     /// </summary>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
-    /// <param name="search">Optional search term for name, surname, email, or company</param>
+    /// <param name="search">Optional search term for name, email, or VAT number</param>
     /// <returns>Paginated list of clients</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<ClientResponse>), StatusCodes.Status200OK)]

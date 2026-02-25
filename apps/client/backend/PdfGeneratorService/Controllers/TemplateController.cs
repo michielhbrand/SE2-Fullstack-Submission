@@ -121,11 +121,11 @@ public class TemplateController : ControllerBase
                 Client = new Client
                 {
                     Id = 1,
-                    Name = "John",
-                    Surname = "Doe",
+                    Name = "John Doe",
                     Email = "john.doe@example.com",
                     Address = "123 Sample Street, City, State 12345",
                     Cellphone = "+1 (555) 123-4567",
+                    IsCompany = false,
                     DateCreated = DateTime.UtcNow
                 },
                 Items = new List<InvoiceItem>

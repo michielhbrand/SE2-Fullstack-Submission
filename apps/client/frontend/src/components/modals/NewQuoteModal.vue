@@ -14,11 +14,11 @@ interface QuoteItem {
 interface Client {
   id: number
   name: string
-  surname: string
   email: string
   cellphone: string
   address?: string
-  company?: string
+  isCompany?: boolean
+  vatNumber?: string
 }
 
 interface TemplateOption {
@@ -149,9 +149,8 @@ const filteredClients = computed(() => {
   const query = clientSearchQuery.value.toLowerCase()
   return props.clients.filter(client =>
     client.name.toLowerCase().includes(query) ||
-    client.surname.toLowerCase().includes(query) ||
     client.email.toLowerCase().includes(query) ||
-    (client.company && client.company.toLowerCase().includes(query))
+    (client.vatNumber && client.vatNumber.toLowerCase().includes(query))
   )
 })
 
@@ -230,7 +229,7 @@ const getSelectedClientDisplay = computed(() => {
   if (!selectedClientId.value) return 'Select a client...'
   const client = props.clients.find(c => c.id === selectedClientId.value)
   if (!client) return 'Select a client...'
-  return `${client.name} ${client.surname} (${client.email})`
+  return `${client.name} (${client.email})`
 })
 
 // Watch for show prop changes to reset form
@@ -317,9 +316,9 @@ onUnmounted(() => {
                   class="w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors text-sm"
                   :class="{ 'bg-blue-100 font-medium': selectedClientId === client.id }"
                 >
-                  <div class="font-medium">{{ client.name }} {{ client.surname }}</div>
+                  <div class="font-medium">{{ client.name }}</div>
                   <div class="text-xs text-gray-600">{{ client.email }}</div>
-                  <div v-if="client.company" class="text-xs text-gray-500">{{ client.company }}</div>
+                  <div v-if="client.isCompany" class="text-xs text-gray-500">Company</div>
                 </button>
               </div>
             </div>

@@ -8,12 +8,8 @@ namespace InvoiceTrackerApi.DTOs.Client.Requests;
 public class UpdateClientRequest
 {
     [Required]
-    [MaxLength(100)]
+    [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(100)]
-    public string Surname { get; set; } = string.Empty;
 
     [Required]
     [EmailAddress]
@@ -27,8 +23,11 @@ public class UpdateClientRequest
     [MaxLength(500)]
     public string? Address { get; set; }
 
-    [MaxLength(100)]
-    public string? Company { get; set; }
+    [Required]
+    public bool IsCompany { get; set; }
+
+    [MaxLength(50)]
+    public string? VatNumber { get; set; }
 
     [MaxLength(255)]
     public string? KeycloakUserId { get; set; }

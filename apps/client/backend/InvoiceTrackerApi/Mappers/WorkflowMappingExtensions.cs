@@ -19,9 +19,7 @@ public static class WorkflowMappingExtensions
             QuoteId = workflow.QuoteId,
             InvoiceId = workflow.InvoiceId,
             ClientId = workflow.ClientId,
-            ClientName = workflow.Client != null
-                ? $"{workflow.Client.Name} {workflow.Client.Surname}"
-                : null,
+            ClientName = workflow.Client?.Name,
             ClientEmail = workflow.Client?.Email,
             CreatedAt = workflow.CreatedAt,
             UpdatedAt = workflow.UpdatedAt,
@@ -39,9 +37,7 @@ public static class WorkflowMappingExtensions
             Status = workflow.Status,
             Type = workflow.Type,
             ClientId = workflow.ClientId,
-            ClientName = workflow.Client != null
-                ? $"{workflow.Client.Name} {workflow.Client.Surname}"
-                : null,
+            ClientName = workflow.Client?.Name,
             QuoteId = workflow.QuoteId,
             InvoiceId = workflow.InvoiceId,
             CreatedAt = workflow.CreatedAt,

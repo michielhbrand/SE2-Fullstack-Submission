@@ -15,11 +15,11 @@ public static class ClientMappingExtensions
         {
             Id = client.Id,
             Name = client.Name,
-            Surname = client.Surname,
             Email = client.Email,
             Cellphone = client.Cellphone,
             Address = client.Address,
-            Company = client.Company,
+            IsCompany = client.IsCompany,
+            VatNumber = client.VatNumber,
             DateCreated = client.DateCreated,
             LastModifiedDate = client.LastModifiedDate,
             ModifiedBy = client.ModifiedBy,
@@ -32,11 +32,11 @@ public static class ClientMappingExtensions
         return new Client
         {
             Name = request.Name,
-            Surname = request.Surname,
             Email = request.Email,
             Cellphone = request.Cellphone,
             Address = request.Address,
-            Company = request.Company,
+            IsCompany = request.IsCompany,
+            VatNumber = request.VatNumber,
             KeycloakUserId = request.KeycloakUserId
         };
     }

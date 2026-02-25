@@ -96,11 +96,11 @@ public class ClientService : IClientService
 
         // Update properties
         existingClient.Name = request.Name;
-        existingClient.Surname = request.Surname;
         existingClient.Email = request.Email;
         existingClient.Cellphone = request.Cellphone;
         existingClient.Address = request.Address;
-        existingClient.Company = request.Company;
+        existingClient.IsCompany = request.IsCompany;
+        existingClient.VatNumber = request.VatNumber;
         existingClient.KeycloakUserId = request.KeycloakUserId;
         existingClient.LastModifiedDate = DateTime.UtcNow;
         existingClient.ModifiedBy = modifiedBy;

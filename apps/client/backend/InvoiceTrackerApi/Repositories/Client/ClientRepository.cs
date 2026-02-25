@@ -40,14 +40,12 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
                 search = search.ToLower();
                 query = query.Where(c =>
                     c.Name.ToLower().Contains(search) ||
-                    c.Surname.ToLower().Contains(search) ||
                     c.Email.ToLower().Contains(search) ||
-                    c.Company != null && c.Company.ToLower().Contains(search));
+                    (c.VatNumber != null && c.VatNumber.ToLower().Contains(search)));
             }
 
             return await query
-                .OrderBy(c => c.Surname)
-                .ThenBy(c => c.Name)
+                .OrderBy(c => c.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -69,9 +67,8 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
                 search = search.ToLower();
                 query = query.Where(c =>
                     c.Name.ToLower().Contains(search) ||
-                    c.Surname.ToLower().Contains(search) ||
                     c.Email.ToLower().Contains(search) ||
-                    c.Company != null && c.Company.ToLower().Contains(search));
+                    (c.VatNumber != null && c.VatNumber.ToLower().Contains(search)));
             }
 
             return await query.CountAsync();

@@ -170,7 +170,7 @@ public class InvoiceGeneratedConsumer : BackgroundService
             }
 
             var clientEmail = invoice.Client.Email;
-            var clientName = $"{invoice.Client.Name} {invoice.Client.Surname}".Trim();
+            var clientName = invoice.Client.Name;
 
             if (string.IsNullOrEmpty(clientEmail))
             {

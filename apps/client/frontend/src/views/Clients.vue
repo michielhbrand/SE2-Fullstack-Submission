@@ -49,11 +49,11 @@ const openEditClientModal = (client: any) => {
   const clientData = {
     id: client.id,
     name: client.name,
-    surname: client.surname,
     email: client.email,
     cellphone: client.cellphone,
     address: client.address || '',
-    company: client.company || ''
+    isCompany: client.isCompany || false,
+    vatNumber: client.vatNumber || ''
   }
   uiStore.openEditClientModal(clientData)
 }
@@ -135,7 +135,7 @@ const paginationPages = computed(() => {
               v-model="searchQuery"
               @keyup.enter="handleSearch"
               type="text"
-              placeholder="Search clients by name, email, or company..."
+              placeholder="Search clients by name, email, or VAT number..."
               class="flex-1"
             />
             <Button @click="handleSearch" variant="outline" class="text-gray-600">
@@ -162,19 +162,25 @@ const paginationPages = computed(() => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Cellphone</TableHead>
-                  <TableHead>Company</TableHead>
+                  <TableHead>VAT Number</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow v-for="client in clients" :key="client.id">
-                  <TableCell class="font-medium">{{ client.name }} {{ client.surname }}</TableCell>
+                  <TableCell class="font-medium">{{ client.name }}</TableCell>
+                  <TableCell>
+                    <span :class="client.isCompany ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+                      {{ client.isCompany ? 'Company' : 'Person' }}
+                    </span>
+                  </TableCell>
                   <TableCell>{{ client.email }}</TableCell>
                   <TableCell>{{ client.cellphone }}</TableCell>
-                  <TableCell>{{ client.company || '-' }}</TableCell>
+                  <TableCell>{{ client.vatNumber || '-' }}</TableCell>
                   <TableCell>{{ new Date(client.dateCreated).toLocaleDateString() }}</TableCell>
                   <TableCell>
                     <button
@@ -189,7 +195,7 @@ const paginationPages = computed(() => {
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="clients.length === 0">
-                  <TableCell colspan="6" class="text-center text-gray-500">
+                  <TableCell colspan="7" class="text-center text-gray-500">
                     No clients found
                   </TableCell>
                 </TableRow>

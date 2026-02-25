@@ -171,7 +171,7 @@ public class QuoteApprovalRequestedConsumer : BackgroundService
             }
 
             var clientEmail = quote.Client.Email;
-            var clientName = $"{quote.Client.Name} {quote.Client.Surname}".Trim();
+            var clientName = quote.Client.Name;
 
             if (string.IsNullOrEmpty(clientEmail))
             {

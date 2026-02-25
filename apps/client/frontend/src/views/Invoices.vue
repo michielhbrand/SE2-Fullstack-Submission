@@ -120,7 +120,7 @@ const previewPdf = async (invoiceId: number) => {
               </TableHeader>
               <TableBody>
                 <TableRow v-for="invoice in invoices" :key="invoice.id">
-                  <TableCell class="font-medium">{{ invoice.client?.name }} {{ invoice.client?.surname }}</TableCell>
+                  <TableCell class="font-medium">{{ invoice.client?.name }}</TableCell>
                   <TableCell>{{ invoice.client?.cellphone }}</TableCell>
                   <TableCell>{{ invoice.items?.length || 0 }} item(s)</TableCell>
                   <TableCell class="font-medium">R {{ getTotalAmount(invoice).toFixed(2) }}</TableCell>
