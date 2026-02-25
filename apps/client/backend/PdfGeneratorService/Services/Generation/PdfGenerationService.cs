@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.Services.Storage;
 using PuppeteerSharp;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PdfGeneratorService.Services.Generation;
 
@@ -28,61 +29,34 @@ public class PdfGenerationService : IPdfGenerationService
         _quoteTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "QuoteTemplate.html");
     }
 
-    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice, int? templateId = null)
+    public async Task<byte[]> GeneratePdfFromInvoiceAsync(Invoice invoice, List<BankAccount> bankAccounts, int? templateId = null)
     {
         try
         {
             _logger.LogInformation("Generating PDF for Invoice {InvoiceId} with templateId {TemplateId}",
                 invoice.Id, templateId?.ToString() ?? "default");
 
-            // Read the HTML template
             string htmlTemplate;
-            
+
             if (templateId.HasValue)
             {
-                // Look up template from DB and fetch from MinIO by StorageKey
                 htmlTemplate = await GetTemplateHtmlByIdAsync(templateId.Value, TemplateType.Invoice);
             }
             else
             {
-                // Fall back to local template file
-                htmlTemplate = await File.ReadAllTextAsync(_templatePath);
+                try
+                {
+                    htmlTemplate = await _storageService.GetTemplateAsync("InvoiceTemplate.html");
+                }
+                catch
+                {
+                    htmlTemplate = await File.ReadAllTextAsync(_templatePath);
+                }
             }
 
-            // Replace placeholders with actual data
-            var htmlContent = PopulateTemplate(htmlTemplate, invoice);
+            var htmlContent = PopulateInvoiceTemplate(htmlTemplate, invoice, bankAccounts);
 
-            // Ensure browser is downloaded
-            var browserFetcher = new BrowserFetcher();
-            await browserFetcher.DownloadAsync();
-
-            // Generate PDF using Puppeteer
-            await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            {
-                Headless = true,
-                Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
-            });
-
-            await using var page = await browser.NewPageAsync();
-            await page.SetContentAsync(htmlContent);
-
-            var pdfBytes = await page.PdfDataAsync(new PdfOptions
-            {
-                Format = PuppeteerSharp.Media.PaperFormat.A4,
-                PrintBackground = true,
-                MarginOptions = new PuppeteerSharp.Media.MarginOptions
-                {
-                    Top = "20px",
-                    Right = "20px",
-                    Bottom = "20px",
-                    Left = "20px"
-                }
-            });
-
-            _logger.LogInformation("PDF generated successfully for Invoice {InvoiceId}, Size: {Size} bytes", 
-                invoice.Id, pdfBytes.Length);
-
-            return pdfBytes;
+            return await RenderPdfAsync(htmlContent, $"Invoice {invoice.Id}");
         }
         catch (Exception ex)
         {
@@ -98,17 +72,14 @@ public class PdfGenerationService : IPdfGenerationService
             _logger.LogInformation("Generating PDF for Quote {QuoteId} with templateId {TemplateId}",
                 quote.Id, templateId?.ToString() ?? "default");
 
-            // Read the HTML template
             string htmlTemplate;
-            
+
             if (templateId.HasValue)
             {
-                // Look up template from DB and fetch from MinIO by StorageKey
                 htmlTemplate = await GetTemplateHtmlByIdAsync(templateId.Value, TemplateType.Quote);
             }
             else
             {
-                // Fall back to default quote template from MinIO or local file
                 try
                 {
                     htmlTemplate = await _storageService.GetQuoteTemplateAsync("QuoteTemplate.html");
@@ -119,46 +90,51 @@ public class PdfGenerationService : IPdfGenerationService
                 }
             }
 
-            // Replace placeholders with actual data
             var htmlContent = PopulateQuoteTemplate(htmlTemplate, quote);
 
-            // Ensure browser is downloaded
-            var browserFetcher = new BrowserFetcher();
-            await browserFetcher.DownloadAsync();
-
-            // Generate PDF using Puppeteer
-            await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            {
-                Headless = true,
-                Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
-            });
-
-            await using var page = await browser.NewPageAsync();
-            await page.SetContentAsync(htmlContent);
-
-            var pdfBytes = await page.PdfDataAsync(new PdfOptions
-            {
-                Format = PuppeteerSharp.Media.PaperFormat.A4,
-                PrintBackground = true,
-                MarginOptions = new PuppeteerSharp.Media.MarginOptions
-                {
-                    Top = "20px",
-                    Right = "20px",
-                    Bottom = "20px",
-                    Left = "20px"
-                }
-            });
-
-            _logger.LogInformation("PDF generated successfully for Quote {QuoteId}, Size: {Size} bytes",
-                quote.Id, pdfBytes.Length);
-
-            return pdfBytes;
+            return await RenderPdfAsync(htmlContent, $"Quote {quote.Id}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating PDF for Quote {QuoteId}", quote.Id);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Renders HTML content to a PDF byte array using Puppeteer.
+    /// </summary>
+    private async Task<byte[]> RenderPdfAsync(string htmlContent, string documentLabel)
+    {
+        var browserFetcher = new BrowserFetcher();
+        await browserFetcher.DownloadAsync();
+
+        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        {
+            Headless = true,
+            Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+        });
+
+        await using var page = await browser.NewPageAsync();
+        await page.SetContentAsync(htmlContent);
+
+        var pdfBytes = await page.PdfDataAsync(new PdfOptions
+        {
+            Format = PuppeteerSharp.Media.PaperFormat.A4,
+            PrintBackground = true,
+            MarginOptions = new PuppeteerSharp.Media.MarginOptions
+            {
+                Top = "20px",
+                Right = "20px",
+                Bottom = "20px",
+                Left = "20px"
+            }
+        });
+
+        _logger.LogInformation("PDF generated successfully for {Label}, Size: {Size} bytes",
+            documentLabel, pdfBytes.Length);
+
+        return pdfBytes;
     }
 
     /// <summary>
@@ -177,101 +153,266 @@ public class PdfGenerationService : IPdfGenerationService
             throw new InvalidOperationException($"Template with ID {templateId} not found");
         }
 
+        // Safety net: reject template type mismatches (e.g. quote template used for invoice)
+        if (template.Type != expectedType)
+        {
+            _logger.LogWarning(
+                "Template {TemplateId} is type {ActualType} but expected {ExpectedType}, falling back to default",
+                templateId, template.Type, expectedType);
+            throw new InvalidOperationException(
+                $"Template {templateId} is type {template.Type} but expected {expectedType}");
+        }
+
         _logger.LogInformation("Found template {TemplateId}: {TemplateName} (Type: {Type}, StorageKey: {StorageKey})",
             template.Id, template.Name, template.Type, template.StorageKey);
 
-        // Parse the StorageKey (format: "bucket/objectName")
         var parts = template.StorageKey.Split('/', 2);
         if (parts.Length != 2)
         {
             throw new InvalidOperationException($"Invalid StorageKey format for template {templateId}: {template.StorageKey}");
         }
 
-        var bucketName = parts[0];
-        var objectName = parts[1];
-
-        // Fetch from the appropriate bucket based on the StorageKey
         if (template.Type == TemplateType.Quote)
         {
-            return await _storageService.GetQuoteTemplateAsync(objectName);
+            return await _storageService.GetQuoteTemplateAsync(parts[1]);
         }
         else
         {
-            return await _storageService.GetTemplateAsync(objectName);
+            return await _storageService.GetTemplateAsync(parts[1]);
         }
     }
 
-    private string PopulateTemplate(string template, Invoice invoice)
+    // ─── Invoice Template Population ──────────────────────────────────────────
+
+    private string PopulateInvoiceTemplate(string template, Invoice invoice, List<BankAccount> bankAccounts)
     {
-        var subtotal = invoice.Items.Sum(item => item.TotalPrice);
-        var total = subtotal; // Add tax calculation if needed
+        var result = template;
 
-        // Build invoice items HTML
-        var itemsHtml = new StringBuilder();
-        foreach (var item in invoice.Items)
-        {
-            itemsHtml.AppendLine($@"
-                <tr>
-                    <td>{item.Description}</td>
-                    <td class='text-right'>{item.Quantity}</td>
-                    <td class='text-right'>${item.PricePerUnit:F2}</td>
-                    <td class='text-right'>${item.TotalPrice:F2}</td>
-                </tr>");
-        }
+        // Group 1: Title
+        result = result.Replace("{{DocumentTitle}}", "INVOICE");
 
-        // Replace placeholders
-        return template
-            .Replace("{InvoiceId}", invoice.Id.ToString())
-            .Replace("{DateCreated}", invoice.DateCreated.ToString("MMMM dd, yyyy"))
-            .Replace("{PayByDate}", invoice.PayByDate.ToString("MMMM dd, yyyy"))
-            .Replace("{ClientName}", invoice.Client?.Name ?? "")
-            .Replace("{ClientSurname}", "")
-            .Replace("{ClientAddress}", invoice.Client?.Address ?? "")
-            .Replace("{ClientCellphone}", invoice.Client?.Cellphone ?? "")
-            .Replace("{InvoiceItems}", itemsHtml.ToString())
-            .Replace("{Subtotal}", $"${subtotal:F2}")
-            .Replace("{Total}", $"${total:F2}");
+        // Group 3: Organization & document meta
+        result = PopulateOrganizationPlaceholders(result, invoice.Organization);
+        result = result.Replace("{{DocumentNumber}}", $"INV-{invoice.Id}");
+        result = result.Replace("{{DateCreated}}", invoice.DateCreated.ToString("MMMM dd, yyyy"));
+        result = result.Replace("{{PayByDate}}", invoice.PayByDate.ToString("MMMM dd, yyyy"));
+
+        // Group 2: Client details
+        result = PopulateClientPlaceholders(result, invoice.Client);
+
+        // Group 4: Items & VAT
+        var itemsHtml = BuildInvoiceItemsHtml(invoice.Items);
+        result = result.Replace("{{InvoiceItems}}", itemsHtml);
+        var orgVatRate = invoice.Organization?.VatRate ?? 15m;
+        result = PopulateVatSection(result, invoice.Items.Sum(i => i.TotalPrice), invoice.VatInclusive, orgVatRate);
+
+        // Group 5: Bank details
+        result = PopulateBankDetails(result, bankAccounts);
+        result = PopulateConditionalBlock(result, "PROOF_OF_PAYMENT", "{{ProofOfPaymentEmail}}", invoice.Organization?.Email);
+        result = result.Replace("{{ProofOfPaymentEmail}}", invoice.Organization?.Email ?? "");
+
+        return result;
     }
+
+    // ─── Quote Template Population ────────────────────────────────────────────
 
     private string PopulateQuoteTemplate(string template, Quote quote)
     {
-        var total = quote.Items.Sum(item => item.TotalPrice);
+        var result = template;
 
-        // Build quote items HTML
-        var itemsHtml = new StringBuilder();
-        foreach (var item in quote.Items)
+        // Group 1: Title
+        result = result.Replace("{{DocumentTitle}}", "QUOTATION");
+
+        // Group 3: Organization & document meta
+        result = PopulateOrganizationPlaceholders(result, quote.Organization);
+        result = result.Replace("{{DocumentNumber}}", $"Q-{quote.Id}");
+        result = result.Replace("{{DateCreated}}", quote.DateCreated.ToString("MMMM dd, yyyy"));
+
+        // Group 2: Client details
+        result = PopulateClientPlaceholders(result, quote.Client);
+
+        // Group 4: Items & VAT
+        var itemsHtml = BuildQuoteItemsHtml(quote.Items);
+        result = result.Replace("{{QuoteItems}}", itemsHtml);
+        var orgVatRate = quote.Organization?.VatRate ?? 15m;
+        result = PopulateVatSection(result, quote.Items.Sum(i => i.TotalPrice), quote.VatInclusive, orgVatRate);
+
+        // Group 5: Quote footer uses {{OrganizationPhone}} which is already replaced above
+
+        return result;
+    }
+
+    // ─── Shared Helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Populates organization-related placeholders and conditionally removes blocks if data is missing.
+    /// </summary>
+    private string PopulateOrganizationPlaceholders(string template, Organization? org)
+    {
+        var result = template;
+
+        result = result.Replace("{{OrganizationName}}", org?.Name ?? "");
+
+        // Build formatted address
+        string? formattedAddress = null;
+        if (org?.Address != null)
         {
-            itemsHtml.AppendLine($@"
-            <tr>
-                <td>{item.Description}</td>
-                <td style='text-align: center;'>{item.Quantity}</td>
-                <td style='text-align: right;'>${item.PricePerUnit:F2}</td>
-                <td style='text-align: right;'>${item.TotalPrice:F2}</td>
-            </tr>");
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(org.Address.Street)) parts.Add(org.Address.Street);
+            if (!string.IsNullOrWhiteSpace(org.Address.City)) parts.Add(org.Address.City);
+            if (!string.IsNullOrWhiteSpace(org.Address.State)) parts.Add(org.Address.State);
+            if (!string.IsNullOrWhiteSpace(org.Address.PostalCode)) parts.Add(org.Address.PostalCode);
+            if (!string.IsNullOrWhiteSpace(org.Address.Country)) parts.Add(org.Address.Country);
+            if (parts.Count > 0) formattedAddress = string.Join(", ", parts);
         }
 
-        // Replace Handlebars-style placeholders
-        var result = template
-            .Replace("{{QuoteId}}", quote.Id.ToString())
-            .Replace("{{DateCreated}}", quote.DateCreated.ToString("MMMM dd, yyyy"))
-            .Replace("{{ClientName}}", quote.Client?.Name ?? "")
-            .Replace("{{ClientSurname}}", "")
-            .Replace("{{ClientAddress}}", quote.Client?.Address ?? "")
-            .Replace("{{ClientCellphone}}", quote.Client?.Cellphone ?? "")
-            .Replace("{{Total}}", $"{total:F2}");
+        result = PopulateConditionalBlock(result, "ORG_ADDRESS", "{{OrganizationAddress}}", formattedAddress);
+        result = result.Replace("{{OrganizationAddress}}", formattedAddress ?? "");
 
-        // Replace the items section (between {{#each Items}} and {{/each}})
-        var itemsStartMarker = "{{#each Items}}";
-        var itemsEndMarker = "{{/each}}";
-        var startIndex = result.IndexOf(itemsStartMarker);
-        var endIndex = result.IndexOf(itemsEndMarker);
-        
-        if (startIndex >= 0 && endIndex >= 0)
+        result = PopulateConditionalBlock(result, "ORG_PHONE", "{{OrganizationPhone}}", org?.Phone);
+        result = result.Replace("{{OrganizationPhone}}", org?.Phone ?? "");
+
+        result = PopulateConditionalBlock(result, "ORG_EMAIL", "{{OrganizationEmail}}", org?.Email);
+        result = result.Replace("{{OrganizationEmail}}", org?.Email ?? "");
+
+        return result;
+    }
+
+    /// <summary>
+    /// Populates client-related placeholders and conditionally removes blocks if data is missing.
+    /// </summary>
+    private string PopulateClientPlaceholders(string template, Client? client)
+    {
+        var result = template;
+
+        result = result.Replace("{{ClientName}}", client?.Name ?? "");
+
+        result = PopulateConditionalBlock(result, "CLIENT_ADDRESS", "{{ClientAddress}}", client?.Address);
+        result = result.Replace("{{ClientAddress}}", client?.Address ?? "");
+
+        result = PopulateConditionalBlock(result, "CLIENT_TELEPHONE", "{{ClientTelephone}}", client?.Cellphone);
+        result = result.Replace("{{ClientTelephone}}", client?.Cellphone ?? "");
+
+        result = PopulateConditionalBlock(result, "CLIENT_EMAIL", "{{ClientEmail}}", client?.Email);
+        result = result.Replace("{{ClientEmail}}", client?.Email ?? "");
+
+        result = PopulateConditionalBlock(result, "CLIENT_VAT", "{{ClientVatNumber}}", client?.VatNumber);
+        result = result.Replace("{{ClientVatNumber}}", client?.VatNumber ?? "");
+
+        return result;
+    }
+
+    /// <summary>
+    /// Handles VAT section: if VatInclusive, removes the VAT breakdown block; otherwise calculates and shows it.
+    /// </summary>
+    /// <param name="template">HTML template string</param>
+    /// <param name="itemsSubtotal">Sum of line item totals</param>
+    /// <param name="vatInclusive">Whether prices include VAT</param>
+    /// <param name="vatRatePercent">Organization's VAT rate as a percentage (e.g. 15 means 15%)</param>
+    private string PopulateVatSection(string template, decimal itemsSubtotal, bool vatInclusive, decimal vatRatePercent)
+    {
+        var result = template;
+        var vatRateDecimal = vatRatePercent / 100m;
+
+        if (vatInclusive)
         {
-            var length = endIndex + itemsEndMarker.Length - startIndex;
-            result = result.Remove(startIndex, length).Insert(startIndex, itemsHtml.ToString());
+            // Prices include VAT — show total only, remove VAT breakdown
+            result = RemoveConditionalBlock(result, "VAT_SECTION");
+            result = result.Replace("{{Subtotal}}", $"R {itemsSubtotal:N2}");
+            result = result.Replace("{{Total}}", $"R {itemsSubtotal:N2}");
+            result = result.Replace("{{VatNote}}", "All prices include VAT");
+        }
+        else
+        {
+            // Prices exclude VAT — show subtotal, VAT amount, and total
+            var vatAmount = itemsSubtotal * vatRateDecimal;
+            var total = itemsSubtotal + vatAmount;
+
+            result = result.Replace("{{Subtotal}}", $"R {itemsSubtotal:N2}");
+            result = result.Replace("{{VatAmount}}", $"R {vatAmount:N2}");
+            result = result.Replace("{{Total}}", $"R {total:N2}");
+            result = result.Replace("{{VatNote}}", $"VAT calculated at {vatRatePercent:G}%");
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Populates bank details section for invoices. Removes the block if no active bank accounts exist.
+    /// </summary>
+    private string PopulateBankDetails(string template, List<BankAccount> bankAccounts)
+    {
+        var result = template;
+        var activeBankAccount = bankAccounts.FirstOrDefault(b => b.Active);
+
+        if (activeBankAccount == null)
+        {
+            result = RemoveConditionalBlock(result, "BANK_DETAILS");
+        }
+        else
+        {
+            result = result.Replace("{{BankName}}", activeBankAccount.BankName);
+            result = result.Replace("{{BranchCode}}", activeBankAccount.BranchCode);
+            result = result.Replace("{{AccountNumber}}", activeBankAccount.AccountNumber);
+            result = result.Replace("{{AccountType}}", activeBankAccount.AccountType);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// If the value is null or empty, removes the entire HTML block between the START and END comment markers.
+    /// Otherwise leaves the block intact.
+    /// </summary>
+    private string PopulateConditionalBlock(string template, string blockName, string placeholder, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return RemoveConditionalBlock(template, blockName);
+        }
+        return template;
+    }
+
+    /// <summary>
+    /// Removes an HTML block delimited by comment markers: &lt;!-- BLOCKNAME_START --&gt; ... &lt;!-- BLOCKNAME_END --&gt;
+    /// </summary>
+    private string RemoveConditionalBlock(string template, string blockName)
+    {
+        var pattern = $@"<!--\s*{Regex.Escape(blockName)}_START\s*-->.*?<!--\s*{Regex.Escape(blockName)}_END\s*-->";
+        return Regex.Replace(template, pattern, "", RegexOptions.Singleline);
+    }
+
+    // ─── Item Row Builders ────────────────────────────────────────────────────
+
+    private string BuildInvoiceItemsHtml(ICollection<InvoiceItem> items)
+    {
+        var sb = new StringBuilder();
+        foreach (var item in items)
+        {
+            sb.AppendLine($@"
+                <tr>
+                    <td>{item.Description}</td>
+                    <td class=""text-center"">{item.Quantity}</td>
+                    <td class=""text-right"">R {item.PricePerUnit:N2}</td>
+                    <td class=""text-right"">R {item.TotalPrice:N2}</td>
+                </tr>");
+        }
+        return sb.ToString();
+    }
+
+    private string BuildQuoteItemsHtml(ICollection<QuoteItem> items)
+    {
+        var sb = new StringBuilder();
+        foreach (var item in items)
+        {
+            sb.AppendLine($@"
+                <tr>
+                    <td>{item.Description}</td>
+                    <td class=""text-center"">{item.Quantity}</td>
+                    <td class=""text-right"">R {item.PricePerUnit:N2}</td>
+                    <td class=""text-right"">R {item.TotalPrice:N2}</td>
+                </tr>");
+        }
+        return sb.ToString();
     }
 }

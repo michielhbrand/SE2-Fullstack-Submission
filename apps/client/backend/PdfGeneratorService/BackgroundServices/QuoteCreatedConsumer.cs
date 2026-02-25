@@ -142,10 +142,12 @@ public class QuoteCreatedConsumer : BackgroundService
             var pdfService = scope.ServiceProvider.GetRequiredService<IPdfGenerationService>();
             var minioService = scope.ServiceProvider.GetRequiredService<IMinioStorageService>();
 
-            // Fetch quote with items and client from database
+            // Fetch quote with items, client, and organization (with address) from database
             var quote = await dbContext.Quotes
                 .Include(q => q.Items)
                 .Include(q => q.Client)
+                .Include(q => q.Organization)
+                    .ThenInclude(o => o!.Address)
                 .FirstOrDefaultAsync(q => q.Id == message.QuoteId, cancellationToken);
 
             if (quote == null)

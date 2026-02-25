@@ -19,6 +19,12 @@ public class ConvertQuoteToInvoiceRequest
     public int? TemplateId { get; set; }
 
     /// <summary>
+    /// When true, item prices include VAT. When false, VAT is calculated separately.
+    /// If null, inherits from the source quote.
+    /// </summary>
+    public bool? VatInclusive { get; set; }
+
+    /// <summary>
     /// Number of days from today until the invoice is due. Defaults to 30 if not specified.
     /// </summary>
     [Range(1, 365, ErrorMessage = "Pay by days must be between 1 and 365")]

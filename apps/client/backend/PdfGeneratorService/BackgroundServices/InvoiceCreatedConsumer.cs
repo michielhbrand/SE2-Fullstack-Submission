@@ -142,10 +142,12 @@ public class InvoiceCreatedConsumer : BackgroundService
             var pdfService = scope.ServiceProvider.GetRequiredService<IPdfGenerationService>();
             var minioService = scope.ServiceProvider.GetRequiredService<IMinioStorageService>();
 
-            // Fetch invoice with items and client from database
+            // Fetch invoice with items, client, and organization (with address) from database
             var invoice = await dbContext.Invoices
                 .Include(i => i.Items)
                 .Include(i => i.Client)
+                .Include(i => i.Organization)
+                    .ThenInclude(o => o!.Address)
                 .FirstOrDefaultAsync(i => i.Id == message.InvoiceId, cancellationToken);
 
             if (invoice == null)
@@ -154,8 +156,13 @@ public class InvoiceCreatedConsumer : BackgroundService
                 return;
             }
 
+            // Fetch active bank accounts for the organization
+            var bankAccounts = await dbContext.BankAccounts
+                .Where(b => b.OrganizationId == invoice.OrganizationId && b.Active)
+                .ToListAsync(cancellationToken);
+
             // Generate PDF with specified template
-            var pdfBytes = await pdfService.GeneratePdfFromInvoiceAsync(invoice, invoice.TemplateId);
+            var pdfBytes = await pdfService.GeneratePdfFromInvoiceAsync(invoice, bankAccounts, invoice.TemplateId);
 
             // Upload to MinIO
             var storageKey = await minioService.UploadPdfAsync(invoice.Id, pdfBytes);

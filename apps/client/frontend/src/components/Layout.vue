@@ -93,12 +93,13 @@ watch(() => uiStore.showNewQuoteModal, (newVal) => {
   if (newVal) fetchClients()
 })
 
-const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: number, payByDays: number }) => {
+const saveNewInvoice = async (data: { clientId: number, items: any[], templateId?: number, payByDays: number, vatInclusive: boolean }) => {
   try {
     const invoice = {
       clientId: data.clientId,
       templateId: data.templateId,
       payByDays: data.payByDays,
+      vatInclusive: data.vatInclusive,
       items: data.items.map(item => ({
         description: item.description,
         quantity: item.amount,
@@ -120,11 +121,12 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
   }
 }
 
-const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: number }) => {
+const saveNewQuote = async (data: { clientId: number, items: any[], templateId?: number, vatInclusive: boolean }) => {
   try {
     const quote = {
       clientId: data.clientId,
       templateId: data.templateId,
+      vatInclusive: data.vatInclusive,
       items: data.items.map(item => ({
         description: item.description,
         quantity: item.amount,

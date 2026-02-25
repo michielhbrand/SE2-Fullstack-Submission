@@ -16,6 +16,7 @@ public class QuoteResponse
     public string? ModifiedBy { get; set; }
     public string? PdfStorageKey { get; set; }
     public int? TemplateId { get; set; }
+    public bool VatInclusive { get; set; }
     public List<QuoteItemResponse> Items { get; set; } = new();
 }
 

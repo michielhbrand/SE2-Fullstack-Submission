@@ -19,6 +19,12 @@ public class Quote
     
     public bool NotificationSent { get; set; } = false;
     
+    /// <summary>
+    /// When true, item prices include VAT (document shows only total).
+    /// When false, item prices exclude VAT (document shows subtotal, VAT amount, and total).
+    /// </summary>
+    public bool VatInclusive { get; set; } = true;
+    
     public DateTime? LastModifiedDate { get; set; }
     
     [MaxLength(255)]

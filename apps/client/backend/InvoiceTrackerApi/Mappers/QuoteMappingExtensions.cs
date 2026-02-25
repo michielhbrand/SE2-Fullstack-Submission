@@ -22,6 +22,7 @@ public static class QuoteMappingExtensions
             ModifiedBy = quote.ModifiedBy,
             PdfStorageKey = quote.PdfStorageKey,
             TemplateId = quote.TemplateId,
+            VatInclusive = quote.VatInclusive,
             Items = quote.Items.Select(i => i.ToDto()).ToList()
         };
     }

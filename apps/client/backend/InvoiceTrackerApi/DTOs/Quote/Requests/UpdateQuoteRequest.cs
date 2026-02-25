@@ -14,6 +14,11 @@ public class UpdateQuoteRequest
 
     public int? TemplateId { get; set; }
 
+    /// <summary>
+    /// When true, item prices include VAT. When false, VAT is calculated separately.
+    /// </summary>
+    public bool VatInclusive { get; set; } = true;
+
     [Required]
     public List<CreateQuoteItemRequest> Items { get; set; } = new();
 }

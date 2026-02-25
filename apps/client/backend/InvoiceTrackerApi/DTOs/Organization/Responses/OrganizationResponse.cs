@@ -4,6 +4,7 @@ public class OrganizationResponse
 {
     public int Id { get; set; }
     public required string Name { get; set; }
+    public decimal VatRate { get; set; }
     public required AddressResponse Address { get; set; }
     public List<BankAccountResponse> BankAccounts { get; set; } = new();
 }

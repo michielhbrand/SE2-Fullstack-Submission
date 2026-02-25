@@ -152,7 +152,7 @@ public class TemplateController : ControllerBase
             };
 
             // Generate PDF preview using template ID
-            var pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, templateId);
+            var pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, new List<BankAccount>(), templateId);
             
             return File(pdfBytes, "application/pdf", $"template-{templateId}_preview.pdf");
         }

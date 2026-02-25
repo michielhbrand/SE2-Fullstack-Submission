@@ -100,6 +100,7 @@ public class InvoiceService : IInvoiceService
         {
             ClientId = request.ClientId,
             TemplateId = request.TemplateId,
+            VatInclusive = request.VatInclusive,
             OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
             PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),
@@ -177,6 +178,7 @@ public class InvoiceService : IInvoiceService
         existingInvoice.ClientId = request.ClientId;
         existingInvoice.NotificationSent = request.NotificationSent;
         existingInvoice.TemplateId = request.TemplateId;
+        existingInvoice.VatInclusive = request.VatInclusive;
         existingInvoice.LastModifiedDate = DateTime.UtcNow;
         existingInvoice.ModifiedBy = modifiedBy;
 
@@ -245,10 +247,13 @@ public class InvoiceService : IInvoiceService
         }
 
         // Create invoice from quote data
+        // Do NOT inherit the quote's TemplateId — it's a Quote-type template and
+        // would produce a PDF with quote placeholders/footer instead of invoice ones.
         var invoice = new InvoiceModel
         {
             ClientId = quote.ClientId,
-            TemplateId = request.TemplateId ?? quote.TemplateId,
+            TemplateId = request.TemplateId,
+            VatInclusive = request.VatInclusive ?? quote.VatInclusive,
             OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
             PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),

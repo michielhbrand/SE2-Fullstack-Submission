@@ -13,11 +13,13 @@ const loading = ref(true);
 const saving = ref(false);
 const organization = ref<OrganizationResponse | null>(null);
 
-// Form fields
-const addressFirstLine = ref("");
-const addressSecondLine = ref("");
+// Form fields matching Address model: Street, City, State, PostalCode, Country
+const street = ref("");
 const city = ref("");
+const state = ref("");
 const postalCode = ref("");
+const country = ref("");
+const vatRate = ref<number>(15);
 
 onMounted(async () => {
   if (!authStore.isAdmin) {
@@ -31,22 +33,22 @@ onMounted(async () => {
 const loadOrganization = async () => {
   loading.value = true;
   try {
-    // First, get all organizations to find the user's organization
     const organizations = await generatedClient.organization_GetOrganizations();
     if (organizations && organizations.length > 0) {
       const org = organizations[0];
       if (org && org.id) {
-        // Now fetch the specific organization by ID for complete details
         const fullOrg = await generatedClient.organization_GetOrganization(org.id);
         if (fullOrg) {
           organization.value = fullOrg;
           
           // Populate form fields
+          vatRate.value = (fullOrg as any).vatRate ?? 15;
           if (fullOrg.address) {
-            addressFirstLine.value = fullOrg.address.firstLine || "";
-            addressSecondLine.value = fullOrg.address.secondLine || "";
+            street.value = fullOrg.address.street || "";
             city.value = fullOrg.address.city || "";
-            postalCode.value = fullOrg.address.code || "";
+            state.value = fullOrg.address.state || "";
+            postalCode.value = fullOrg.address.postalCode || "";
+            country.value = fullOrg.address.country || "";
           }
         }
       }
@@ -63,30 +65,21 @@ const handleSave = async () => {
   if (!organization.value || !organization.value.id) return;
 
   // Validation
-  if (!addressFirstLine.value.trim()) {
-    toast.error("Address line 1 is required");
-    return;
-  }
-  if (!city.value.trim()) {
-    toast.error("City is required");
-    return;
-  }
-  if (!postalCode.value.trim()) {
-    toast.error("Postal code is required");
+  if (vatRate.value < 0 || vatRate.value > 100) {
+    toast.error("VAT rate must be between 0 and 100");
     return;
   }
 
   saving.value = true;
   try {
-    // Note: The API expects addressId, not the full address object
-    // For now, we'll show a message that this feature needs backend support
-    toast.info("Address editing requires additional backend API support");
+    await generatedClient.organization_UpdateOrganization(organization.value.id, {
+      vatRate: vatRate.value,
+    } as any);
     
-    // When the backend supports updating address inline, use:
-    // await generatedClient.organization_UpdateOrganization(organization.value.id, {
-    //   addressId: organization.value.address?.id,
-    // });
+    toast.success("Organization settings saved successfully");
     
+    // Reload to reflect changes
+    await loadOrganization();
   } catch (err: any) {
     console.error("Error updating organization:", err);
     if (err?.response?.data?.message) {
@@ -100,11 +93,13 @@ const handleSave = async () => {
 };
 
 const handleReset = () => {
+  vatRate.value = (organization.value as any)?.vatRate ?? 15;
   if (organization.value?.address) {
-    addressFirstLine.value = organization.value.address.firstLine || "";
-    addressSecondLine.value = organization.value.address.secondLine || "";
+    street.value = organization.value.address.street || "";
     city.value = organization.value.address.city || "";
-    postalCode.value = organization.value.address.code || "";
+    state.value = organization.value.address.state || "";
+    postalCode.value = organization.value.address.postalCode || "";
+    country.value = organization.value.address.country || "";
   }
 };
 </script>
@@ -115,7 +110,7 @@ const handleReset = () => {
     <Card class="p-6">
       <div class="mb-6">
         <h2 class="text-2xl font-semibold text-gray-900">Edit Organization</h2>
-        <p class="mt-1 text-sm text-gray-500">Update your organization's address and details</p>
+        <p class="mt-1 text-sm text-gray-500">Update your organization's settings and details</p>
       </div>
 
       <!-- Loading State -->
@@ -137,55 +132,98 @@ const handleReset = () => {
           <p class="mt-1 text-xs text-gray-500">Organization name cannot be changed</p>
         </div>
 
+        <!-- VAT Rate Section -->
+        <div class="border-t pt-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Tax Settings</h3>
+          <div>
+            <Label for="vat-rate">VAT Rate (%)</Label>
+            <div class="flex items-center gap-3 mt-1">
+              <Input
+                id="vat-rate"
+                v-model.number="vatRate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                placeholder="15"
+                class="w-32"
+              />
+              <span class="text-sm text-gray-500">
+                Applied to quotes and invoices when VAT is exclusive
+              </span>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Enter the VAT percentage (e.g. 15 for 15%). Set to 0 for VAT-exempt organizations.</p>
+          </div>
+        </div>
+
         <!-- Address Section -->
         <div class="border-t pt-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Address Information</h3>
           
           <div class="space-y-4">
-            <!-- Address Line 1 -->
+            <!-- Street -->
             <div>
-              <Label for="address-line-1">Address Line 1 *</Label>
+              <Label for="street">Street</Label>
               <Input
-                id="address-line-1"
-                v-model="addressFirstLine"
+                id="street"
+                v-model="street"
                 placeholder="123 Main Street"
-                class="mt-1"
+                disabled
+                class="mt-1 bg-gray-100 cursor-not-allowed"
               />
             </div>
 
-            <!-- Address Line 2 -->
-            <div>
-              <Label for="address-line-2">Address Line 2</Label>
-              <Input
-                id="address-line-2"
-                v-model="addressSecondLine"
-                placeholder="Suite 100 (optional)"
-                class="mt-1"
-              />
-            </div>
-
-            <!-- City and Postal Code -->
+            <!-- City and State -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label for="city">City *</Label>
+                <Label for="city">City</Label>
                 <Input
                   id="city"
                   v-model="city"
-                  placeholder="New York"
-                  class="mt-1"
+                  placeholder="Cape Town"
+                  disabled
+                  class="mt-1 bg-gray-100 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <Label for="postal-code">Postal Code *</Label>
+                <Label for="state">State / Province</Label>
                 <Input
-                  id="postal-code"
-                  v-model="postalCode"
-                  placeholder="10001"
-                  class="mt-1"
+                  id="state"
+                  v-model="state"
+                  placeholder="Western Cape"
+                  disabled
+                  class="mt-1 bg-gray-100 cursor-not-allowed"
                 />
               </div>
             </div>
+
+            <!-- Postal Code and Country -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label for="postal-code">Postal Code</Label>
+                <Input
+                  id="postal-code"
+                  v-model="postalCode"
+                  placeholder="8001"
+                  disabled
+                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <Label for="country">Country</Label>
+                <Input
+                  id="country"
+                  v-model="country"
+                  placeholder="South Africa"
+                  disabled
+                  class="mt-1 bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <p class="text-xs text-gray-500">Address editing requires additional backend API support. Contact your system administrator to update address details.</p>
           </div>
         </div>
 
@@ -254,8 +292,8 @@ const handleReset = () => {
           <div class="mt-2 text-sm text-amber-700">
             <ul class="list-disc list-inside space-y-1">
               <li>Organization name cannot be changed through this interface</li>
-              <li>Address information is used on invoices and quotes</li>
-              <li>All fields marked with * are required</li>
+              <li>Address information is displayed from the database and used on invoices and quotes</li>
+              <li>VAT rate is applied when generating PDFs with VAT-exclusive pricing</li>
             </ul>
           </div>
         </div>

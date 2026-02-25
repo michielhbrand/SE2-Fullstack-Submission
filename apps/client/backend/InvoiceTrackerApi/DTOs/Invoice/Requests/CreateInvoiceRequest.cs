@@ -13,6 +13,12 @@ public class CreateInvoiceRequest
     public int? TemplateId { get; set; }
 
     /// <summary>
+    /// When true, item prices include VAT (document shows only total).
+    /// When false, item prices exclude VAT (document shows subtotal, VAT amount, and total).
+    /// </summary>
+    public bool VatInclusive { get; set; } = true;
+
+    /// <summary>
     /// Number of days from today until the invoice is due. Defaults to 30 if not specified.
     /// </summary>
     [Range(1, 365, ErrorMessage = "Pay by days must be between 1 and 365")]

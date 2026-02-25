@@ -18,6 +18,12 @@ public class Organization
     public string? Website { get; set; }
     public bool Active { get; set; } = true;
     
+    /// <summary>
+    /// VAT percentage rate for this organization (e.g. 15.00 means 15%).
+    /// Used in PDF generation for quotes and invoices.
+    /// </summary>
+    public decimal VatRate { get; set; } = 15.00m;
+    
     public int? AddressId { get; set; }
     
     [ForeignKey(nameof(AddressId))]

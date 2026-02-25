@@ -12,6 +12,12 @@ public class CreateQuoteRequest
 
     public int? TemplateId { get; set; }
 
+    /// <summary>
+    /// When true, item prices include VAT (document shows only total).
+    /// When false, item prices exclude VAT (document shows subtotal, VAT amount, and total).
+    /// </summary>
+    public bool VatInclusive { get; set; } = true;
+
     [Required]
     public List<CreateQuoteItemRequest> Items { get; set; } = new();
 }

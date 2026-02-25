@@ -3584,6 +3584,7 @@ export interface InvoiceResponse {
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
     templateId?: number | null;
+    vatInclusive?: boolean;
     payByDate?: Date;
     items?: InvoiceItemResponse[];
 }
@@ -3604,6 +3605,7 @@ export interface PdfUrlResponse {
 export interface CreateInvoiceRequest {
     clientId: number;
     templateId?: number | null;
+    vatInclusive?: boolean;
     payByDays?: number;
     items: CreateInvoiceItemRequest[];
 }
@@ -3618,6 +3620,7 @@ export interface UpdateInvoiceRequest {
     clientId: number;
     notificationSent?: boolean;
     templateId?: number | null;
+    vatInclusive?: boolean;
     items: CreateInvoiceItemRequest[];
 }
 
@@ -3626,6 +3629,7 @@ export interface CreateInvoiceFromQuoteRequest {
     templateId?: number | null;
     organizationId?: number;
     payByDays?: number;
+    vatInclusive?: boolean | null;
 }
 
 export interface OrganizationResponse {
@@ -3701,6 +3705,7 @@ export interface QuoteResponse {
     modifiedBy?: string | null;
     pdfStorageKey?: string | null;
     templateId?: number | null;
+    vatInclusive?: boolean;
     items?: QuoteItemResponse[];
 }
 
@@ -3716,6 +3721,7 @@ export interface QuoteItemResponse {
 export interface CreateQuoteRequest {
     clientId: number;
     templateId?: number | null;
+    vatInclusive?: boolean;
     items: CreateQuoteItemRequest[];
 }
 
@@ -3729,6 +3735,7 @@ export interface UpdateQuoteRequest {
     clientId: number;
     notificationSent?: boolean;
     templateId?: number | null;
+    vatInclusive?: boolean;
     items: CreateQuoteItemRequest[];
 }
 

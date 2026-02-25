@@ -15,6 +15,7 @@ public static class OrganizationMappingExtensions
         {
             Id = organization.Id,
             Name = organization.Name,
+            VatRate = organization.VatRate,
             Address = organization.Address?.ToDto() ?? new AddressResponse
             {
                 Id = 0,

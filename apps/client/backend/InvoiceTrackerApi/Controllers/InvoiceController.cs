@@ -161,7 +161,8 @@ public class InvoiceController : AuthenticatedControllerBase
             {
                 QuoteId = request.QuoteId,
                 TemplateId = request.TemplateId,
-                PayByDays = request.PayByDays
+                PayByDays = request.PayByDays,
+                VatInclusive = request.VatInclusive
             },
             userEmail,
             request.OrganizationId);
@@ -179,4 +180,5 @@ public class CreateInvoiceFromQuoteRequest
     public int? TemplateId { get; set; }
     public int OrganizationId { get; set; }
     public int PayByDays { get; set; } = 30;
+    public bool? VatInclusive { get; set; }
 }

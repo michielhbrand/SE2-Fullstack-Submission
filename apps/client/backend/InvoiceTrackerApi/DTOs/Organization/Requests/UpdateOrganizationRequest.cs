@@ -10,5 +10,11 @@ public class UpdateOrganizationRequest
     [Range(1, int.MaxValue, ErrorMessage = "Address ID must be a positive number")]
     public int? AddressId { get; set; }
     
+    /// <summary>
+    /// VAT percentage rate (e.g. 15 means 15%). Must be between 0 and 100.
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100")]
+    public decimal? VatRate { get; set; }
+    
     public List<int>? BankAccountIds { get; set; }
 }

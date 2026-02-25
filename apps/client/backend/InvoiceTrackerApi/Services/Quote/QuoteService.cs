@@ -96,6 +96,7 @@ public class QuoteService : IQuoteService
         {
             ClientId = request.ClientId,
             TemplateId = request.TemplateId,
+            VatInclusive = request.VatInclusive,
             OrganizationId = organizationId,
             DateCreated = DateTime.UtcNow,
             ModifiedBy = modifiedBy,
@@ -172,6 +173,7 @@ public class QuoteService : IQuoteService
         existingQuote.ClientId = request.ClientId;
         existingQuote.NotificationSent = request.NotificationSent;
         existingQuote.TemplateId = request.TemplateId;
+        existingQuote.VatInclusive = request.VatInclusive;
         existingQuote.LastModifiedDate = DateTime.UtcNow;
         existingQuote.ModifiedBy = modifiedBy;
 

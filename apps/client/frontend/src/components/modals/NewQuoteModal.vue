@@ -34,7 +34,7 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'save', data: { clientId: number, items: QuoteItem[], templateId?: number }): void
+  (e: 'save', data: { clientId: number, items: QuoteItem[], templateId?: number, vatInclusive: boolean }): void
 }
 
 const props = defineProps<Props>()
@@ -44,6 +44,7 @@ const organizationStore = useOrganizationStore()
 
 const selectedClientId = ref<number | null>(null)
 const selectedTemplateId = ref<number | null>(null)
+const vatInclusive = ref(true)
 const quoteItems = ref<QuoteItem[]>([{ description: '', amount: 1, pricePerUnit: 0 }])
 const formErrors = ref<Record<string, string>>({})
 const templates = ref<TemplateOption[]>([])
@@ -130,7 +131,8 @@ const handleSave = () => {
   emit('save', {
     clientId: selectedClientId.value,
     items: quoteItems.value,
-    templateId: selectedTemplateId.value ?? undefined
+    templateId: selectedTemplateId.value ?? undefined,
+    vatInclusive: vatInclusive.value
   })
 }
 
@@ -140,6 +142,17 @@ const handleClose = () => {
 
 const totalQuoteAmount = computed(() => {
   return quoteItems.value.reduce((sum, item) => sum + (item.amount * item.pricePerUnit), 0)
+})
+
+const orgVatRatePercent = computed(() => (organizationStore.currentOrganization as any)?.vatRate ?? 15)
+
+const vatAmount = computed(() => {
+  if (vatInclusive.value) return 0
+  return totalQuoteAmount.value * (orgVatRatePercent.value / 100)
+})
+
+const totalWithVat = computed(() => {
+  return totalQuoteAmount.value + vatAmount.value
 })
 
 const filteredClients = computed(() => {
@@ -217,6 +230,7 @@ const handleClickOutside = (event: MouseEvent) => {
 const resetForm = () => {
   selectedClientId.value = null
   selectedTemplateId.value = templates.value.length > 0 ? templates.value[0]!.id : null
+  vatInclusive.value = true
   quoteItems.value = [{ description: '', amount: 1, pricePerUnit: 0 }]
   formErrors.value = {}
   templateSearchQuery.value = ''
@@ -477,12 +491,34 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- VAT Toggle -->
+        <div class="flex items-center gap-3 pt-2">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="vatInclusive" class="sr-only peer" />
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+          <span class="text-sm font-medium text-gray-700">
+            {{ vatInclusive ? 'Prices include VAT' : 'Prices exclude VAT (15% will be added)' }}
+          </span>
+        </div>
+
         <!-- Total -->
         <div class="pt-3 border-t border-gray-200">
           <div class="flex justify-between items-center">
-            <span class="text-lg font-semibold text-gray-900">Total:</span>
-            <span class="text-lg font-bold text-blue-600">R {{ totalQuoteAmount.toFixed(2) }}</span>
+            <span class="text-sm text-gray-600">Subtotal:</span>
+            <span class="text-sm text-gray-600">R {{ totalQuoteAmount.toFixed(2) }}</span>
           </div>
+          <div v-if="!vatInclusive" class="flex justify-between items-center mt-1">
+            <span class="text-sm text-gray-500">VAT ({{ orgVatRatePercent }}%):</span>
+            <span class="text-sm text-gray-500">R {{ vatAmount.toFixed(2) }}</span>
+          </div>
+          <div class="flex justify-between items-center mt-1">
+            <span class="text-lg font-semibold text-gray-900">Total:</span>
+            <span class="text-lg font-bold text-blue-600">R {{ totalWithVat.toFixed(2) }}</span>
+          </div>
+          <p class="text-xs text-gray-400 text-right mt-1">
+            {{ vatInclusive ? 'All prices include VAT' : 'VAT calculated at 15%' }}
+          </p>
         </div>
       </div>
 

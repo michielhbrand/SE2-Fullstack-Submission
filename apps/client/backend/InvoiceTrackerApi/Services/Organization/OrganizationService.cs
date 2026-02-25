@@ -109,6 +109,11 @@ public class OrganizationService : IOrganizationService
             existingOrganization.Name = request.Name;
         }
 
+        if (request.VatRate.HasValue)
+        {
+            existingOrganization.VatRate = request.VatRate.Value;
+        }
+
         if (request.AddressId.HasValue)
         {
             // Verify address exists

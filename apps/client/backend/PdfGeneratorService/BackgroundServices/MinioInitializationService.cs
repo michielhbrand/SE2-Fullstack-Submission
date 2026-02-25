@@ -7,6 +7,11 @@ public class MinioInitializationService : IHostedService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MinioInitializationService> _logger;
 
+    /// <summary>
+    /// Increment this version whenever templates are updated to force re-upload.
+    /// </summary>
+    private const int TemplateVersion = 2;
+
     public MinioInitializationService(
         IServiceProvider serviceProvider,
         ILogger<MinioInitializationService> logger)
@@ -31,35 +36,18 @@ public class MinioInitializationService : IHostedService
                 await storageService.EnsureBucketsExistAsync();
                 _logger.LogInformation("MinIO buckets initialized successfully");
 
-                // Upload default invoice template if it doesn't exist
-                var invoiceTemplates = await storageService.ListTemplatesAsync();
-                if (!invoiceTemplates.Contains("InvoiceTemplate.html"))
-                {
-                    _logger.LogInformation("Uploading default invoice template...");
-                    var templatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
-                    var templateContent = await File.ReadAllTextAsync(templatePath, cancellationToken);
-                    await storageService.UploadTemplateAsync("InvoiceTemplate.html", templateContent);
-                    _logger.LogInformation("Default invoice template uploaded successfully");
-                }
-                else
-                {
-                    _logger.LogInformation("Default invoice template already exists in MinIO");
-                }
+                // Always upload templates (force-overwrite to ensure latest version)
+                _logger.LogInformation("Uploading default invoice template (version {Version})...", TemplateVersion);
+                var invoiceTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
+                var invoiceTemplateContent = await File.ReadAllTextAsync(invoiceTemplatePath, cancellationToken);
+                await storageService.UploadTemplateAsync("InvoiceTemplate.html", invoiceTemplateContent);
+                _logger.LogInformation("Default invoice template uploaded successfully (version {Version})", TemplateVersion);
 
-                // Upload default quote template if it doesn't exist
-                var quoteTemplates = await storageService.ListQuoteTemplatesAsync();
-                if (!quoteTemplates.Contains("QuoteTemplate.html"))
-                {
-                    _logger.LogInformation("Uploading default quote template...");
-                    var quoteTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "QuoteTemplate.html");
-                    var quoteTemplateContent = await File.ReadAllTextAsync(quoteTemplatePath, cancellationToken);
-                    await storageService.UploadQuoteTemplateAsync("QuoteTemplate.html", quoteTemplateContent);
-                    _logger.LogInformation("Default quote template uploaded successfully");
-                }
-                else
-                {
-                    _logger.LogInformation("Default quote template already exists in MinIO");
-                }
+                _logger.LogInformation("Uploading default quote template (version {Version})...", TemplateVersion);
+                var quoteTemplatePath = Path.Combine(env.ContentRootPath, "Templates", "QuoteTemplate.html");
+                var quoteTemplateContent = await File.ReadAllTextAsync(quoteTemplatePath, cancellationToken);
+                await storageService.UploadQuoteTemplateAsync("QuoteTemplate.html", quoteTemplateContent);
+                _logger.LogInformation("Default quote template uploaded successfully (version {Version})", TemplateVersion);
             }
             catch (Exception ex)
             {
