@@ -5,10 +5,10 @@ import { Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, Ta
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 import { useOrganizationStore } from '../stores/organization'
-import { useAuthStore } from '../stores/auth'
+import { useOrganizationContext } from '../composables/useOrganizationContext'
 
 const organizationStore = useOrganizationStore()
-const authStore = useAuthStore()
+const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const invoices = ref<any[]>([])
@@ -18,14 +18,6 @@ const totalPages = ref(0)
 const totalCount = ref(0)
 const previewingPdf = ref<number | null>(null)
 
-// Ensure organization context is initialized (e.g. after page refresh)
-const ensureOrganizationContext = async (): Promise<number | null> => {
-  if (organizationStore.currentOrganizationId) {
-    return organizationStore.currentOrganizationId
-  }
-  const success = await organizationStore.initializeOrganizationContext(authStore.isAdmin)
-  return success ? organizationStore.currentOrganizationId : null
-}
 
 onMounted(async () => {
   await ensureOrganizationContext()

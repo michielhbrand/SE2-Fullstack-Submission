@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { clientApi } from '../services/api'
 import { useUIStore } from '../stores/ui'
 import { useOrganizationStore } from '../stores/organization'
-import { useAuthStore } from '../stores/auth'
+import { useOrganizationContext } from '../composables/useOrganizationContext'
 import { Button, Spinner, Skeleton, Input, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
@@ -12,7 +12,7 @@ import EditClientModal from '../components/modals/EditClientModal.vue'
 // UI Store for modal management
 const uiStore = useUIStore()
 const organizationStore = useOrganizationStore()
-const authStore = useAuthStore()
+const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const clients = ref<any[]>([])
@@ -22,14 +22,6 @@ const totalPages = ref(0)
 const totalCount = ref(0)
 const searchQuery = ref('')
 
-// Ensure organization context is initialized (e.g. after page refresh)
-const ensureOrganizationContext = async (): Promise<number | null> => {
-  if (organizationStore.currentOrganizationId) {
-    return organizationStore.currentOrganizationId
-  }
-  const success = await organizationStore.initializeOrganizationContext(authStore.isAdmin)
-  return success ? organizationStore.currentOrganizationId : null
-}
 
 onMounted(async () => {
   await ensureOrganizationContext()

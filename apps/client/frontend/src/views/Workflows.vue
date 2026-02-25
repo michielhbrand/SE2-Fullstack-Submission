@@ -3,14 +3,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { workflowApi } from '../services/api'
 import { useOrganizationStore } from '../stores/organization'
-import { useAuthStore } from '../stores/auth'
+import { useOrganizationContext } from '../composables/useOrganizationContext'
 import { Button, Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const organizationStore = useOrganizationStore()
-const authStore = useAuthStore()
+const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const workflows = ref<any[]>([])
@@ -23,14 +23,6 @@ onMounted(async () => {
   await fetchWorkflows()
 })
 
-const ensureOrganizationContext = async (): Promise<number | null> => {
-  if (organizationStore.currentOrganizationId) {
-    return organizationStore.currentOrganizationId
-  }
-  // Lazy-init org context (e.g. after page refresh where Pinia state is lost)
-  const success = await organizationStore.initializeOrganizationContext(authStore.isAdmin)
-  return success ? organizationStore.currentOrganizationId : null
-}
 
 const fetchWorkflows = async () => {
   loading.value = true

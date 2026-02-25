@@ -2,10 +2,11 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
-import { Button, Card, Spinner, Input, Label } from "../../components/ui/index";
+import { Button, Card, Spinner } from "../../components/ui/index";
 import { toast } from "vue-sonner";
 import { generatedClient } from "../../services/api";
 import type { BankAccountResponse } from "../../api/generated/api-client";
+import AddBankAccountModal from "../../components/modals/AddBankAccountModal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -16,14 +17,6 @@ const organizationId = ref<number | null>(null);
 // Add modal state
 const showAddModal = ref(false);
 const saving = ref(false);
-const newAccount = ref({
-  bankName: "",
-  branchCode: "",
-  accountNumber: "",
-  accountType: "Cheque",
-});
-const formErrors = ref<Record<string, string>>({});
-
 // Per-card action states
 const settingActive = ref<number | null>(null);
 const deleting = ref<number | null>(null);
@@ -55,33 +48,13 @@ const loadBankAccounts = async () => {
   }
 };
 
-const validateForm = (): boolean => {
-  formErrors.value = {};
-  if (!newAccount.value.bankName.trim())
-    formErrors.value.bankName = "Bank name is required";
-  if (!newAccount.value.branchCode.trim())
-    formErrors.value.branchCode = "Branch code is required";
-  if (!newAccount.value.accountNumber.trim())
-    formErrors.value.accountNumber = "Account number is required";
-  if (!newAccount.value.accountType.trim())
-    formErrors.value.accountType = "Account type is required";
-  return Object.keys(formErrors.value).length === 0;
-};
-
-const handleAddAccount = async () => {
-  if (!validateForm() || !organizationId.value) return;
-
+const handleAddAccount = async (data: { bankName: string, branchCode: string, accountNumber: string, accountType: string }) => {
+  if (!organizationId.value) return;
   saving.value = true;
   try {
-    await generatedClient.organization_AddBankAccount(organizationId.value, {
-      bankName: newAccount.value.bankName.trim(),
-      branchCode: newAccount.value.branchCode.trim(),
-      accountNumber: newAccount.value.accountNumber.trim(),
-      accountType: newAccount.value.accountType.trim(),
-    });
+    await generatedClient.organization_AddBankAccount(organizationId.value, data);
     toast.success("Bank account added successfully");
     showAddModal.value = false;
-    newAccount.value = { bankName: "", branchCode: "", accountNumber: "", accountType: "Cheque" };
     await loadBankAccounts();
   } catch (err: any) {
     const msg = err?.response?.data?.detail || err?.response?.data?.message;
@@ -125,12 +98,6 @@ const maskAccountNumber = (accountNumber?: string): string => {
   if (!accountNumber) return "****";
   if (accountNumber.length <= 4) return accountNumber;
   return "****" + accountNumber.slice(-4);
-};
-
-const closeModal = () => {
-  showAddModal.value = false;
-  newAccount.value = { bankName: "", branchCode: "", accountNumber: "", accountType: "Cheque" };
-  formErrors.value = {};
 };
 </script>
 
@@ -304,95 +271,10 @@ const closeModal = () => {
       </div>
     </Card>
 
-    <!-- Add Bank Account Modal -->
-    <div
-      v-if="showAddModal"
-      class="fixed inset-0 z-50 flex items-center justify-center"
-    >
-      <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black/50" @click="closeModal" />
-
-      <!-- Modal -->
-      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Add Bank Account</h3>
-          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Bank Name -->
-          <div>
-            <Label for="bank-name">Bank Name *</Label>
-            <Input
-              id="bank-name"
-              v-model="newAccount.bankName"
-              placeholder="e.g. First National Bank"
-              class="mt-1"
-              :class="formErrors.bankName ? 'border-red-500' : ''"
-            />
-            <p v-if="formErrors.bankName" class="mt-1 text-xs text-red-600">{{ formErrors.bankName }}</p>
-          </div>
-
-          <!-- Branch Code -->
-          <div>
-            <Label for="branch-code">Branch Code *</Label>
-            <Input
-              id="branch-code"
-              v-model="newAccount.branchCode"
-              placeholder="e.g. 250655"
-              class="mt-1"
-              :class="formErrors.branchCode ? 'border-red-500' : ''"
-            />
-            <p v-if="formErrors.branchCode" class="mt-1 text-xs text-red-600">{{ formErrors.branchCode }}</p>
-          </div>
-
-          <!-- Account Number -->
-          <div>
-            <Label for="account-number">Account Number *</Label>
-            <Input
-              id="account-number"
-              v-model="newAccount.accountNumber"
-              placeholder="e.g. 62812345678"
-              class="mt-1"
-              :class="formErrors.accountNumber ? 'border-red-500' : ''"
-            />
-            <p v-if="formErrors.accountNumber" class="mt-1 text-xs text-red-600">{{ formErrors.accountNumber }}</p>
-          </div>
-
-          <!-- Account Type -->
-          <div>
-            <Label for="account-type">Account Type *</Label>
-            <select
-              id="account-type"
-              v-model="newAccount.accountType"
-              class="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-              :class="formErrors.accountType ? 'border-red-500' : ''"
-            >
-              <option value="Cheque">Cheque</option>
-              <option value="Savings">Savings</option>
-              <option value="Transmission">Transmission</option>
-              <option value="Business">Business</option>
-            </select>
-            <p v-if="formErrors.accountType" class="mt-1 text-xs text-red-600">{{ formErrors.accountType }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 mt-6">
-          <Button variant="outline" @click="closeModal" :disabled="saving">Cancel</Button>
-          <Button
-            class="bg-gray-900 hover:bg-gray-800 text-white"
-            @click="handleAddAccount"
-            :disabled="saving"
-          >
-            <Spinner v-if="saving" class="h-4 w-4 mr-2" />
-            {{ saving ? "Adding..." : "Add Account" }}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <AddBankAccountModal
+      :show="showAddModal"
+      @close="showAddModal = false"
+      @save="handleAddAccount"
+    />
   </div>
 </template>
