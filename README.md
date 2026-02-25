@@ -1,5 +1,7 @@
 # SE2 Fullstack Submission
 
+> 📐 **[Design Decisions](https://michielhbrand.github.io/SE2-Fullstack-Design-Decisions/)** — All architecture and design decisions for this project are documented on a dedicated static site.
+
 ## System Architecture
 
 ```
