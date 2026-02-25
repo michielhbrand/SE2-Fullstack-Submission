@@ -21,12 +21,22 @@ const organizationStore = useOrganizationStore()
 
 const headerTitle = computed(() => {
   const orgName = organizationStore.currentOrganization?.name
-  return orgName ? `${orgName} Invoice Tracker` : 'Invoice Tracker'
+  return orgName ? `${orgName}` : 'Invoice Tracker'
 })
 
 const showOrgSwitcher = ref(false)
 const lastScrollY = ref(0)
 const clients = ref<any[]>([])
+
+// Ensure organization context is initialized (e.g. after page refresh where Pinia state is lost)
+const ensureOrganizationContext = async (): Promise<number | null> => {
+  if (organizationStore.currentOrganizationId) {
+    return organizationStore.currentOrganizationId
+  }
+  // Lazy-init org context from localStorage / API
+  const success = await organizationStore.initializeOrganizationContext(authStore.isAdmin)
+  return success ? organizationStore.currentOrganizationId : null
+}
 
 onMounted(async () => {
   uiStore.loadSidebarState()
@@ -37,6 +47,8 @@ onMounted(async () => {
   
   window.addEventListener('scroll', handleScroll)
   
+  // Ensure org context is available before fetching data
+  await ensureOrganizationContext()
   await fetchClients()
 })
 
@@ -62,7 +74,12 @@ const handleLogout = async () => {
 
 const fetchClients = async () => {
   try {
-    const response = await clientApi.getClients(1, 100)
+    const orgId = organizationStore.currentOrganizationId
+    if (!orgId) {
+      console.warn('No organization selected, skipping client fetch')
+      return
+    }
+    const response = await clientApi.getClients(orgId, 1, 100)
     clients.value = response.data || []
   } catch (error) {
     console.error('Failed to fetch clients:', error)

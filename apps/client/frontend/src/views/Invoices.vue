@@ -5,8 +5,10 @@ import { Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, Ta
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 import { useOrganizationStore } from '../stores/organization'
+import { useAuthStore } from '../stores/auth'
 
 const organizationStore = useOrganizationStore()
+const authStore = useAuthStore()
 
 const loading = ref(true)
 const invoices = ref<any[]>([])
@@ -16,14 +18,29 @@ const totalPages = ref(0)
 const totalCount = ref(0)
 const previewingPdf = ref<number | null>(null)
 
+// Ensure organization context is initialized (e.g. after page refresh)
+const ensureOrganizationContext = async (): Promise<number | null> => {
+  if (organizationStore.currentOrganizationId) {
+    return organizationStore.currentOrganizationId
+  }
+  const success = await organizationStore.initializeOrganizationContext(authStore.isAdmin)
+  return success ? organizationStore.currentOrganizationId : null
+}
+
 onMounted(async () => {
+  await ensureOrganizationContext()
   await fetchInvoices()
 })
 
 const fetchInvoices = async () => {
   loading.value = true
   try {
-    const response = await invoiceApi.getInvoices(organizationStore.currentOrganizationId!, currentPage.value, pageSize.value)
+    const orgId = organizationStore.currentOrganizationId
+    if (!orgId) {
+      console.warn('No organization selected, skipping invoice fetch')
+      return
+    }
+    const response = await invoiceApi.getInvoices(orgId, currentPage.value, pageSize.value)
     
     invoices.value = response.data || []
     totalPages.value = response.pagination?.totalPages || 0
