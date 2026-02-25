@@ -9,7 +9,7 @@ namespace InvoiceTrackerApi.Services.Workflow;
 /// </summary>
 public interface IWorkflowService
 {
-    Task<PaginatedResponse<WorkflowListItemResponse>> GetWorkflowsAsync(int organizationId, int page, int pageSize);
+    Task<PaginatedResponse<WorkflowListItemResponse>> GetWorkflowsAsync(int organizationId, int page, int pageSize, string? search = null, List<string>? statuses = null);
     Task<WorkflowResponse> GetWorkflowByIdAsync(int id);
     Task<WorkflowResponse> CreateWorkflowAsync(CreateWorkflowRequest request, int organizationId, string userId);
     Task<WorkflowResponse> AddEventAsync(int workflowId, AddWorkflowEventRequest request, string userId);

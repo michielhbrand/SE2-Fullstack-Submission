@@ -66,15 +66,11 @@ export const authApi = {
 // Template API functions
 export const templateApi = {
   // Get all templates for an organization
-  getTemplates: async (page: number = 1, pageSize: number = 100, organizationId?: number) => {
-    // The generated client doesn't support organizationId yet, use direct call if needed
-    if (organizationId) {
-      const response = await apiClient.get('/api/template', {
-        params: { organizationId, page, pageSize }
-      })
-      return JSON.parse(response.data)
-    }
-    return await client.template_GetTemplates(page, pageSize)
+  getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25) => {
+    const response = await apiClient.get('/api/template', {
+      params: { organizationId, page, pageSize }
+    })
+    return JSON.parse(response.data)
   },
 
   // Get templates filtered by type for an organization
@@ -252,8 +248,12 @@ export const healthApi = {
 // Workflow API functions
 export const workflowApi = {
   // Get paginated list of workflows for an organization
-  getWorkflows: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
-    return await client.workflow_GetWorkflows(organizationId, page, pageSize)
+  getWorkflows: async (organizationId: number, page: number = 1, pageSize: number = 10, search?: string, statuses?: string[]) => {
+    const params: Record<string, any> = { organizationId, page, pageSize }
+    if (search) params.search = search
+    if (statuses && statuses.length > 0) params.statuses = statuses.join(',')
+    const response = await apiClient.get('/api/workflow', { params })
+    return JSON.parse(response.data)
   },
 
   // Get a specific workflow by ID with all events

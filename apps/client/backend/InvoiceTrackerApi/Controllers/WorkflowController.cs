@@ -37,9 +37,15 @@ public class WorkflowController : AuthenticatedControllerBase
     public async Task<ActionResult<PaginatedResponse<WorkflowListItemResponse>>> GetWorkflows(
         [FromQuery] int organizationId,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] string? statuses = null)
     {
-        var response = await _workflowService.GetWorkflowsAsync(organizationId, page, pageSize);
+        var statusList = string.IsNullOrWhiteSpace(statuses)
+            ? null
+            : statuses.Split(',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+        var response = await _workflowService.GetWorkflowsAsync(organizationId, page, pageSize, search, statusList);
         return Ok(response);
     }
 

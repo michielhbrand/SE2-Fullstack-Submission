@@ -105,14 +105,14 @@ public class WorkflowService : IWorkflowService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<WorkflowListItemResponse>> GetWorkflowsAsync(int organizationId, int page, int pageSize)
+    public async Task<PaginatedResponse<WorkflowListItemResponse>> GetWorkflowsAsync(int organizationId, int page, int pageSize, string? search = null, List<string>? statuses = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var workflows = await _workflowRepository.GetAllByOrganizationAsync(organizationId, page, pageSize);
-        var totalCount = await _workflowRepository.GetTotalCountByOrganizationAsync(organizationId);
+        var workflows = await _workflowRepository.GetAllByOrganizationAsync(organizationId, page, pageSize, search, statuses);
+        var totalCount = await _workflowRepository.GetTotalCountByOrganizationAsync(organizationId, search, statuses);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<WorkflowListItemResponse>

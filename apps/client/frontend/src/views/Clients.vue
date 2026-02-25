@@ -105,6 +105,11 @@ const goToPage = async (page: number) => {
   await fetchClients()
 }
 
+const onPageSizeChange = async () => {
+  currentPage.value = 1
+  await fetchClients()
+}
+
 const paginationPages = computed(() => {
   const pages = []
   const maxVisible = 5
@@ -133,12 +138,24 @@ const paginationPages = computed(() => {
             <h2 class="text-3xl font-bold text-gray-900">Clients</h2>
             <p class="mt-2 text-gray-600">Manage your client database</p>
           </div>
-          <Button @click="openNewClientModal" variant="outline">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Client
-          </Button>
+          <div class="flex items-center gap-3">
+            <button
+              @click="fetchClients"
+              :disabled="loading"
+              title="Refresh"
+              class="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="h-5 w-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+            <Button @click="openNewClientModal" variant="outline">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              New Client
+            </Button>
+          </div>
         </div>
 
         <!-- Search Bar -->
@@ -216,18 +233,24 @@ const paginationPages = computed(() => {
             </Table>
           </div>
           
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-              Showing {{ ((currentPage - 1) * pageSize) + 1 }} to {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} results
+          <!-- Footer -->
+          <div class="px-6 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4 text-sm text-gray-600">
+              <span>{{ totalCount }} record{{ totalCount !== 1 ? 's' : '' }}</span>
+              <div class="flex items-center gap-2">
+                <span>Rows per page:</span>
+                <select
+                  v-model.number="pageSize"
+                  @change="onPageSizeChange"
+                  class="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                >
+                  <option :value="10">10</option>
+                  <option :value="25">25</option>
+                  <option :value="50">50</option>
+                </select>
+              </div>
             </div>
-            <Pagination
-              :total="totalCount"
-              :sibling-count="1"
-              :page="currentPage"
-              :items-per-page="pageSize"
-              @update:page="goToPage"
-            >
+            <Pagination v-if="totalPages > 0" :total="totalCount" :sibling-count="1" :page="currentPage" :items-per-page="pageSize" @update:page="goToPage">
               <PaginationContent>
                 <PaginationPrevious />
                 <PaginationItem v-for="page in paginationPages" :key="page" :value="page" />

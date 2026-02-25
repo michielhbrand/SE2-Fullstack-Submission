@@ -3157,7 +3157,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    workflow_GetWorkflows(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfWorkflowListItemResponse> {
+    workflow_GetWorkflows(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, statuses?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfWorkflowListItemResponse> {
         let url_ = this.baseUrl + "/api/workflow?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -3171,6 +3171,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (statuses !== undefined && statuses !== null)
+            url_ += "statuses=" + encodeURIComponent("" + statuses) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {

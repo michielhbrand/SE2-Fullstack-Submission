@@ -23,22 +23,50 @@ public class WorkflowRepository : Repository<WorkflowModel>, IWorkflowRepository
             .FirstOrDefaultAsync(w => w.Id == id);
     }
 
-    public async Task<IEnumerable<WorkflowModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize)
+    public async Task<IEnumerable<WorkflowModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize, string? search = null, List<string>? statuses = null)
     {
-        return await _context.Workflows
+        var query = _context.Workflows
             .Include(w => w.Client)
             .Where(w => w.OrganizationId == organizationId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(w =>
+                (w.Client != null && w.Client.Name.ToLower().Contains(s)) ||
+                (w.Client != null && w.Client.Email != null && w.Client.Email.ToLower().Contains(s)));
+        }
+
+        if (statuses != null && statuses.Count > 0)
+            query = query.Where(w => statuses.Contains(w.Status));
+
+        return await query
             .OrderByDescending(w => w.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
-    public async Task<int> GetTotalCountByOrganizationAsync(int organizationId)
+    public async Task<int> GetTotalCountByOrganizationAsync(int organizationId, string? search = null, List<string>? statuses = null)
     {
-        return await _context.Workflows
+        var query = _context.Workflows
+            .Include(w => w.Client)
             .Where(w => w.OrganizationId == organizationId)
-            .CountAsync();
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(w =>
+                (w.Client != null && w.Client.Name.ToLower().Contains(s)) ||
+                (w.Client != null && w.Client.Email != null && w.Client.Email.ToLower().Contains(s)));
+        }
+
+        if (statuses != null && statuses.Count > 0)
+            query = query.Where(w => statuses.Contains(w.Status));
+
+        return await query.CountAsync();
     }
 
     public async Task<WorkflowModel?> GetByQuoteIdAsync(int quoteId)
