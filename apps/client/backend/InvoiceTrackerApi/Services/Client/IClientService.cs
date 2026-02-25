@@ -9,9 +9,9 @@ namespace InvoiceTrackerApi.Services.Client;
 /// </summary>
 public interface IClientService
 {
-    Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int page, int pageSize, string? search = null);
+    Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int organizationId, int page, int pageSize, string? search = null);
     Task<ClientResponse> GetClientByIdAsync(int id);
-    Task<ClientResponse> CreateClientAsync(CreateClientRequest request, string modifiedBy);
+    Task<ClientResponse> CreateClientAsync(CreateClientRequest request, int organizationId, string modifiedBy);
     Task<ClientResponse> UpdateClientAsync(int id, UpdateClientRequest request, string modifiedBy);
     Task DeleteClientAsync(int id);
 }

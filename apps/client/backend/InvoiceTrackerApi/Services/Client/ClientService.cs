@@ -21,15 +21,15 @@ public class ClientService : IClientService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int page, int pageSize, string? search = null)
+    public async Task<PaginatedResponse<ClientResponse>> GetClientsAsync(int organizationId, int page, int pageSize, string? search = null)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var clients = await _clientRepository.GetAllAsync(page, pageSize, search);
-        var totalCount = await _clientRepository.GetTotalCountAsync(search);
+        var clients = await _clientRepository.GetAllAsync(organizationId, page, pageSize, search);
+        var totalCount = await _clientRepository.GetTotalCountAsync(organizationId, search);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<ClientResponse>
@@ -57,23 +57,24 @@ public class ClientService : IClientService
         return client.ToDto();
     }
 
-    public async Task<ClientResponse> CreateClientAsync(CreateClientRequest request, string modifiedBy)
+    public async Task<ClientResponse> CreateClientAsync(CreateClientRequest request, int organizationId, string modifiedBy)
     {
-        // Business rule validation: Check for duplicate email
-        var existingClient = await _clientRepository.GetByEmailAsync(request.Email);
+        // Business rule validation: Check for duplicate email within the organization
+        var existingClient = await _clientRepository.GetByEmailAsync(request.Email, organizationId);
         if (existingClient != null)
         {
             throw new DuplicateEntityException("Client", "email", request.Email);
         }
 
         var client = request.ToModel();
+        client.OrganizationId = organizationId;
         client.DateCreated = DateTime.UtcNow;
         client.ModifiedBy = modifiedBy;
         client.LastModifiedDate = DateTime.UtcNow;
 
         var createdClient = await _clientRepository.AddAsync(client);
 
-        _logger.LogInformation("Client {ClientId} created by {User}", createdClient.Id, modifiedBy);
+        _logger.LogInformation("Client {ClientId} created for org {OrgId} by {User}", createdClient.Id, organizationId, modifiedBy);
 
         return createdClient.ToDto();
     }
@@ -87,8 +88,8 @@ public class ClientService : IClientService
             throw new NotFoundException("Client", id);
         }
 
-        // Business rule validation: Check for duplicate email (excluding current client)
-        var clientWithEmail = await _clientRepository.GetByEmailAsync(request.Email);
+        // Business rule validation: Check for duplicate email within the organization (excluding current client)
+        var clientWithEmail = await _clientRepository.GetByEmailAsync(request.Email, existingClient.OrganizationId);
         if (clientWithEmail != null && clientWithEmail.Id != id)
         {
             throw new DuplicateEntityException("Client", "email", request.Email);

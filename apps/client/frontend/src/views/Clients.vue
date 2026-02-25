@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { clientApi } from '../services/api'
 import { useUIStore } from '../stores/ui'
+import { useOrganizationStore } from '../stores/organization'
 import { Button, Spinner, Skeleton, Input, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import NewClientModal from '../components/modals/NewClientModal.vue'
@@ -9,6 +10,7 @@ import EditClientModal from '../components/modals/EditClientModal.vue'
 
 // UI Store for modal management
 const uiStore = useUIStore()
+const organizationStore = useOrganizationStore()
 
 const loading = ref(true)
 const clients = ref<any[]>([])
@@ -25,7 +27,13 @@ onMounted(async () => {
 const fetchClients = async () => {
   loading.value = true
   try {
+    const orgId = organizationStore.currentOrganizationId
+    if (!orgId) {
+      console.error('No organization selected')
+      return
+    }
     const response = await clientApi.getClients(
+      orgId,
       currentPage.value,
       pageSize.value,
       searchQuery.value || undefined
@@ -60,7 +68,8 @@ const openEditClientModal = (client: any) => {
 
 const saveNewClient = async (client: any) => {
   try {
-    await clientApi.createClient(client)
+    const orgId = organizationStore.currentOrganizationId
+    await clientApi.createClient(client, orgId ?? undefined)
     uiStore.closeNewClientModal()
     uiStore.showSuccess('Client created successfully')
     await fetchClients()

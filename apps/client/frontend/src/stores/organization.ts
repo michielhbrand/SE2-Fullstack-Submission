@@ -4,6 +4,8 @@ import { organizationApi } from '../services/api'
 import type { OrganizationResponse } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
 
+const SELECTED_ORG_KEY = 'selected_organization_id'
+
 export const useOrganizationStore = defineStore('organization', () => {
   const organizations = ref<OrganizationResponse[]>([])
   const currentOrganization = ref<OrganizationResponse | null>(null)
@@ -148,15 +150,28 @@ export const useOrganizationStore = defineStore('organization', () => {
         return false
       }
       
-      // Step 2: Set the first organization as current
-      const firstOrg = orgs[0]
-      if (!firstOrg || firstOrg.id === undefined) {
+      // Step 2: Check localStorage for a previously selected org
+      const savedOrgId = localStorage.getItem(SELECTED_ORG_KEY)
+      let selectedOrg: OrganizationResponse | undefined
+      
+      if (savedOrgId) {
+        const parsedId = parseInt(savedOrgId, 10)
+        selectedOrg = orgs.find((o) => o.id === parsedId)
+      }
+      
+      // Fall back to the first organization if saved org not found
+      if (!selectedOrg) {
+        selectedOrg = orgs[0]
+      }
+      
+      if (!selectedOrg || selectedOrg.id === undefined) {
         toast.error('Invalid organization data')
         return false
       }
       
       // Use the full org data we already have instead of fetching again
-      currentOrganization.value = firstOrg
+      currentOrganization.value = selectedOrg
+      localStorage.setItem(SELECTED_ORG_KEY, String(selectedOrg.id))
       
       return true
     } catch (error: any) {
@@ -169,6 +184,7 @@ export const useOrganizationStore = defineStore('organization', () => {
   function clearOrganizationContext() {
     organizations.value = []
     currentOrganization.value = null
+    localStorage.removeItem(SELECTED_ORG_KEY)
   }
 
   async function switchOrganization(organizationId: number): Promise<boolean> {
@@ -178,6 +194,9 @@ export const useOrganizationStore = defineStore('organization', () => {
       toast.error('Invalid organization ID')
       return false
     }
+    
+    // Persist the selection to localStorage
+    localStorage.setItem(SELECTED_ORG_KEY, String(organizationId))
     
     // Fetch full details for the selected org
     const organization = await fetchOrganizationDetails(organizationId)

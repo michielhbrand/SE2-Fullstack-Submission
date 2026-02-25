@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
@@ -9,6 +9,7 @@ import { Button, Separator, ScrollArea, DropdownMenu, DropdownMenuTrigger, Dropd
 import packageJson from '../../package.json'
 import NewInvoiceModal from './modals/NewInvoiceModal.vue'
 import NewQuoteModal from './modals/NewQuoteModal.vue'
+import OrganizationSwitcherModal from './modals/OrganizationSwitcherModal.vue'
 import ServerStatus from './ServerStatus.vue'
 
 const router = useRouter()
@@ -18,6 +19,12 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const organizationStore = useOrganizationStore()
 
+const headerTitle = computed(() => {
+  const orgName = organizationStore.currentOrganization?.name
+  return orgName ? `${orgName} Invoice Tracker` : 'Invoice Tracker'
+})
+
+const showOrgSwitcher = ref(false)
 const lastScrollY = ref(0)
 const clients = ref<any[]>([])
 
@@ -142,7 +149,21 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </Button>
-          <h1 class="text-xl font-semibold text-gray-900">Application Dashboard</h1>
+          <div class="flex items-center gap-1">
+            <h1 class="text-xl font-semibold text-gray-900">{{ headerTitle }}</h1>
+            <!-- Organization Switch Icon -->
+            <button
+              v-if="organizationStore.hasMultipleOrganizations"
+              @click="showOrgSwitcher = true"
+              class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Switch organization"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              </svg>
+            </button>
+          </div>
+          <!-- New Item Dropdown -->
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button variant="default">
@@ -176,7 +197,7 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
           <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
             <ServerStatus />
             <span>Welcome,</span>
-            <span class="font-medium text-gray-900">{{ authStore.username || 'User' }}</span>
+            <span class="font-medium text-gray-900">{{ authStore.firstName || authStore.username || 'User' }}</span>
           </div>
           <Button
             variant="ghost"
@@ -348,6 +369,12 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
       :clients="clients"
       @close="uiStore.closeNewQuoteModal"
       @save="saveNewQuote"
+    />
+
+    <!-- Organization Switcher Dialog -->
+    <OrganizationSwitcherModal
+      :show="showOrgSwitcher"
+      @close="showOrgSwitcher = false"
     />
   </div>
 </template>

@@ -41,15 +41,15 @@ public class QuoteService : IQuoteService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int organizationId, int page, int pageSize)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var quotes = await _quoteRepository.GetAllAsync(page, pageSize);
-        var totalCount = await _quoteRepository.GetTotalCountAsync();
+        var quotes = await _quoteRepository.GetAllAsync(organizationId, page, pageSize);
+        var totalCount = await _quoteRepository.GetTotalCountAsync(organizationId);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<QuoteResponse>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shared.Database.Models;
 
@@ -40,4 +41,10 @@ public class Client
     // Keycloak user ID reference
     [MaxLength(255)]
     public string? KeycloakUserId { get; set; }
+
+    // Organization scoping
+    public int OrganizationId { get; set; }
+
+    [ForeignKey(nameof(OrganizationId))]
+    public Organization Organization { get; set; } = null!;
 }

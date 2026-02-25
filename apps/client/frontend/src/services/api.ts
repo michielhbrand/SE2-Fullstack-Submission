@@ -111,9 +111,9 @@ export const templateApi = {
 
 // Quote API functions
 export const quoteApi = {
-  // Get all quotes
-  getQuotes: async (page: number = 1, pageSize: number = 10) => {
-    return await client.quote_GetQuotes(page, pageSize)
+  // Get all quotes for an organization
+  getQuotes: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
+    return await client.quote_GetQuotes(organizationId, page, pageSize)
   },
 
   // Get a specific quote
@@ -144,9 +144,9 @@ export const quoteApi = {
 
 // Client API functions
 export const clientApi = {
-  // Get all clients
-  getClients: async (page: number = 1, pageSize: number = 10, search?: string) => {
-    return await client.client_GetClients(page, pageSize, search)
+  // Get all clients for an organization
+  getClients: async (organizationId: number, page: number = 1, pageSize: number = 10, search?: string) => {
+    return await client.client_GetClients(organizationId, page, pageSize, search)
   },
 
   // Get a specific client
@@ -155,8 +155,8 @@ export const clientApi = {
   },
 
   // Create a new client
-  createClient: async (clientData: any) => {
-    return await client.client_CreateClient(clientData)
+  createClient: async (clientData: any, organizationId?: number) => {
+    return await client.client_CreateClient(clientData, organizationId)
   },
 
   // Update a client
@@ -172,9 +172,9 @@ export const clientApi = {
 
 // Invoice API functions
 export const invoiceApi = {
-  // Get all invoices
-  getInvoices: async (page: number = 1, pageSize: number = 10) => {
-    return await client.invoice_GetInvoices(page, pageSize)
+  // Get all invoices for an organization
+  getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
+    return await client.invoice_GetInvoices(organizationId, page, pageSize)
   },
 
   // Get a specific invoice

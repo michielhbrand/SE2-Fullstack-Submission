@@ -20,6 +20,7 @@ public static class ClientMappingExtensions
             Address = client.Address,
             IsCompany = client.IsCompany,
             VatNumber = client.VatNumber,
+            OrganizationId = client.OrganizationId,
             DateCreated = client.DateCreated,
             LastModifiedDate = client.LastModifiedDate,
             ModifiedBy = client.ModifiedBy,

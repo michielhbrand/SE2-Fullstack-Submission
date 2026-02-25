@@ -4,6 +4,9 @@ import { invoiceApi } from '../services/api'
 import { Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
+import { useOrganizationStore } from '../stores/organization'
+
+const organizationStore = useOrganizationStore()
 
 const loading = ref(true)
 const invoices = ref<any[]>([])
@@ -20,7 +23,7 @@ onMounted(async () => {
 const fetchInvoices = async () => {
   loading.value = true
   try {
-    const response = await invoiceApi.getInvoices(currentPage.value, pageSize.value)
+    const response = await invoiceApi.getInvoices(organizationStore.currentOrganizationId!, currentPage.value, pageSize.value)
     
     invoices.value = response.data || []
     totalPages.value = response.pagination?.totalPages || 0

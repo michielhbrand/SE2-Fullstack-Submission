@@ -35,10 +35,11 @@ public class QuoteController : AuthenticatedControllerBase
     [ProducesResponseType(typeof(PaginatedResponse<QuoteResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PaginatedResponse<QuoteResponse>>> GetQuotes(
-        [FromQuery] int page = 1, 
+        [FromQuery] int organizationId,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var response = await _quoteService.GetQuotesAsync(page, pageSize);
+        var response = await _quoteService.GetQuotesAsync(organizationId, page, pageSize);
         return Ok(response);
     }
 

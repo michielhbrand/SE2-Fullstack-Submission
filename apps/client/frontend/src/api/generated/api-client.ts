@@ -290,8 +290,12 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    client_GetClients(page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfClientResponse> {
+    client_GetClients(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfClientResponse> {
         let url_ = this.baseUrl + "/api/client?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -355,8 +359,12 @@ export class ApiClient {
         return Promise.resolve<PaginatedResponseOfClientResponse>(null as any);
     }
 
-    client_CreateClient(request: CreateClientRequest, cancelToken?: CancelToken): Promise<ClientResponse> {
-        let url_ = this.baseUrl + "/api/client";
+    client_CreateClient(request: CreateClientRequest, organizationId?: number | undefined, cancelToken?: CancelToken): Promise<ClientResponse> {
+        let url_ = this.baseUrl + "/api/client?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -667,8 +675,12 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    invoice_GetInvoices(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
+    invoice_GetInvoices(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -1798,8 +1810,12 @@ export class ApiClient {
         return Promise.resolve<OrganizationResponse[]>(null as any);
     }
 
-    quote_GetQuotes(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
+    quote_GetQuotes(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
         let url_ = this.baseUrl + "/api/quote?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -3519,6 +3535,7 @@ export interface ClientResponse {
     address?: string | null;
     isCompany?: boolean;
     vatNumber?: string | null;
+    organizationId?: number;
     dateCreated?: Date;
     lastModifiedDate?: Date | null;
     modifiedBy?: string | null;

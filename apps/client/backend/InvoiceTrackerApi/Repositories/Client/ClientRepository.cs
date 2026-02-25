@@ -16,12 +16,12 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
     {
     }
 
-    public async Task<ClientModel?> GetByEmailAsync(string email)
+    public async Task<ClientModel?> GetByEmailAsync(string email, int organizationId)
     {
         try
         {
             return await _context.Clients
-                .FirstOrDefaultAsync(c => c.Email == email);
+                .FirstOrDefaultAsync(c => c.Email == email && c.OrganizationId == organizationId);
         }
         catch (Exception ex) when (ex is not AppException)
         {
@@ -29,11 +29,12 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
         }
     }
 
-    public async Task<IEnumerable<ClientModel>> GetAllAsync(int page, int pageSize, string? search = null)
+    public async Task<IEnumerable<ClientModel>> GetAllAsync(int organizationId, int page, int pageSize, string? search = null)
     {
         try
         {
-            var query = _context.Clients.AsQueryable();
+            var query = _context.Clients
+                .Where(c => c.OrganizationId == organizationId);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -56,11 +57,12 @@ public class ClientRepository : Repository<ClientModel>, IClientRepository
         }
     }
 
-    public async Task<int> GetTotalCountAsync(string? search = null)
+    public async Task<int> GetTotalCountAsync(int organizationId, string? search = null)
     {
         try
         {
-            var query = _context.Clients.AsQueryable();
+            var query = _context.Clients
+                .Where(c => c.OrganizationId == organizationId);
 
             if (!string.IsNullOrWhiteSpace(search))
             {

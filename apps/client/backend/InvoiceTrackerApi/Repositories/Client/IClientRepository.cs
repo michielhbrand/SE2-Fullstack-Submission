@@ -7,7 +7,7 @@ namespace InvoiceTrackerApi.Repositories.Client;
 /// </summary>
 public interface IClientRepository : IRepository<ClientModel>
 {
-    Task<ClientModel?> GetByEmailAsync(string email);
-    Task<IEnumerable<ClientModel>> GetAllAsync(int page, int pageSize, string? search = null);
-    Task<int> GetTotalCountAsync(string? search = null);
+    Task<ClientModel?> GetByEmailAsync(string email, int organizationId);
+    Task<IEnumerable<ClientModel>> GetAllAsync(int organizationId, int page, int pageSize, string? search = null);
+    Task<int> GetTotalCountAsync(int organizationId, string? search = null);
 }

@@ -28,6 +28,7 @@ public class ClientController : AuthenticatedControllerBase
     /// <summary>
     /// Get paginated list of clients with optional search
     /// </summary>
+    /// <param name="organizationId">Organization ID</param>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
     /// <param name="search">Optional search term for name, email, or VAT number</param>
@@ -36,11 +37,12 @@ public class ClientController : AuthenticatedControllerBase
     [ProducesResponseType(typeof(PaginatedResponse<ClientResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PaginatedResponse<ClientResponse>>> GetClients(
-        [FromQuery] int page = 1, 
-        [FromQuery] int pageSize = 10, 
+        [FromQuery] int organizationId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null)
     {
-        var response = await _clientService.GetClientsAsync(page, pageSize, search);
+        var response = await _clientService.GetClientsAsync(organizationId, page, pageSize, search);
         return Ok(response);
     }
 
@@ -63,12 +65,15 @@ public class ClientController : AuthenticatedControllerBase
     /// Create a new client
     /// </summary>
     /// <param name="request">Client creation data</param>
+    /// <param name="organizationId">Organization ID</param>
     /// <returns>Created client</returns>
     [HttpPost]
     [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ClientResponse>> CreateClient([FromBody] CreateClientRequest request)
+    public async Task<ActionResult<ClientResponse>> CreateClient(
+        [FromBody] CreateClientRequest request,
+        [FromQuery] int organizationId)
     {
         if (!ModelState.IsValid)
         {
@@ -77,7 +82,7 @@ public class ClientController : AuthenticatedControllerBase
 
         var userEmail = GetCurrentUserIdentifier();
 
-        var client = await _clientService.CreateClientAsync(request, userEmail);
+        var client = await _clientService.CreateClientAsync(request, organizationId, userEmail);
 
         return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
     }

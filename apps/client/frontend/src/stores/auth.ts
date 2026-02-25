@@ -27,6 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
   const tokenExpirationTimer = ref<number | null>(null)
   const isAdmin = ref(false)
   const username = ref<string>('')
+  const firstName = ref<string>('')
   const userId = ref<string | null>(null)
   
   const TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
@@ -108,6 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
       const decoded = decodeJWT(accessToken.value)
       if (decoded) {
         username.value = decoded.preferred_username || decoded.username || decoded.sub
+        firstName.value = decoded.given_name || decoded.firstName || ''
         userId.value = decoded.sub || null
       }
     }
@@ -206,6 +208,7 @@ export const useAuthStore = defineStore('auth', () => {
       const decoded = decodeJWT(accessToken.value)
       if (decoded) {
         username.value = decoded.preferred_username || decoded.username || decoded.sub
+        firstName.value = decoded.given_name || decoded.firstName || ''
         userId.value = decoded.sub || null
       }
       
@@ -260,6 +263,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null
     refreshToken.value = null
     username.value = ''
+    firstName.value = ''
     userId.value = null
     isAdmin.value = false
     
@@ -453,6 +457,7 @@ export const useAuthStore = defineStore('auth', () => {
       const decoded = decodeJWT(response.access_token)
       if (decoded) {
         username.value = decoded.preferred_username || decoded.username || decoded.sub
+        firstName.value = decoded.given_name || decoded.firstName || ''
         userId.value = decoded.sub || null
       }
       
@@ -471,6 +476,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     isAdmin,
     username,
+    firstName,
     userId,
     isAuthenticated,
     login,

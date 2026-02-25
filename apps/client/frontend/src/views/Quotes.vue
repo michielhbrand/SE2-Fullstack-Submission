@@ -4,6 +4,9 @@ import { quoteApi } from '../services/api'
 import { Skeleton, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
+import { useOrganizationStore } from '../stores/organization'
+
+const organizationStore = useOrganizationStore()
 
 const loading = ref(true)
 const quotes = ref<any[]>([])
@@ -20,7 +23,7 @@ onMounted(async () => {
 const fetchQuotes = async () => {
   loading.value = true
   try {
-    const response = await quoteApi.getQuotes(currentPage.value, pageSize.value)
+    const response = await quoteApi.getQuotes(organizationStore.currentOrganizationId!, currentPage.value, pageSize.value)
     
     quotes.value = response.data || []
     totalPages.value = response.pagination?.totalPages || 0

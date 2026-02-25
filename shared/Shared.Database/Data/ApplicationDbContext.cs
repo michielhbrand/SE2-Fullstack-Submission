@@ -32,8 +32,13 @@ public class ApplicationDbContext : DbContext
         // Configure Client entity
         modelBuilder.Entity<Client>(entity =>
         {
-            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => new { e.Email, e.OrganizationId }).IsUnique();
             entity.Property(e => e.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.OrganizationId);
         });
 
         // Configure Invoice entity

@@ -34,10 +34,11 @@ public class InvoiceController : AuthenticatedControllerBase
     [ProducesResponseType(typeof(PaginatedResponse<InvoiceResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PaginatedResponse<InvoiceResponse>>> GetInvoices(
-        [FromQuery] int page = 1, 
+        [FromQuery] int organizationId,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var response = await _invoiceService.GetInvoicesAsync(page, pageSize);
+        var response = await _invoiceService.GetInvoicesAsync(organizationId, page, pageSize);
         return Ok(response);
     }
 

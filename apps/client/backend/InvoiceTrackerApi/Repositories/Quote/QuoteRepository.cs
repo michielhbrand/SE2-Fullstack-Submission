@@ -21,19 +21,22 @@ public class QuoteRepository : Repository<QuoteModel>, IQuoteRepository
             .FirstOrDefaultAsync(q => q.Id == id);
     }
 
-    public async Task<IEnumerable<QuoteModel>> GetAllAsync(int page, int pageSize)
+    public async Task<IEnumerable<QuoteModel>> GetAllAsync(int organizationId, int page, int pageSize)
     {
         return await _context.Quotes
             .Include(q => q.Items)
             .Include(q => q.Client)
+            .Where(q => q.OrganizationId == organizationId)
             .OrderByDescending(q => q.DateCreated)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
-    public async Task<int> GetTotalCountAsync()
+    public async Task<int> GetTotalCountAsync(int organizationId)
     {
-        return await _context.Quotes.CountAsync();
+        return await _context.Quotes
+            .Where(q => q.OrganizationId == organizationId)
+            .CountAsync();
     }
 }

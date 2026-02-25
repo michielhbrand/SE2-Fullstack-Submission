@@ -21,19 +21,22 @@ public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
-    public async Task<IEnumerable<InvoiceModel>> GetAllAsync(int page, int pageSize)
+    public async Task<IEnumerable<InvoiceModel>> GetAllAsync(int organizationId, int page, int pageSize)
     {
         return await _context.Invoices
             .Include(i => i.Items)
             .Include(i => i.Client)
+            .Where(i => i.OrganizationId == organizationId)
             .OrderByDescending(i => i.DateCreated)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
-    public async Task<int> GetTotalCountAsync()
+    public async Task<int> GetTotalCountAsync(int organizationId)
     {
-        return await _context.Invoices.CountAsync();
+        return await _context.Invoices
+            .Where(i => i.OrganizationId == organizationId)
+            .CountAsync();
     }
 }

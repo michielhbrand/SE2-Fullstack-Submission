@@ -8,6 +8,6 @@ namespace InvoiceTrackerApi.Repositories.Invoice;
 public interface IInvoiceRepository : IRepository<InvoiceModel>
 {
     Task<InvoiceModel?> GetByIdWithDetailsAsync(int id);
-    Task<IEnumerable<InvoiceModel>> GetAllAsync(int page, int pageSize);
-    Task<int> GetTotalCountAsync();
+    Task<IEnumerable<InvoiceModel>> GetAllAsync(int organizationId, int page, int pageSize);
+    Task<int> GetTotalCountAsync(int organizationId);
 }

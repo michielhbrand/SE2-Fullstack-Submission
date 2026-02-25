@@ -12,6 +12,7 @@ public class ClientResponse
     public string? Address { get; set; }
     public bool IsCompany { get; set; }
     public string? VatNumber { get; set; }
+    public int OrganizationId { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? LastModifiedDate { get; set; }
     public string? ModifiedBy { get; set; }
