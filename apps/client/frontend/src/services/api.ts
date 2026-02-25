@@ -1,17 +1,14 @@
 import { ApiClient, type UserRole } from '../api/generated/api-client'
 import { apiClient } from '../api/http-client'
 
-// Create a single instance of the generated API client with our configured axios instance
 const client = new ApiClient(undefined, apiClient)
 
-// TemplateType constants matching the backend enum
 export const TemplateType = {
   Invoice: 0,
   Quote: 1
 } as const
 export type TemplateType = (typeof TemplateType)[keyof typeof TemplateType]
 
-// Auth API functions
 export const authApi = {
   // User login
   login: async (username: string, password: string) => {

@@ -9,7 +9,6 @@ export const useOrganizationStore = defineStore('organization', () => {
   const currentOrganization = ref<OrganizationResponse | null>(null)
   const isLoading = ref(false)
 
-  // Computed
   const organizationIds = computed(() =>
     organizations.value
       .map((org) => org.id)
