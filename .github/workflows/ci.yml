@@ -18,7 +18,11 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          dotnet restore apps/management/backend/ManagementApi.Tests/ManagementApi.Tests.csproj
+          dotnet restore apps/client/backend/InvoiceTrackerApi.Tests/InvoiceTrackerApi.Tests.csproj
+          dotnet restore apps/client/backend/PdfGeneratorService.Tests/PdfGeneratorService.Tests.csproj
+          dotnet restore apps/client/backend/EmailNotificationService.Tests/EmailNotificationService.Tests.csproj
 
       - name: Run ManagementApi tests
         run: |

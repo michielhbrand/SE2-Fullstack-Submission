@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore, type UserInfo } from "../../stores/auth";
+import type { UserRole } from "../../api/generated/api-client";
 import { useOrganizationStore } from "../../stores/organization";
 import { organizationApi } from "../../services/api";
 import { Button, Card, Spinner, Skeleton, Badge, Avatar, AvatarFallback, ToggleGroup, ToggleGroupItem, Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../components/ui/index";
@@ -156,7 +157,7 @@ const handleEditUser = (user: UserInfo) => {
 const handleUpdateUser = async (userData: {
   firstName: string;
   lastName: string;
-  role: string;
+  role: UserRole;
   active: boolean;
 }) => {
   if (!selectedUser.value) return;
