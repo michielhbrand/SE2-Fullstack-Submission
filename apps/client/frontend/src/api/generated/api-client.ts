@@ -2963,7 +2963,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -3002,7 +3002,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    user_CreateUser(request: CreateUserRequest, cancelToken?: CancelToken): Promise<void> {
+    user_CreateUser(request: CreateUserRequest, cancelToken?: CancelToken): Promise<CreateUserResponse> {
         let url_ = this.baseUrl + "/api/User";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3014,6 +3014,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -3029,7 +3030,7 @@ export class ApiClient {
         });
     }
 
-    protected processUser_CreateUser(response: AxiosResponse): Promise<void> {
+    protected processUser_CreateUser(response: AxiosResponse): Promise<CreateUserResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -3041,7 +3042,10 @@ export class ApiClient {
         }
         if (status === 201) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CreateUserResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -3075,7 +3079,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<CreateUserResponse>(null as any);
     }
 
     user_UpdateUserRole(userId: string, request: UpdateRoleRequest, cancelToken?: CancelToken): Promise<void> {
@@ -3118,7 +3122,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -4021,6 +4025,11 @@ export interface UserResponse {
     active?: boolean;
     createdAt?: Date;
     updatedAt?: Date | null;
+}
+
+export interface CreateUserResponse {
+    userId?: string;
+    message?: string;
 }
 
 export interface CreateUserRequest {

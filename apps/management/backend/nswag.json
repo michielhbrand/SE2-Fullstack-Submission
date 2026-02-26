@@ -60,6 +60,8 @@
       "baseUrlTokenName": "API_BASE_URL",
       "queryNullValue": "",
       "useAbortSignal": false,
+      "anyType": "unknown",
+      "strictNullChecks": true,
       "inlineNamedDictionaries": false,
       "inlineNamedAny": false,
       "includeHttpContext": false,

@@ -93,7 +93,7 @@ public class UserController : AuthenticatedControllerBase
     /// <returns>Created user ID</returns>
     [HttpPost]
     [Authorize(Roles = "orgAdmin,systemAdmin")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreateUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -118,7 +118,11 @@ public class UserController : AuthenticatedControllerBase
 
         var userId = await _userService.CreateUserAsync(token, request, cancellationToken);
 
-        return StatusCode(StatusCodes.Status201Created, new { userId, message = "User created successfully" });
+        return StatusCode(StatusCodes.Status201Created, new CreateUserResponse
+        {
+            UserId = userId,
+            Message = "User created successfully"
+        });
     }
 
     /// <summary>
@@ -130,7 +134,7 @@ public class UserController : AuthenticatedControllerBase
     /// <returns>Success message</returns>
     [HttpPut("{userId}/role")]
     [Authorize(Roles = "orgAdmin,systemAdmin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -144,7 +148,7 @@ public class UserController : AuthenticatedControllerBase
 
         await _userService.UpdateUserRoleAsync(token, userId, request.Role, cancellationToken);
 
-        return Ok(new { message = "User role updated successfully" });
+        return NoContent();
     }
 
     /// <summary>
@@ -156,7 +160,7 @@ public class UserController : AuthenticatedControllerBase
     /// <returns>Success message</returns>
     [HttpPut("{userId}")]
     [Authorize(Roles = "orgAdmin,systemAdmin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -170,6 +174,6 @@ public class UserController : AuthenticatedControllerBase
 
         await _userService.UpdateUserDetailsAsync(token, userId, request, cancellationToken);
 
-        return Ok(new { message = "User details updated successfully" });
+        return NoContent();
     }
 }

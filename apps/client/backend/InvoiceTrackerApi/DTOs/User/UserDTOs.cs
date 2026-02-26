@@ -29,6 +29,15 @@ public class UserDirectoryQuery
 }
 
 /// <summary>
+/// Response returned after creating a new user
+/// </summary>
+public class CreateUserResponse
+{
+    public required string UserId { get; set; }
+    public required string Message { get; set; }
+}
+
+/// <summary>
 /// Paged response for UserDirectory queries
 /// </summary>
 public class PagedUserDirectoryResponse
