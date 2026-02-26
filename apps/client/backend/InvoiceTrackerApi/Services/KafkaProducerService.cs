@@ -1,4 +1,6 @@
 using Confluent.Kafka;
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace InvoiceTrackerApi.Services;
@@ -36,11 +38,13 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             var messageJson = JsonSerializer.Serialize(message);
 
-            var result = await _producer.ProduceAsync(_invoiceTopic, new Message<string, string>
+            var kafkaMessage = new Message<string, string>
             {
                 Key = invoiceId.ToString(),
                 Value = messageJson
-            });
+            };
+            InjectTraceContext(kafkaMessage);
+            var result = await _producer.ProduceAsync(_invoiceTopic, kafkaMessage);
 
             _logger.LogInformation(
                 "Invoice created event published to Kafka. InvoiceId: {InvoiceId}, Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
@@ -65,11 +69,13 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             var messageJson = JsonSerializer.Serialize(message);
 
-            var result = await _producer.ProduceAsync(_quoteTopic, new Message<string, string>
+            var kafkaMessage = new Message<string, string>
             {
                 Key = quoteId.ToString(),
                 Value = messageJson
-            });
+            };
+            InjectTraceContext(kafkaMessage);
+            var result = await _producer.ProduceAsync(_quoteTopic, kafkaMessage);
 
             _logger.LogInformation(
                 "Quote created event published to Kafka. QuoteId: {QuoteId}, Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
@@ -95,11 +101,13 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             var messageJson = JsonSerializer.Serialize(message);
 
-            var result = await _producer.ProduceAsync(_quoteApprovalTopic, new Message<string, string>
+            var kafkaMessage = new Message<string, string>
             {
                 Key = quoteId.ToString(),
                 Value = messageJson
-            });
+            };
+            InjectTraceContext(kafkaMessage);
+            var result = await _producer.ProduceAsync(_quoteApprovalTopic, kafkaMessage);
 
             _logger.LogInformation(
                 "Quote approval requested event published to Kafka. QuoteId: {QuoteId}, WorkflowId: {WorkflowId}, Topic: {Topic}",
@@ -125,11 +133,13 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
 
             var messageJson = JsonSerializer.Serialize(message);
 
-            var result = await _producer.ProduceAsync(_invoiceGeneratedTopic, new Message<string, string>
+            var kafkaMessage = new Message<string, string>
             {
                 Key = invoiceId.ToString(),
                 Value = messageJson
-            });
+            };
+            InjectTraceContext(kafkaMessage);
+            var result = await _producer.ProduceAsync(_invoiceGeneratedTopic, kafkaMessage);
 
             _logger.LogInformation(
                 "Invoice generated event published to Kafka. InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}, Topic: {Topic}",
@@ -140,6 +150,18 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             _logger.LogError(ex, "Error publishing invoice generated event for InvoiceId: {InvoiceId}", invoiceId);
             throw;
         }
+    }
+
+    private static void InjectTraceContext(Message<string, string> message)
+    {
+        var activity = Activity.Current;
+        if (activity == null) return;
+        message.Headers ??= new Headers();
+        var traceparent = $"00-{activity.TraceId}-{activity.SpanId}-" +
+            $"{(activity.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ? "01" : "00")}";
+        message.Headers.Add("traceparent", Encoding.UTF8.GetBytes(traceparent));
+        if (!string.IsNullOrEmpty(activity.TraceStateString))
+            message.Headers.Add("tracestate", Encoding.UTF8.GetBytes(activity.TraceStateString));
     }
 
     public void Dispose()

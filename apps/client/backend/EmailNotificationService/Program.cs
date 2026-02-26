@@ -2,6 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
 using EmailNotificationService.BackgroundServices;
+using Serilog;
+using Serilog.Enrichers.Span;
+using Serilog.Formatting.Compact;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,9 +16,22 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenLocalhost(5003);
 });
 
-// Add logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Host.UseSerilog((ctx, lc) => lc
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithSpan()
+    .WriteTo.Console(new CompactJsonFormatter()));
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("EmailNotificationService"))
+    .WithTracing(tracing => tracing
+        .AddHttpClientInstrumentation()
+        .AddSource("QuoteApprovalRequestedConsumer")
+        .AddSource("InvoiceGeneratedConsumer")
+        .AddOtlpExporter(o =>
+            o.Endpoint = new Uri(builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317")));
 
 // Add Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

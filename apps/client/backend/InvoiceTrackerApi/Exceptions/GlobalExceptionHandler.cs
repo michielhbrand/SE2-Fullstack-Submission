@@ -41,7 +41,7 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         if (exception is AppException appException)
         {
-            return new ProblemDetails
+            var problemDetails = new ProblemDetails
             {
                 Status = appException.StatusCode,
                 Type = appException.Type,
@@ -49,9 +49,11 @@ public class GlobalExceptionHandler : IExceptionHandler
                 Detail = appException.Message,
                 Instance = httpContext.Request.Path
             };
+            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+            return problemDetails;
         }
 
-        return new ProblemDetails
+        var internalError = new ProblemDetails
         {
             Status = StatusCodes.Status500InternalServerError,
             Type = "https://datatracker.ietf.org/doc/html/rfc9110#section-15.6.1",
@@ -59,6 +61,8 @@ public class GlobalExceptionHandler : IExceptionHandler
             Detail = "An unexpected error occurred while processing your request.",
             Instance = httpContext.Request.Path
         };
+        internalError.Extensions["traceId"] = httpContext.TraceIdentifier;
+        return internalError;
     }
 
     /// <summary>

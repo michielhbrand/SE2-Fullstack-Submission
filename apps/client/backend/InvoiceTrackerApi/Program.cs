@@ -18,15 +18,31 @@ using InvoiceTrackerApi.Services.User;
 using InvoiceTrackerApi.Services.Workflow;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Repositories.Workflow;
+using Serilog;
+using Serilog.Enrichers.Span;
+using Serilog.Formatting.Compact;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseUrls("http://localhost:5000");
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Host.UseSerilog((ctx, lc) => lc
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithSpan()
+    .WriteTo.Console(new CompactJsonFormatter()));
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("InvoiceTrackerApi"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(o =>
+            o.Endpoint = new Uri(builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317")));
 
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddSwaggerServices();

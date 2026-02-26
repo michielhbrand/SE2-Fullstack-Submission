@@ -3,12 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Database.Data;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace PdfGeneratorService.BackgroundServices;
 
 public class QuoteCreatedConsumer : BackgroundService
 {
+    private static readonly ActivitySource _activitySource = new ActivitySource("QuoteCreatedConsumer");
+
     private readonly ILogger<QuoteCreatedConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
@@ -72,6 +76,7 @@ public class QuoteCreatedConsumer : BackgroundService
 
                     if (consumeResult?.Message?.Value != null)
                     {
+                        using var activity = StartConsumerActivity(consumeResult);
                         _logger.LogInformation(
                             "Received message from Kafka. Topic: {Topic}, Partition: {Partition}, Offset: {Offset}",
                             consumeResult.Topic, consumeResult.Partition.Value, consumeResult.Offset.Value);
@@ -175,6 +180,26 @@ public class QuoteCreatedConsumer : BackgroundService
         {
             _logger.LogError(ex, "Error in ProcessQuoteCreatedEventAsync");
             throw;
+        }
+    }
+
+    private static Activity? StartConsumerActivity(ConsumeResult<string, string> consumeResult)
+    {
+        var header = consumeResult.Message.Headers.FirstOrDefault(h => h.Key == "traceparent");
+        if (header == null) return null;
+        var value = Encoding.UTF8.GetString(header.GetValueBytes());
+        var parts = value.Split('-');
+        if (parts.Length != 4) return null;
+        try
+        {
+            var traceId = ActivityTraceId.CreateFromString(parts[1].AsSpan());
+            var spanId = ActivitySpanId.CreateFromString(parts[2].AsSpan());
+            var ctx = new ActivityContext(traceId, spanId, ActivityTraceFlags.Recorded, isRemote: true);
+            return _activitySource.StartActivity("KafkaConsume", ActivityKind.Consumer, ctx);
+        }
+        catch
+        {
+            return null;
         }
     }
 

@@ -29,7 +29,7 @@ const maxWidthClasses = {
 
 const dialogClass = computed(() => {
   return cn(
-    "relative bg-white rounded-lg shadow-xl w-full",
+    "relative bg-white rounded-lg shadow-xl w-full flex flex-col max-h-[90vh]",
     maxWidthClasses[props.maxWidth],
   );
 });
@@ -124,7 +124,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Content -->
-            <div class="px-6 py-4">
+            <div class="px-6 py-4 overflow-y-auto flex-1">
               <slot />
             </div>
 
