@@ -3,6 +3,7 @@ import { ref, watch, computed } from "vue";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Spinner, Checkbox, Label, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/index";
 import { toast } from "vue-sonner";
 import type { UserInfo } from "../../stores/auth";
+import type { UserRole } from "../../api/generated/api-client";
 
 interface Props {
   show: boolean;
@@ -13,7 +14,7 @@ interface Props {
 
 interface Emits {
   (e: "close"): void;
-  (e: "save", userData: { firstName: string; lastName: string; role: string; active: boolean }): void;
+  (e: "save", userData: { firstName: string; lastName: string; role: UserRole; active: boolean }): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
