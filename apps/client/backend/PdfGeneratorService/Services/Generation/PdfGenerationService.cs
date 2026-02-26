@@ -309,7 +309,7 @@ public class PdfGenerationService : IPdfGenerationService
     /// <param name="itemsSubtotal">Sum of line item totals</param>
     /// <param name="vatInclusive">Whether prices include VAT</param>
     /// <param name="vatRatePercent">Organization's VAT rate as a percentage (e.g. 15 means 15%)</param>
-    private string PopulateVatSection(string template, decimal itemsSubtotal, bool vatInclusive, decimal vatRatePercent)
+    internal string PopulateVatSection(string template, decimal itemsSubtotal, bool vatInclusive, decimal vatRatePercent)
     {
         var result = template;
         var vatRateDecimal = vatRatePercent / 100m;
@@ -340,7 +340,7 @@ public class PdfGenerationService : IPdfGenerationService
     /// <summary>
     /// Populates bank details section for invoices. Removes the block if no active bank accounts exist.
     /// </summary>
-    private string PopulateBankDetails(string template, List<BankAccount> bankAccounts)
+    internal string PopulateBankDetails(string template, List<BankAccount> bankAccounts)
     {
         var result = template;
         var activeBankAccount = bankAccounts.FirstOrDefault(b => b.Active);
@@ -376,7 +376,7 @@ public class PdfGenerationService : IPdfGenerationService
     /// <summary>
     /// Removes an HTML block delimited by comment markers: &lt;!-- BLOCKNAME_START --&gt; ... &lt;!-- BLOCKNAME_END --&gt;
     /// </summary>
-    private string RemoveConditionalBlock(string template, string blockName)
+    internal string RemoveConditionalBlock(string template, string blockName)
     {
         var pattern = $@"<!--\s*{Regex.Escape(blockName)}_START\s*-->.*?<!--\s*{Regex.Escape(blockName)}_END\s*-->";
         return Regex.Replace(template, pattern, "", RegexOptions.Singleline);
@@ -384,7 +384,7 @@ public class PdfGenerationService : IPdfGenerationService
 
     // ─── Item Row Builders ────────────────────────────────────────────────────
 
-    private string BuildInvoiceItemsHtml(ICollection<InvoiceItem> items)
+    internal string BuildInvoiceItemsHtml(ICollection<InvoiceItem> items)
     {
         var sb = new StringBuilder();
         foreach (var item in items)
@@ -400,7 +400,7 @@ public class PdfGenerationService : IPdfGenerationService
         return sb.ToString();
     }
 
-    private string BuildQuoteItemsHtml(ICollection<QuoteItem> items)
+    internal string BuildQuoteItemsHtml(ICollection<QuoteItem> items)
     {
         var sb = new StringBuilder();
         foreach (var item in items)

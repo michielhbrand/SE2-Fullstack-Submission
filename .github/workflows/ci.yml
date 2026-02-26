@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend-tests:
-    name: .NET Tests
+    name: .NET Tests & Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +21,60 @@ jobs:
         run: dotnet restore
 
       - name: Run ManagementApi tests
-        run: dotnet test apps/management/backend/ManagementApi.Tests/ManagementApi.Tests.csproj --no-restore --logger "trx;LogFileName=management-test-results.trx"
+        run: |
+          dotnet test apps/management/backend/ManagementApi.Tests/ManagementApi.Tests.csproj \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/ManagementApi \
+            --logger "trx;LogFileName=management-results.trx"
 
       - name: Run InvoiceTrackerApi tests
-        run: dotnet test apps/client/backend/InvoiceTrackerApi.Tests/InvoiceTrackerApi.Tests.csproj --no-restore --logger "trx;LogFileName=invoicetracker-test-results.trx"
+        run: |
+          dotnet test apps/client/backend/InvoiceTrackerApi.Tests/InvoiceTrackerApi.Tests.csproj \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/InvoiceTrackerApi \
+            --logger "trx;LogFileName=invoicetracker-results.trx"
+
+      - name: Run PdfGeneratorService tests
+        run: |
+          dotnet test apps/client/backend/PdfGeneratorService.Tests/PdfGeneratorService.Tests.csproj \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/PdfGeneratorService \
+            --logger "trx;LogFileName=pdfgenerator-results.trx"
+
+      - name: Run EmailNotificationService tests
+        run: |
+          dotnet test apps/client/backend/EmailNotificationService.Tests/EmailNotificationService.Tests.csproj \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/EmailNotificationService \
+            --logger "trx;LogFileName=emailnotification-results.trx"
+
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        run: |
+          reportgenerator \
+            -reports:"./TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"./CoverageReport" \
+            -reporttypes:"Html;MarkdownSummaryGithub;Cobertura" \
+            -title:"SE2 Test Coverage"
+
+      - name: Write coverage summary to job summary
+        run: |
+          if [ -f ./CoverageReport/SummaryGithub.md ]; then
+            cat ./CoverageReport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./CoverageReport/
+          retention-days: 14
 
   frontend-checks:
     name: Frontend Type Check & Tests
