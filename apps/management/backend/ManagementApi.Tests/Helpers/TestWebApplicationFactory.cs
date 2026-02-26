@@ -12,6 +12,9 @@ namespace ManagementApi.Tests.Helpers;
 
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
+    // Evaluated once per factory instance so all DbContext providers share the same in-memory store
+    private readonly string _dbName = $"TestDatabase_{Guid.NewGuid()}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -31,10 +34,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(dbContextServiceDescriptor);
             }
 
-            // Add in-memory database for testing
+            // Add in-memory database — capture the name in a closure so the seeding
+            // provider and the app's provider both resolve the exact same in-memory store.
+            var dbName = _dbName;
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseInMemoryDatabase($"TestDatabase_{Guid.NewGuid()}");
+                options.UseInMemoryDatabase(dbName);
             });
 
             // Mock Keycloak service for integration tests
@@ -100,7 +105,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     private static void SeedTestData(ApplicationDbContext context)
     {
-        // Add any seed data needed for integration tests
-        // This method can be expanded as needed
+        // Seed the three payment plans so the CreateOrganization endpoint can resolve the default (Basic, Id=1)
+        if (!context.PaymentPlans.Any())
+        {
+            context.PaymentPlans.AddRange(
+                new Shared.Database.Models.PaymentPlan { Id = 1, Name = "Basic",    MaxUsers = 5,  MonthlyCostRand = 500m  },
+                new Shared.Database.Models.PaymentPlan { Id = 2, Name = "Advanced", MaxUsers = 15, MonthlyCostRand = 2500m },
+                new Shared.Database.Models.PaymentPlan { Id = 3, Name = "Ultimate", MaxUsers = -1, MonthlyCostRand = 4000m }
+            );
+            context.SaveChanges();
+        }
     }
 }
