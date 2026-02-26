@@ -29,7 +29,6 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const base64Url = token.split(".")[1];
       if (!base64Url) {
-        console.error("Invalid JWT token format");
         return null;
       }
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -40,8 +39,7 @@ export const useAuthStore = defineStore("auth", () => {
           .join(""),
       );
       return JSON.parse(jsonPayload);
-    } catch (error) {
-      console.error("Error parsing JWT:", error);
+    } catch {
       return null;
     }
   };
@@ -100,7 +98,6 @@ export const useAuthStore = defineStore("auth", () => {
 
       return { success: true };
     } catch (error: any) {
-      console.error("Login error:", error);
       return {
         success: false,
         error: error.message || "Login failed",
@@ -115,8 +112,8 @@ export const useAuthStore = defineStore("auth", () => {
           RefreshToken: refreshToken.value,
         });
       }
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Logout completes via finally regardless of API error
     } finally {
       user.value = null;
       accessToken.value = null;

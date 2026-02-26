@@ -41,7 +41,6 @@ watch(
   () => organizationStore.currentOrganizationId,
   async (newOrgId, oldOrgId) => {
     if (newOrgId !== oldOrgId && newOrgId !== null) {
-      console.log('[Users] Organization changed to:', newOrgId);
       await loadUsers();
     }
   }
@@ -58,11 +57,8 @@ const loadUsers = async () => {
     if (orgId) {
       const members = await organizationApi.getOrganizationMembers(orgId);
       orgMemberIds.value = new Set(members.map((m) => m.userId ?? '').filter(Boolean));
-      console.log('[Users] Org members for org', orgId, ':', [...orgMemberIds.value]);
-      // Filter to only show users who are members of this org
       allUsers.value = fetchedUsers.filter((u) => orgMemberIds.value.has(u.id));
     } else {
-      // No org context — show all users
       allUsers.value = fetchedUsers;
       orgMemberIds.value = new Set();
     }
@@ -70,7 +66,6 @@ const loadUsers = async () => {
     filterUsers();
   } catch (err) {
     toast.error("Failed to load users");
-    console.error("Error loading users:", err);
   } finally {
     loading.value = false;
   }
@@ -124,18 +119,14 @@ const handleCreateUser = async (userData: {
   creatingUser.value = true;
   try {
     const orgId = organizationStore.currentOrganizationId;
-    console.log('[Users] Creating user with organizationId:', orgId);
     await authStore.createUser({
       ...userData,
       organizationId: orgId ?? undefined,
     });
     toast.success(`Successfully created user ${userData.username}`);
     showNewUserModal.value = false;
-    // Reload users to show the new user
     await loadUsers();
   } catch (err: any) {
-    console.error("Error creating user:", err);
-
     // Check for specific error messages
     if (err?.response?.data?.message) {
       toast.error(err.response.data.message);
@@ -177,7 +168,6 @@ const handleUpdateUser = async (userData: {
       toast.error("Failed to update user details");
     }
   } catch (err: any) {
-    console.error("Error updating user:", err);
     toast.error("An error occurred while updating user details");
   } finally {
     updatingUser.value = false;

@@ -62,7 +62,7 @@ const fetchTemplates = async () => {
       selectedTemplateId.value = templates.value[0]!.id
     }
   } catch (error) {
-    console.error('Error fetching templates:', error)
+    toast.error('Failed to load templates')
     templates.value = []
   } finally {
     loadingTemplates.value = false

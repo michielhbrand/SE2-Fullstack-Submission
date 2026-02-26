@@ -32,10 +32,7 @@ const fetchClients = async () => {
   loading.value = true
   try {
     const orgId = organizationStore.currentOrganizationId
-    if (!orgId) {
-      console.error('No organization selected')
-      return
-    }
+    if (!orgId) return
     const response = await clientApi.getClients(
       orgId,
       currentPage.value,
@@ -47,7 +44,7 @@ const fetchClients = async () => {
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch clients:', error)
+    uiStore.showError('Failed to load clients')
   } finally {
     loading.value = false
   }
@@ -78,7 +75,6 @@ const saveNewClient = async (client: any) => {
     uiStore.showSuccess('Client created successfully')
     await fetchClients()
   } catch (error: any) {
-    console.error('Failed to save client:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to save client')
   }
 }
@@ -90,7 +86,6 @@ const saveEditClient = async (client: any) => {
     uiStore.showSuccess('Client updated successfully')
     await fetchClients()
   } catch (error: any) {
-    console.error('Failed to update client:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to update client')
   }
 }

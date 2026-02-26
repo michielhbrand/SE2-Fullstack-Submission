@@ -75,14 +75,11 @@ const handleLogout = async () => {
 const fetchClients = async () => {
   try {
     const orgId = organizationStore.currentOrganizationId
-    if (!orgId) {
-      console.warn('No organization selected, skipping client fetch')
-      return
-    }
+    if (!orgId) return
     const response = await clientApi.getClients(orgId, 1, 100)
     clients.value = response.data || []
-  } catch (error) {
-    console.error('Failed to fetch clients:', error)
+  } catch {
+    // Background fetch for modal dropdown — silently ignore
   }
 }
 
@@ -116,7 +113,6 @@ const saveNewInvoice = async (data: { clientId: number, items: any[], templateId
       router.push('/invoices')
     }
   } catch (error: any) {
-    console.error('Failed to save invoice:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to save invoice')
   }
 }
@@ -143,7 +139,6 @@ const saveNewQuote = async (data: { clientId: number, items: any[], templateId?:
       router.push('/quotes')
     }
   } catch (error: any) {
-    console.error('Failed to save quote:', error)
     uiStore.showError(error.response?.data?.message || 'Failed to save quote')
   }
 }

@@ -63,9 +63,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (typeof errorData === 'string') {
       try {
         errorData = JSON.parse(errorData)
-      } catch (parseError) {
-        // If parsing fails, keep it as string
-        console.error('Failed to parse error response:', parseError)
+      } catch {
+        // Keep errorData as the raw string if JSON parsing fails
       }
     }
     
@@ -229,9 +228,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error: any) {
-      // Log the error for debugging
-      console.error('Login error:', error)
-      
       const errorMessage = extractErrorMessage(
         error,
         'Login failed. Please check your credentials and try again.'

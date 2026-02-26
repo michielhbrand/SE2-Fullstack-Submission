@@ -97,7 +97,6 @@ const handleSubmit = async () => {
     emit("update:open", false);
     resetForm();
   } catch (error: any) {
-    console.error("Failed to create organization:", error);
     toast.error(getErrorMessage(error, "Failed to create organization"));
   } finally {
     isSubmitting.value = false;

@@ -79,7 +79,6 @@ const handleSubmit = async () => {
     emit("success");
     emit("update:open", false);
   } catch (error: any) {
-    console.error("Failed to update member:", error);
     toast.error(getErrorMessage(error, "Failed to update member"));
   } finally {
     isSubmitting.value = false;

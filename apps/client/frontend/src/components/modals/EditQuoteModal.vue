@@ -60,7 +60,6 @@ const loadQuote = async () => {
       items.value = [{ description: '', amount: 1, pricePerUnit: 0 }]
     }
   } catch (err) {
-    console.error('Failed to load quote for editing:', err)
     toast.error('Failed to load quote data')
   } finally {
     loadingQuote.value = false

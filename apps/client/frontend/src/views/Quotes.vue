@@ -33,7 +33,6 @@ const fetchQuotes = async () => {
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch quotes:', error)
     toast.error('Failed to fetch quotes')
   } finally {
     loading.value = false

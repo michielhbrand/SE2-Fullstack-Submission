@@ -42,7 +42,6 @@ const loadBankAccounts = async () => {
     }
   } catch (err) {
     toast.error("Failed to load bank accounts");
-    console.error("Error loading bank accounts:", err);
   } finally {
     loading.value = false;
   }

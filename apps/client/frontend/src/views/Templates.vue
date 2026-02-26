@@ -61,7 +61,6 @@ const fetchTemplates = async () => {
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (err: any) {
-    console.error('Failed to fetch templates:', err)
     toast.error(err.response?.data?.message || 'Failed to load templates')
   } finally {
     loading.value = false
@@ -96,7 +95,6 @@ const previewTemplateHandler = async (template: any) => {
     const response = await templateApi.getPreviewUrl(template.id)
     previewUrl.value = response.url ?? null
   } catch (err: any) {
-    console.error('Failed to generate preview:', err)
     toast.error(err.response?.data?.message || 'Failed to generate preview')
   } finally {
     previewLoading.value = false

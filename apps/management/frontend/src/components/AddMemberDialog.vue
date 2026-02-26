@@ -76,7 +76,6 @@ const handleSubmit = async () => {
     emit("update:open", false);
     resetForm();
   } catch (error: any) {
-    console.error("Failed to add member:", error);
     toast.error(getErrorMessage(error, "Failed to add member"));
   } finally {
     isSubmitting.value = false;

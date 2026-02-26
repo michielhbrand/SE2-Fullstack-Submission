@@ -72,7 +72,6 @@ const fetchWorkflows = async () => {
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch workflows:', error)
     toast.error('Failed to fetch workflows')
   } finally {
     loading.value = false

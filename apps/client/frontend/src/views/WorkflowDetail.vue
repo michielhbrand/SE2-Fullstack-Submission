@@ -43,7 +43,6 @@ const fetchWorkflow = async () => {
   try {
     workflow.value = await workflowApi.getWorkflow(workflowId.value)
   } catch (error: any) {
-    console.error('Failed to fetch workflow:', error)
     if (error.response?.status === 404) {
       toast.error('Workflow not found')
       router.push('/workflows')
@@ -60,7 +59,6 @@ const refreshWorkflow = async () => {
   try {
     workflow.value = await workflowApi.getWorkflow(workflowId.value)
   } catch (error: any) {
-    console.error('Failed to refresh workflow:', error)
     toast.error('Failed to refresh workflow')
   } finally {
     refreshing.value = false
@@ -159,7 +157,6 @@ const executeAction = async (eventType: string, requiresDescription = false) => 
     workflow.value = await workflowApi.addEvent(workflowId.value, { eventType })
     toast.success(`Action "${getEventLabel(eventType)}" completed`)
   } catch (error: any) {
-    console.error('Failed to execute action:', error)
     const message = error.response?.data?.message || error.response?.data?.Message || 'Action failed'
     toast.error(message)
   } finally {
@@ -177,7 +174,6 @@ const submitEventWithDescription = async (description: string) => {
     })
     toast.success(`Action "${getEventLabel(selectedEventType.value)}" completed`)
   } catch (error: any) {
-    console.error('Failed to execute action:', error)
     const message = error.response?.data?.message || error.response?.data?.Message || 'Action failed'
     toast.error(message)
   } finally {
@@ -195,7 +191,6 @@ const confirmConvertToInvoice = async (payByDays: number) => {
     })
     toast.success('Quote converted to invoice successfully')
   } catch (error: any) {
-    console.error('Failed to convert to invoice:', error)
     const message = error.response?.data?.message || error.response?.data?.Message || 'Failed to convert to invoice'
     toast.error(message)
   } finally {
@@ -219,7 +214,6 @@ const confirmCancelWorkflow = async () => {
     workflow.value = await workflowApi.cancelWorkflow(workflowId.value)
     toast.success('Workflow cancelled')
   } catch (error: any) {
-    console.error('Failed to cancel workflow:', error)
     toast.error(error.response?.data?.message || 'Failed to cancel workflow')
   } finally {
     actionLoading.value = false

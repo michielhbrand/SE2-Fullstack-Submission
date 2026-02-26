@@ -55,7 +55,6 @@ const loadOrganization = async () => {
     }
   } catch (err) {
     toast.error("Failed to load organization details");
-    console.error("Error loading organization:", err);
   } finally {
     loading.value = false;
   }
@@ -86,7 +85,6 @@ const handleSave = async () => {
     // Reload to reflect changes
     await loadOrganization();
   } catch (err: any) {
-    console.error("Error updating organization:", err);
     if (err?.response?.data?.message) {
       toast.error(err.response.data.message);
     } else {

@@ -48,8 +48,8 @@ export const useOrganizationStore = defineStore('organization', () => {
     if (typeof errorData === 'string') {
       try {
         errorData = JSON.parse(errorData)
-      } catch (parseError) {
-        console.error('Failed to parse error response:', parseError)
+      } catch {
+        // Keep errorData as the raw string if JSON parsing fails
       }
     }
     
@@ -146,7 +146,6 @@ export const useOrganizationStore = defineStore('organization', () => {
       }
       
       if (orgs.length === 0) {
-        console.warn('[Organization Store] No organizations found for user')
         return false
       }
       
