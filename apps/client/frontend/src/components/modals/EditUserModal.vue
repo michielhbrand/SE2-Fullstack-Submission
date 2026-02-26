@@ -85,7 +85,7 @@ const handleClose = () => {
   emit("close");
 };
 
-const getUserRole = (user: UserInfo): string => {
+const getUserRole = (user: UserInfo): UserRole => {
   if (user.roles?.includes("systemAdmin")) return "systemAdmin";
   if (user.roles?.includes("orgAdmin")) return "orgAdmin";
   return "orgUser";
