@@ -77,7 +77,8 @@
 - RFC 9457 Problem Details for all error responses
 - Leaner exception hierarchy focused on management concerns:
   - `NotFoundException` (404), `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `ServiceUnavailableException` (503)
-- Structured logging with severity-based categorization
+- **`GlobalExceptionHandler`** includes `traceId` (from `httpContext.TraceIdentifier`) in all `ProblemDetails` responses — this is part of a consistent cross-service pattern shared with `InvoiceTrackerApi`
+- **Serilog** with `CompactJsonFormatter` writes structured JSON to stdout, enriched with `ServiceName`, `Environment`, `MachineName`, and `ThreadId`; `Serilog.Enrichers.Span` embeds `TraceId` and `SpanId` into every log entry
 
 ## Authentication & Authorization
 

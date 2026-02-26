@@ -93,6 +93,17 @@
 - Dedicated Docker network (`microservices-network`) isolates service communication
 - **Kafka UI** included for development observability — inspect topics, messages, and consumer groups visually
 
+## Observability
+
+- **Structured logging** — all four services use Serilog with `CompactJsonFormatter`; every log entry carries `ServiceName`, `Environment`, `MachineName`, `ThreadId`, `TraceId`, and `SpanId`
+- **Distributed tracing** — W3C `traceparent`/`tracestate` propagated across all service boundaries:
+  - HTTP: automatic via OpenTelemetry ASP.NET Core + HttpClient instrumentation in `InvoiceTrackerApi` and `ManagementApi`
+  - Kafka: manual header injection in `KafkaProducerService` (producer) and manual header extraction + child `Activity` creation in all four `BackgroundService` consumers
+- **OTLP export** — all services export traces to an OpenTelemetry Collector endpoint (`OpenTelemetry:OtlpEndpoint`, default `localhost:4317`); `Serilog.Sinks.OpenTelemetry` is configured and ready for log export activation
+- **Error traceability** — `GlobalExceptionHandler` in both HTTP APIs includes `traceId` in all `ProblemDetails` error responses, so clients can report a trace ID for support
+
+See [Future Improvements](#future-improvements) in `docs/observability-roadmap.md` for the planned Grafana stack (Tempo + Loki + Prometheus + dashboards).
+
 ## Multi-Tenancy via Organizations
 
 - Organization-scoped data isolation — all business entities (invoices, quotes, clients, templates) are scoped to an organization

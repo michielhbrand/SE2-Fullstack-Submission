@@ -156,3 +156,14 @@ This is a monorepo containing two full-stack applications: a **Client Applicatio
 The Client Application backend (InvoiceTrackerApi) is the main API handling invoices, quotes, clients, templates, workflows, and organizations. It produces Kafka events consumed by two microservices: **PdfGeneratorService** (generates PDFs from HTML templates and stores them in MinIO) and **EmailNotificationService** (sends email notifications via SMTP with PDF attachments).
 
 The Management Application backend (ManagementApi) provides system-wide organization and user management with rate limiting. Both frontends are built with Vue 3, TypeScript, Vite, and Tailwind CSS, communicating with their respective APIs via auto-generated TypeScript clients (NSwag).
+
+## Future Improvements
+
+The following improvements are out of scope for the current submission but are planned for future iterations:
+
+- **OpenTelemetry Collector** — receive OTLP traces and logs over gRPC from all four services and forward to configurable backends
+- **Grafana Tempo** — distributed trace storage and visualization; correlate spans across `InvoiceTrackerApi`, `PdfGeneratorService`, and `EmailNotificationService` in a single waterfall view
+- **Grafana Loki** — centralized log aggregation; query logs by `TraceId` and `ServiceName` across all services
+- **Grafana dashboard** — unified view linking trace spans to their correlated log lines (Tempo ↔ Loki correlation)
+- **Prometheus metrics endpoints** — expose `/metrics` per service and build Grafana dashboards for request rate, error rate, and duration (RED method)
+- **Enhanced health checks** — dependency-aware health checks for Kafka, MinIO, and PostgreSQL so that `/health` reports the actual reachability of each downstream dependency

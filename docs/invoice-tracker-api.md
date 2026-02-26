@@ -67,12 +67,15 @@
 
 ## Logging
 
-- Structured logging with `ILogger<T>` throughout all layers
+- **Serilog** with `CompactJsonFormatter` writes structured JSON to stdout — every log line is machine-parseable and enriched with `ServiceName`, `Environment`, `MachineName`, and `ThreadId`
+- **OpenTelemetry SDK** provides automatic HTTP request/response spans (`AddAspNetCoreInstrumentation`) and automatically injects W3C `traceparent` headers on all outgoing `HttpClient` calls (`AddHttpClientInstrumentation`)
+- **`Serilog.Enrichers.Span`** embeds the active `TraceId` and `SpanId` into every log entry — logs are directly correlated with traces without manual plumbing
+- **`KafkaProducerService`** manually injects W3C `traceparent`/`tracestate` headers into each Kafka message before `ProduceAsync` — extends the trace from HTTP into the event-driven layer
+- **`GlobalExceptionHandler`** includes `traceId` (from `httpContext.TraceIdentifier`) in all `ProblemDetails` error responses — clients can report the trace ID for support and debugging
 - Log levels used intentionally:
   - `Information` — successful operations (entity created, event published)
   - `Warning` — application exceptions (expected errors like not found, validation failures)
   - `Error` — unexpected exceptions, infrastructure failures
-- Kafka events logged with partition and offset for traceability
 - Authentication events (token validation, failures, challenges) logged for security auditing
 
 ## Authentication & Authorization
