@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { workflowApi, quoteApi, invoiceApi } from '../services/api'
+import { getStatusLabel, getStatusColor, getEventLabel, getEventPdfType } from '../utils/workflow'
 import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
@@ -226,59 +227,10 @@ const confirmCancelWorkflow = async () => {
 }
 
 
-// Status styling helpers
-const getStatusColor = (status: string): string => {
-  const colors: Record<string, string> = {
-    Draft: 'bg-gray-100 text-gray-800',
-    PendingApproval: 'bg-yellow-100 text-yellow-800',
-    Approved: 'bg-green-100 text-green-800',
-    Rejected: 'bg-red-100 text-red-800',
-    InvoiceCreated: 'bg-blue-100 text-blue-800',
-    SentForPayment: 'bg-purple-100 text-purple-800',
-    Paid: 'bg-emerald-100 text-emerald-800',
-    Cancelled: 'bg-orange-100 text-orange-800',
-    Terminated: 'bg-red-200 text-red-900',
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
-    Draft: 'Draft',
-    PendingApproval: 'Pending Approval',
-    Approved: 'Approved',
-    Rejected: 'Rejected',
-    InvoiceCreated: 'Invoice Created',
-    SentForPayment: 'Sent for Payment',
-    Paid: 'Paid',
-    Cancelled: 'Cancelled',
-    Terminated: 'Terminated',
-  }
-  return labels[status] || status
-}
+// Status/event helpers are imported from utils/workflow.ts
 
 const getTypeLabel = (type: string): string => {
   return type === 'QuoteFirst' ? 'Quote → Invoice' : 'Invoice Only'
-}
-
-// Event timeline helpers
-const getEventLabel = (eventType: string): string => {
-  const labels: Record<string, string> = {
-    QuoteCreated: 'Quote Created',
-    SentForApproval: 'Sent for Approval',
-    Approved: 'Approved',
-    Rejected: 'Rejected',
-    QuoteModified: 'Quote Modified',
-    ResentForApproval: 'Resent for Approval',
-    ResentForPayment: 'Resent for Payment',
-    ConvertedToInvoice: 'Converted to Invoice',
-    InvoiceCreated: 'Invoice Created',
-    SentForPayment: 'Sent for Payment',
-    MarkedAsPaid: 'Marked as Paid',
-    Cancelled: 'Cancelled',
-    Terminated: 'Terminated',
-  }
-  return labels[eventType] || eventType
 }
 
 const getEventIcon = (eventType: string): string => {
@@ -330,25 +282,8 @@ const formatDateTime = (dateStr: string): string => {
   })
 }
 
-// PDF links in timeline
+// PDF links in timeline (getEventPdfType imported from utils/workflow.ts)
 const loadingPdf = ref<string | null>(null)
-
-// Events whose PDF is the linked quote document
-const QUOTE_PDF_EVENTS = new Set([
-  'QuoteCreated', 'SentForApproval', 'ResentForApproval',
-  'Approved', 'Rejected', 'QuoteModified',
-])
-// Events whose PDF is the linked invoice document
-const INVOICE_PDF_EVENTS = new Set([
-  'ConvertedToInvoice', 'InvoiceCreated', 'SentForPayment',
-  'ResentForPayment', 'MarkedAsPaid',
-])
-
-const getEventPdfType = (eventType: string): 'quote' | 'invoice' | null => {
-  if (QUOTE_PDF_EVENTS.has(eventType)) return 'quote'
-  if (INVOICE_PDF_EVENTS.has(eventType)) return 'invoice'
-  return null
-}
 
 const openPdf = async (type: 'quote' | 'invoice', id: number) => {
   const key = `${type}-${id}`
