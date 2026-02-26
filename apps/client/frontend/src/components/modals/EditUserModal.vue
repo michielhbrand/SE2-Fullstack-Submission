@@ -25,7 +25,7 @@ const emit = defineEmits<Emits>();
 const formData = ref({
   firstName: "",
   lastName: "",
-  role: "orgUser",
+  role: "orgUser" as UserRole,
   active: true,
 });
 
