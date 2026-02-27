@@ -18,6 +18,7 @@ using InvoiceTrackerApi.Services.User;
 using InvoiceTrackerApi.Services.Workflow;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Repositories.Workflow;
+using InvoiceTrackerApi.BackgroundServices;
 using Serilog;
 using Serilog.Enrichers.Span;
 using Serilog.Formatting.Compact;
@@ -74,6 +75,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
+builder.Services.AddHostedService<OverdueInvoiceCheckService>();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
 builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 

@@ -675,7 +675,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    invoice_GetInvoices(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
+    invoice_GetInvoices(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, overdueOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -689,6 +689,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (overdueOnly === null)
+            throw new globalThis.Error("The parameter 'overdueOnly' cannot be null.");
+        else if (overdueOnly !== undefined)
+            url_ += "overdueOnly=" + encodeURIComponent("" + overdueOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -810,6 +814,72 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<InvoiceResponse>(null as any);
+    }
+
+    invoice_ProcessOverdue(organizationId?: number | undefined, cancelToken?: CancelToken): Promise<ProcessOverdueResponse> {
+        let url_ = this.baseUrl + "/api/invoice/process-overdue?";
+        if (organizationId === null)
+            throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
+        else if (organizationId !== undefined)
+            url_ += "organizationId=" + encodeURIComponent("" + organizationId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInvoice_ProcessOverdue(_response);
+        });
+    }
+
+    protected processInvoice_ProcessOverdue(response: AxiosResponse): Promise<ProcessOverdueResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ProcessOverdueResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = JSON.parse(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProcessOverdueResponse>(null as any);
     }
 
     invoice_GetInvoicePdfUrl(id: number, cancelToken?: CancelToken): Promise<PdfUrlResponse> {
@@ -3819,6 +3889,10 @@ export interface InvoiceItemResponse {
     quantity?: number;
     unitPrice?: number;
     total?: number;
+}
+
+export interface ProcessOverdueResponse {
+    queuedCount?: number;
 }
 
 export interface PdfUrlResponse {

@@ -25,6 +25,7 @@ public class InvoiceService : IInvoiceService
     private readonly IKafkaProducerService _kafkaProducer;
     private readonly IPdfStorageService _pdfStorageService;
     private readonly IWorkflowService _workflowService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<InvoiceService> _logger;
 
     public InvoiceService(
@@ -34,6 +35,7 @@ public class InvoiceService : IInvoiceService
         IKafkaProducerService kafkaProducer,
         IPdfStorageService pdfStorageService,
         IWorkflowService workflowService,
+        IConfiguration configuration,
         ILogger<InvoiceService> logger)
     {
         _invoiceRepository = invoiceRepository;
@@ -42,18 +44,19 @@ public class InvoiceService : IInvoiceService
         _kafkaProducer = kafkaProducer;
         _pdfStorageService = pdfStorageService;
         _workflowService = workflowService;
+        _configuration = configuration;
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize)
+    public async Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize, bool overdueOnly = false)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var invoices = await _invoiceRepository.GetAllAsync(organizationId, page, pageSize);
-        var totalCount = await _invoiceRepository.GetTotalCountAsync(organizationId);
+        var invoices = await _invoiceRepository.GetAllAsync(organizationId, page, pageSize, overdueOnly);
+        var totalCount = await _invoiceRepository.GetTotalCountAsync(organizationId, overdueOnly);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<InvoiceResponse>
@@ -286,5 +289,31 @@ public class InvoiceService : IInvoiceService
         }
 
         return createdInvoice.ToDto();
+    }
+
+    public async Task<int> ProcessOverdueInvoicesAsync(int? organizationId, CancellationToken ct = default)
+    {
+        var reminderIntervalDays = int.TryParse(
+            _configuration["OverdueInvoice:ReminderIntervalDays"], out var days) ? days : 7;
+
+        var overdue = (await _invoiceRepository.GetOverdueAsync(
+            DateTime.UtcNow, reminderIntervalDays, organizationId, ct)).ToList();
+
+        foreach (var (invoice, workflowId) in overdue)
+        {
+            try
+            {
+                await _kafkaProducer.PublishInvoiceOverdueEventAsync(invoice.Id, workflowId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to publish overdue event for Invoice {InvoiceId}. Skipping.",
+                    invoice.Id);
+            }
+        }
+
+        _logger.LogInformation("Overdue processing complete. {Count} invoice(s) queued for reminder.", overdue.Count);
+        return overdue.Count;
     }
 }

@@ -13,6 +13,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
     private readonly string _quoteTopic = "quote-created";
     private readonly string _quoteApprovalTopic = "quote-approval-requested";
     private readonly string _invoiceGeneratedTopic = "invoice-generated";
+    private readonly string _invoiceOverdueTopic = "invoice-overdue";
 
     public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
     {
@@ -148,6 +149,38 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error publishing invoice generated event for InvoiceId: {InvoiceId}", invoiceId);
+            throw;
+        }
+    }
+
+    public async Task PublishInvoiceOverdueEventAsync(int invoiceId, int workflowId)
+    {
+        try
+        {
+            var message = new
+            {
+                InvoiceId = invoiceId,
+                WorkflowId = workflowId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var messageJson = JsonSerializer.Serialize(message);
+
+            var kafkaMessage = new Message<string, string>
+            {
+                Key = invoiceId.ToString(),
+                Value = messageJson
+            };
+            InjectTraceContext(kafkaMessage);
+            var result = await _producer.ProduceAsync(_invoiceOverdueTopic, kafkaMessage);
+
+            _logger.LogInformation(
+                "Invoice overdue event published to Kafka. InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}, Topic: {Topic}",
+                invoiceId, workflowId, _invoiceOverdueTopic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing invoice overdue event for InvoiceId: {InvoiceId}", invoiceId);
             throw;
         }
     }

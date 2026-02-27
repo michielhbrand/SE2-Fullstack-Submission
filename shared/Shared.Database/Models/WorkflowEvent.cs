@@ -46,4 +46,5 @@ public static class WorkflowEventType
     public const string MarkedAsPaid = "MarkedAsPaid";
     public const string Cancelled = "Cancelled";
     public const string Terminated = "Terminated";
+    public const string OverdueReminderSent = "OverdueReminderSent";
 }

@@ -67,18 +67,12 @@ export const authApi = {
 export const templateApi = {
   // Get all templates for an organization
   getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25) => {
-    const response = await apiClient.get('/api/template', {
-      params: { organizationId, page, pageSize }
-    })
-    return JSON.parse(response.data)
+    return await client.template_GetTemplates(organizationId, page, pageSize)
   },
 
   // Get templates filtered by type for an organization
   getTemplatesByType: async (organizationId: number, type: TemplateType) => {
-    const response = await apiClient.get('/api/template/by-type', {
-      params: { organizationId, type }
-    })
-    return JSON.parse(response.data)
+    return await client.template_GetTemplatesByType(organizationId, type)
   },
 
   // Get a specific template
@@ -88,10 +82,7 @@ export const templateApi = {
 
   // Create a new template
   createTemplate: async (name: string, version: number, content: string, type: TemplateType = TemplateType.Invoice, organizationId?: number) => {
-    const response = await apiClient.post('/api/template', { name, version, content, type }, {
-      params: organizationId ? { organizationId } : undefined
-    })
-    return JSON.parse(response.data)
+    return await client.template_CreateTemplate({ name, version, content, type }, organizationId)
   },
 
   // Delete a template
@@ -169,8 +160,8 @@ export const clientApi = {
 // Invoice API functions
 export const invoiceApi = {
   // Get all invoices for an organization
-  getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
-    return await client.invoice_GetInvoices(organizationId, page, pageSize)
+  getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10, overdueOnly: boolean = false) => {
+    return await client.invoice_GetInvoices(organizationId, page, pageSize, overdueOnly)
   },
 
   // Get a specific invoice
@@ -196,6 +187,11 @@ export const invoiceApi = {
   // Get PDF URL for an invoice
   getPdfUrl: async (id: number) => {
     return await client.invoice_GetInvoicePdfUrl(id)
+  },
+
+  // Manually trigger the overdue invoice check for an organisation
+  processOverdue: async (organizationId: number) => {
+    return await client.invoice_ProcessOverdue(organizationId)
   }
 }
 
@@ -249,11 +245,7 @@ export const healthApi = {
 export const workflowApi = {
   // Get paginated list of workflows for an organization
   getWorkflows: async (organizationId: number, page: number = 1, pageSize: number = 10, search?: string, statuses?: string[]) => {
-    const params: Record<string, any> = { organizationId, page, pageSize }
-    if (search) params.search = search
-    if (statuses && statuses.length > 0) params.statuses = statuses.join(',')
-    const response = await apiClient.get('/api/workflow', { params })
-    return JSON.parse(response.data)
+    return await client.workflow_GetWorkflows(organizationId, page, pageSize, search, statuses?.join(','))
   },
 
   // Get a specific workflow by ID with all events

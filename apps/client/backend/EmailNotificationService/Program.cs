@@ -30,6 +30,7 @@ builder.Services.AddOpenTelemetry()
         .AddHttpClientInstrumentation()
         .AddSource("QuoteApprovalRequestedConsumer")
         .AddSource("InvoiceGeneratedConsumer")
+        .AddSource("OverdueInvoiceConsumer")
         .AddOtlpExporter(o =>
             o.Endpoint = new Uri(builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317")));
 
@@ -44,6 +45,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 // Add Background Services (Kafka consumers)
 builder.Services.AddHostedService<QuoteApprovalRequestedConsumer>();
 builder.Services.AddHostedService<InvoiceGeneratedConsumer>();
+builder.Services.AddHostedService<OverdueInvoiceConsumer>();
 
 // Add CORS
 builder.Services.AddCors(options =>

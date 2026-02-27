@@ -46,6 +46,7 @@ export const getEventLabel = (eventType: string): string => {
     MarkedAsPaid: 'Marked as Paid',
     Cancelled: 'Cancelled',
     Terminated: 'Terminated',
+    OverdueReminderSent: 'Overdue Reminder Sent',
   }
   return labels[eventType] ?? eventType
 }

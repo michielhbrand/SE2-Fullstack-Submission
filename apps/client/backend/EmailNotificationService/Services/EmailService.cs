@@ -58,6 +58,26 @@ public class EmailService : IEmailService
             toEmail, invoiceId, workflowId, pdfAttachment != null);
     }
 
+    public async Task SendOverdueInvoiceEmailAsync(
+        string toEmail, string toName, int invoiceId, int workflowId,
+        DateTime payByDate, byte[]? pdfAttachment = null)
+    {
+        var adminEmail = _configuration["App:AdminEmail"] ?? "admin@invoicetracker.com";
+        var daysOverdue = (int)(DateTime.UtcNow - payByDate).TotalDays;
+
+        var htmlBody = EmailTemplates.GetOverdueInvoiceTemplate(
+            toName, invoiceId, workflowId, payByDate, daysOverdue, adminEmail);
+
+        var subject = $"Invoice #{invoiceId} — Payment Overdue";
+
+        await SendEmailAsync(toEmail, toName, subject, htmlBody,
+            pdfAttachment != null ? ($"Invoice-{invoiceId}.pdf", pdfAttachment) : null);
+
+        _logger.LogInformation(
+            "Overdue reminder email sent to {Email} for Invoice #{InvoiceId}, Workflow #{WorkflowId} ({DaysOverdue} days overdue, PDF attached: {HasPdf})",
+            toEmail, invoiceId, workflowId, daysOverdue, pdfAttachment != null);
+    }
+
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody,
         (string FileName, byte[] Data)? attachment = null)
     {

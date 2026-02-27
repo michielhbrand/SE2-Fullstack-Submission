@@ -242,6 +242,7 @@ const getEventIcon = (eventType: string): string => {
     MarkedAsPaid: 'mdi-cash-check',
     Cancelled: 'mdi-cancel',
     Terminated: 'mdi-stop-circle',
+    OverdueReminderSent: 'mdi-bell-alert',
   }
   return icons[eventType] || 'mdi-circle'
 }
@@ -261,6 +262,7 @@ const getEventDotColor = (eventType: string): string => {
     MarkedAsPaid: 'green',
     Cancelled: 'orange',
     Terminated: 'red',
+    OverdueReminderSent: 'orange',
   }
   return colors[eventType] || 'grey'
 }

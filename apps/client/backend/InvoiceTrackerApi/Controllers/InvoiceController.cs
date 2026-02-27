@@ -29,6 +29,7 @@ public class InvoiceController : AuthenticatedControllerBase
     /// </summary>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
+    /// <param name="overdueOnly">When true, return only overdue unpaid invoices</param>
     /// <returns>Paginated list of invoices</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<InvoiceResponse>), StatusCodes.Status200OK)]
@@ -36,10 +37,29 @@ public class InvoiceController : AuthenticatedControllerBase
     public async Task<ActionResult<PaginatedResponse<InvoiceResponse>>> GetInvoices(
         [FromQuery] int organizationId,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] bool overdueOnly = false)
     {
-        var response = await _invoiceService.GetInvoicesAsync(organizationId, page, pageSize);
+        var response = await _invoiceService.GetInvoicesAsync(organizationId, page, pageSize, overdueOnly);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Manually trigger the overdue invoice check for the organisation.
+    /// Publishes an invoice-overdue Kafka event for each qualifying invoice.
+    /// </summary>
+    /// <returns>Number of invoices queued for reminder</returns>
+    [HttpPost("process-overdue")]
+    [Authorize(Roles = "orgAdmin,systemAdmin")]
+    [ProducesResponseType(typeof(ProcessOverdueResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProcessOverdueResponse>> ProcessOverdue(
+        [FromQuery] int organizationId,
+        CancellationToken ct)
+    {
+        var count = await _invoiceService.ProcessOverdueInvoicesAsync(organizationId, ct);
+        return Ok(new ProcessOverdueResponse { QueuedCount = count });
     }
 
     /// <summary>

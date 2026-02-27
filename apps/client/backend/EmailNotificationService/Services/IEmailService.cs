@@ -14,4 +14,9 @@ public interface IEmailService
     /// Send an invoice payment request email with optional PDF attachment
     /// </summary>
     Task SendInvoiceGeneratedEmailAsync(string toEmail, string toName, int invoiceId, int workflowId, byte[]? pdfAttachment = null);
+
+    /// <summary>
+    /// Send an overdue invoice reminder email with optional PDF attachment
+    /// </summary>
+    Task SendOverdueInvoiceEmailAsync(string toEmail, string toName, int invoiceId, int workflowId, DateTime payByDate, byte[]? pdfAttachment = null);
 }

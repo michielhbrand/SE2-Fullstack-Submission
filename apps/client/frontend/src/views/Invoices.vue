@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoiceApi } from '../services/api'
-import { Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
+import { Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, Badge } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 import { useOrganizationStore } from '../stores/organization'
@@ -17,6 +17,7 @@ const pageSize = ref(10)
 const totalPages = ref(0)
 const totalCount = ref(0)
 const previewingPdf = ref<number | null>(null)
+const overdueOnly = ref(false)
 
 onMounted(async () => {
   await ensureOrganizationContext()
@@ -28,7 +29,7 @@ const fetchInvoices = async () => {
   try {
     const orgId = organizationStore.currentOrganizationId
     if (!orgId) return
-    const response = await invoiceApi.getInvoices(orgId, currentPage.value, pageSize.value)
+    const response = await invoiceApi.getInvoices(orgId, currentPage.value, pageSize.value, overdueOnly.value)
     invoices.value = response.data || []
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
@@ -37,6 +38,12 @@ const fetchInvoices = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const toggleOverdueFilter = async () => {
+  overdueOnly.value = !overdueOnly.value
+  currentPage.value = 1
+  await fetchInvoices()
 }
 
 const goToPage = async (page: number) => {
@@ -87,16 +94,31 @@ const previewPdf = async (invoiceId: number) => {
             <h2 class="text-3xl font-bold text-gray-900">Invoices</h2>
             <p class="mt-2 text-gray-600">View and manage all invoices</p>
           </div>
-          <button
-            @click="fetchInvoices"
-            :disabled="loading"
-            title="Refresh"
-            class="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg class="h-5 w-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              @click="toggleOverdueFilter"
+              :disabled="loading"
+              :class="[
+                'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                overdueOnly
+                  ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              ]"
+              title="Toggle overdue filter"
+            >
+              Overdue only
+            </button>
+            <button
+              @click="fetchInvoices"
+              :disabled="loading"
+              title="Refresh"
+              class="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="h-5 w-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Invoices Table -->
@@ -120,6 +142,7 @@ const previewPdf = async (invoiceId: number) => {
                   <TableHead>Total</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Pay By</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>PDF</TableHead>
                 </TableRow>
               </TableHeader>
@@ -135,6 +158,12 @@ const previewPdf = async (invoiceId: number) => {
                       {{ new Date(invoice.payByDate).toLocaleDateString() }}
                     </span>
                     <span v-else class="text-gray-400">—</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge v-if="invoice.notificationSent" variant="secondary" class="text-xs">
+                      Notified
+                    </Badge>
+                    <span v-else class="text-gray-400 text-sm">—</span>
                   </TableCell>
                   <TableCell>
                     <button
@@ -157,7 +186,7 @@ const previewPdf = async (invoiceId: number) => {
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="invoices.length === 0">
-                  <TableCell colspan="7" class="text-center text-gray-500 py-8">No invoices found</TableCell>
+                  <TableCell colspan="8" class="text-center text-gray-500 py-8">No invoices found</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

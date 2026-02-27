@@ -204,6 +204,118 @@ public static class EmailTemplates
     }
 
     /// <summary>
+    /// Overdue invoice reminder email — urgent payment required
+    /// </summary>
+    public static string GetOverdueInvoiceTemplate(
+        string clientName, int invoiceId, int workflowId,
+        DateTime payByDate, int daysOverdue, string adminEmail)
+    {
+        return $@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Invoice — Payment Overdue</title>
+</head>
+<body style=""margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;"">
+    <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #f4f4f5; padding: 40px 20px;"">
+        <tr>
+            <td align=""center"">
+                <table role=""presentation"" width=""600"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"">
+                    <!-- Header -->
+                    <tr>
+                        <td style=""background-color: #7c3aed; padding: 32px 40px; text-align: center;"">
+                            <h1 style=""margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;"">
+                                Payment Overdue
+                            </h1>
+                            <p style=""margin: 8px 0 0; color: #e9d5ff; font-size: 14px;"">
+                                Immediate action required
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Overdue Banner -->
+                    <tr>
+                        <td style=""background-color: #fff7ed; border-bottom: 3px solid #f97316; padding: 16px 40px;"">
+                            <p style=""margin: 0; color: #9a3412; font-size: 15px; font-weight: 600; text-align: center;"">
+                                ⚠ This invoice is {daysOverdue} day{(daysOverdue != 1 ? "s" : "")} past due
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style=""padding: 40px;"">
+                            <p style=""margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.6;"">
+                                Hello <strong>{clientName}</strong>,
+                            </p>
+                            <p style=""margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;"">
+                                Our records indicate that the invoice below remains unpaid past its due date. Please arrange immediate payment to avoid further follow-up.
+                            </p>
+
+                            <!-- Invoice Info Card -->
+                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 24px;"">
+                                <tr>
+                                    <td style=""padding: 20px;"">
+                                        <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"">
+                                            <tr>
+                                                <td style=""color: #6b7280; font-size: 14px; padding-bottom: 8px;"">Invoice Number</td>
+                                                <td style=""color: #111827; font-size: 14px; font-weight: 600; text-align: right; padding-bottom: 8px;"">#{invoiceId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style=""color: #6b7280; font-size: 14px; padding-bottom: 8px;"">Reference</td>
+                                                <td style=""color: #111827; font-size: 14px; font-weight: 600; text-align: right; padding-bottom: 8px;"">WF-{workflowId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style=""color: #6b7280; font-size: 14px;"">Due Date</td>
+                                                <td style=""color: #dc2626; font-size: 14px; font-weight: 600; text-align: right;"">{payByDate:dd MMM yyyy}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Payment Instructions -->
+                            <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; margin-bottom: 24px;"">
+                                <tr>
+                                    <td style=""padding: 20px;"">
+                                        <p style=""margin: 0 0 8px; color: #9a3412; font-size: 14px; font-weight: 600;"">
+                                            How to settle this invoice:
+                                        </p>
+                                        <ol style=""margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;"">
+                                            <li>Review the attached invoice PDF for the amount due and banking details.</li>
+                                            <li>Make payment immediately using EFT / bank transfer.</li>
+                                            <li>Email your proof of payment to <a href=""mailto:{adminEmail}"" style=""color: #7c3aed; font-weight: 600;"">{adminEmail}</a>, quoting invoice <strong>#{invoiceId}</strong>.</li>
+                                        </ol>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style=""margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;"">
+                                If you believe this is an error or have already made payment, please contact us immediately at
+                                <a href=""mailto:{adminEmail}"" style=""color: #7c3aed;"">{adminEmail}</a>.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style=""background-color: #f9fafb; padding: 24px 40px; border-top: 1px solid #e5e7eb;"">
+                            <p style=""margin: 0; color: #9ca3af; font-size: 12px; text-align: center;"">
+                                This is an automated message from Invoice Tracker. Please do not reply to this email.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>";
+    }
+
+    /// <summary>
     /// Quote response confirmation page (shown after clicking Accept/Reject)
     /// </summary>
     public static string GetQuoteResponseConfirmationHtml(string action, int quoteId, bool success, string? errorMessage = null)

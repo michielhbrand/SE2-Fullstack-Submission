@@ -6,4 +6,5 @@ public interface IKafkaProducerService
     Task PublishQuoteCreatedEventAsync(int quoteId);
     Task PublishQuoteApprovalRequestedEventAsync(int quoteId, int workflowId);
     Task PublishInvoiceGeneratedEventAsync(int invoiceId, int workflowId);
+    Task PublishInvoiceOverdueEventAsync(int invoiceId, int workflowId);
 }
