@@ -292,6 +292,14 @@ export const workflowApi = {
   }
 }
 
+// Dashboard API functions
+export const dashboardApi = {
+  getDashboard: async (organizationId: number) => {
+    const response = await apiClient.get('/api/dashboard', { params: { organizationId } })
+    return JSON.parse(response.data)
+  }
+}
+
 // Export the generated client instance for direct access if needed
 export { client as generatedClient }
 

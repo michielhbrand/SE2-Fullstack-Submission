@@ -16,6 +16,7 @@ using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Repositories.Template;
 using InvoiceTrackerApi.Services.User;
 using InvoiceTrackerApi.Services.Workflow;
+using InvoiceTrackerApi.Services.Dashboard;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Repositories.Workflow;
 using InvoiceTrackerApi.BackgroundServices;
@@ -73,6 +74,7 @@ builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IPdfStorageService, PdfStorageService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 builder.Services.AddHostedService<OverdueInvoiceCheckService>();
