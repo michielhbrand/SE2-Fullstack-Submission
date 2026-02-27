@@ -22,44 +22,75 @@ public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
-    public async Task<IEnumerable<InvoiceModel>> GetAllAsync(int organizationId, int page, int pageSize, bool overdueOnly = false)
+    public async Task<IEnumerable<(InvoiceModel Invoice, string? WorkflowStatus)>> GetAllAsync(
+        int organizationId, int page, int pageSize,
+        string? statusFilter = null, string? search = null)
     {
-        var query = _context.Invoices
-            .Include(i => i.Items)
-            .Include(i => i.Client)
-            .Where(i => i.OrganizationId == organizationId);
+        var baseQuery = BuildFilteredQuery(organizationId, statusFilter, search);
 
-        if (overdueOnly)
-        {
-            var now = DateTime.UtcNow;
-            var blocked = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
-            query = query
-                .Where(i => i.PayByDate < now)
-                .Where(i => _context.Workflows.Any(w => w.InvoiceId == i.Id && !blocked.Contains(w.Status)));
-        }
-
-        return await query
+        // Step 1: fetch IDs + workflow statuses (projection avoids Include conflict)
+        var pairs = await baseQuery
             .OrderByDescending(i => i.DateCreated)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(i => new
+            {
+                InvoiceId = i.Id,
+                WorkflowStatus = _context.Workflows
+                    .Where(w => w.InvoiceId == i.Id)
+                    .Select(w => w.Status)
+                    .FirstOrDefault()
+            })
             .ToListAsync();
+
+        if (!pairs.Any())
+            return [];
+
+        // Step 2: load full invoice data with navigation properties
+        var ids = pairs.Select(p => p.InvoiceId).ToList();
+        var invoices = await _context.Invoices
+            .Include(i => i.Items)
+            .Include(i => i.Client)
+            .Where(i => ids.Contains(i.Id))
+            .ToListAsync();
+
+        // Step 3: rejoin preserving original order
+        return pairs
+            .Join(invoices, p => p.InvoiceId, inv => inv.Id,
+                  (p, inv) => (inv, (string?)p.WorkflowStatus))
+            .ToList();
     }
 
-    public async Task<int> GetTotalCountAsync(int organizationId, bool overdueOnly = false)
+    public async Task<int> GetTotalCountAsync(int organizationId, string? statusFilter = null, string? search = null)
     {
+        return await BuildFilteredQuery(organizationId, statusFilter, search).CountAsync();
+    }
+
+    private IQueryable<InvoiceModel> BuildFilteredQuery(int organizationId, string? statusFilter, string? search)
+    {
+        var now = DateTime.UtcNow;
+        var terminal = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
+
         var query = _context.Invoices
             .Where(i => i.OrganizationId == organizationId);
 
-        if (overdueOnly)
-        {
-            var now = DateTime.UtcNow;
-            var blocked = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
-            query = query
-                .Where(i => i.PayByDate < now)
-                .Where(i => _context.Workflows.Any(w => w.InvoiceId == i.Id && !blocked.Contains(w.Status)));
-        }
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(i => i.Client!.Name.ToLower().Contains(search.ToLower()));
 
-        return await query.CountAsync();
+        query = statusFilter switch
+        {
+            "Paid" => query.Where(i =>
+                _context.Workflows.Any(w => w.InvoiceId == i.Id && w.Status == WorkflowStatus.Paid)),
+            "Overdue" => query
+                .Where(i => i.PayByDate < now)
+                .Where(i => _context.Workflows.Any(w => w.InvoiceId == i.Id && !terminal.Contains(w.Status))),
+            "NotPaid" => query
+                .Where(i => i.PayByDate >= now)
+                .Where(i => _context.Workflows.Any(w => w.InvoiceId == i.Id && !terminal.Contains(w.Status))),
+            _ => query
+        };
+
+        return query;
     }
 
     public async Task<IEnumerable<(InvoiceModel Invoice, int WorkflowId)>> GetOverdueAsync(

@@ -9,7 +9,7 @@ namespace InvoiceTrackerApi.Services.Invoice;
 /// </summary>
 public interface IInvoiceService
 {
-    Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize, bool overdueOnly = false);
+    Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize, string? statusFilter = null, string? search = null);
     Task<InvoiceResponse> GetInvoiceByIdAsync(int id);
     Task<InvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, string modifiedBy, int organizationId);
     Task<InvoiceResponse> UpdateInvoiceAsync(int id, UpdateInvoiceRequest request, string modifiedBy);

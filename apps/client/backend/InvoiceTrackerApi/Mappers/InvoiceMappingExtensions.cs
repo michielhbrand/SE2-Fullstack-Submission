@@ -1,6 +1,7 @@
 using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Invoice.Responses;
 using Shared.Database.Models;
+using WorkflowStatusConst = Shared.Database.Models.WorkflowStatus;
 
 namespace InvoiceTrackerApi.Mappers;
 
@@ -26,6 +27,24 @@ public static class InvoiceMappingExtensions
             PayByDate = invoice.PayByDate,
             Items = invoice.Items.Select(i => i.ToDto()).ToList()
         };
+    }
+
+    public static InvoiceResponse ToDto(this Invoice invoice, string? workflowStatus)
+    {
+        var dto = invoice.ToDto();
+        dto.PaymentStatus = ComputePaymentStatus(invoice.PayByDate, workflowStatus);
+        return dto;
+    }
+
+    private static string ComputePaymentStatus(DateTime payByDate, string? workflowStatus)
+    {
+        if (workflowStatus == WorkflowStatusConst.Paid)
+            return "Paid";
+        if (payByDate < DateTime.UtcNow
+            && workflowStatus != WorkflowStatusConst.Cancelled
+            && workflowStatus != WorkflowStatusConst.Terminated)
+            return "Overdue";
+        return "NotPaid";
     }
 
     public static InvoiceItemResponse ToDto(this InvoiceItem item)

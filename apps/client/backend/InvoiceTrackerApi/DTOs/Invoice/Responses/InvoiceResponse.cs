@@ -18,6 +18,10 @@ public class InvoiceResponse
     public int? TemplateId { get; set; }
     public bool VatInclusive { get; set; }
     public DateTime PayByDate { get; set; }
+    /// <summary>
+    /// Computed payment status: "Paid" | "Overdue" | "NotPaid"
+    /// </summary>
+    public string PaymentStatus { get; set; } = "NotPaid";
     public List<InvoiceItemResponse> Items { get; set; } = new();
 }
 

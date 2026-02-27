@@ -48,20 +48,20 @@ public class InvoiceService : IInvoiceService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize, bool overdueOnly = false)
+    public async Task<PaginatedResponse<InvoiceResponse>> GetInvoicesAsync(int organizationId, int page, int pageSize, string? statusFilter = null, string? search = null)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var invoices = await _invoiceRepository.GetAllAsync(organizationId, page, pageSize, overdueOnly);
-        var totalCount = await _invoiceRepository.GetTotalCountAsync(organizationId, overdueOnly);
+        var invoices = await _invoiceRepository.GetAllAsync(organizationId, page, pageSize, statusFilter, search);
+        var totalCount = await _invoiceRepository.GetTotalCountAsync(organizationId, statusFilter, search);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<InvoiceResponse>
         {
-            Data = invoices.Select(i => i.ToDto()).ToList(),
+            Data = invoices.Select(t => t.Invoice.ToDto(t.WorkflowStatus)).ToList(),
             Pagination = new PaginationMetadata
             {
                 CurrentPage = page,

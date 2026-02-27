@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoiceApi } from '../services/api'
-import { Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, Badge } from '../components/ui/index'
+import { Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 import { useOrganizationStore } from '../stores/organization'
@@ -17,7 +17,10 @@ const pageSize = ref(10)
 const totalPages = ref(0)
 const totalCount = ref(0)
 const previewingPdf = ref<number | null>(null)
-const overdueOnly = ref(false)
+const statusFilter = ref<string>('')
+const search = ref<string>('')
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 onMounted(async () => {
   await ensureOrganizationContext()
@@ -29,7 +32,11 @@ const fetchInvoices = async () => {
   try {
     const orgId = organizationStore.currentOrganizationId
     if (!orgId) return
-    const response = await invoiceApi.getInvoices(orgId, currentPage.value, pageSize.value, overdueOnly.value)
+    const response = await invoiceApi.getInvoices(
+      orgId, currentPage.value, pageSize.value,
+      statusFilter.value || undefined,
+      search.value || undefined
+    )
     invoices.value = response.data || []
     totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
@@ -40,10 +47,33 @@ const fetchInvoices = async () => {
   }
 }
 
-const toggleOverdueFilter = async () => {
-  overdueOnly.value = !overdueOnly.value
+const setStatusFilter = async (value: string) => {
+  statusFilter.value = value
   currentPage.value = 1
   await fetchInvoices()
+}
+
+const onSearchInput = () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(async () => {
+    currentPage.value = 1
+    await fetchInvoices()
+  }, 300)
+}
+
+const statusFilterOptions = [
+  { value: '', label: 'All' },
+  { value: 'NotPaid', label: 'Not Paid' },
+  { value: 'Overdue', label: 'Overdue' },
+  { value: 'Paid', label: 'Paid' },
+]
+
+const paymentStatusBadge = (status: string) => {
+  switch (status) {
+    case 'Paid':    return { label: 'Paid',     classes: 'bg-emerald-100 text-emerald-800' }
+    case 'Overdue': return { label: 'Overdue',  classes: 'bg-red-100 text-red-700' }
+    default:        return { label: 'Not Paid', classes: 'bg-gray-100 text-gray-600' }
+  }
 }
 
 const goToPage = async (page: number) => {
@@ -89,34 +119,54 @@ const previewPdf = async (invoiceId: number) => {
     <div class="p-6 lg:p-8">
       <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-6 flex items-center justify-between">
           <div>
             <h2 class="text-3xl font-bold text-gray-900">Invoices</h2>
             <p class="mt-2 text-gray-600">View and manage all invoices</p>
           </div>
-          <div class="flex items-center gap-3">
+          <button
+            @click="fetchInvoices"
+            :disabled="loading"
+            title="Refresh"
+            class="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg class="h-5 w-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Search + Filter bar -->
+        <div class="mb-4 flex items-center gap-3 flex-wrap">
+          <!-- Search box -->
+          <div class="relative flex-1 min-w-[200px] max-w-sm">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+            </svg>
+            <input
+              v-model="search"
+              @input="onSearchInput"
+              type="text"
+              placeholder="Search by client name..."
+              class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+
+          <!-- Status filter button group -->
+          <div class="flex rounded-md border border-gray-300 overflow-hidden">
             <button
-              @click="toggleOverdueFilter"
+              v-for="opt in statusFilterOptions"
+              :key="opt.value"
+              @click="setStatusFilter(opt.value)"
               :disabled="loading"
               :class="[
-                'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-                overdueOnly
-                  ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
-                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                'px-3 py-1.5 text-sm font-medium transition-colors border-r last:border-r-0 border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed',
+                statusFilter === opt.value
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
               ]"
-              title="Toggle overdue filter"
             >
-              Overdue only
-            </button>
-            <button
-              @click="fetchInvoices"
-              :disabled="loading"
-              title="Refresh"
-              class="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg class="h-5 w-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-              </svg>
+              {{ opt.label }}
             </button>
           </div>
         </div>
@@ -160,10 +210,11 @@ const previewPdf = async (invoiceId: number) => {
                     <span v-else class="text-gray-400">—</span>
                   </TableCell>
                   <TableCell>
-                    <Badge v-if="invoice.notificationSent" variant="secondary" class="text-xs">
-                      Notified
-                    </Badge>
-                    <span v-else class="text-gray-400 text-sm">—</span>
+                    <span
+                      :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', paymentStatusBadge(invoice.paymentStatus).classes]"
+                    >
+                      {{ paymentStatusBadge(invoice.paymentStatus).label }}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <button

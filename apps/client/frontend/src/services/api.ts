@@ -160,8 +160,11 @@ export const clientApi = {
 // Invoice API functions
 export const invoiceApi = {
   // Get all invoices for an organization
-  getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10, overdueOnly: boolean = false) => {
-    return await client.invoice_GetInvoices(organizationId, page, pageSize, overdueOnly)
+  getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10, statusFilter?: string, search?: string) => {
+    const response = await apiClient.get('/api/invoice', {
+      params: { organizationId, page, pageSize, statusFilter: statusFilter || undefined, search: search || undefined }
+    })
+    return JSON.parse(response.data)
   },
 
   // Get a specific invoice

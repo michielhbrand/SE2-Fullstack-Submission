@@ -675,7 +675,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    invoice_GetInvoices(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, overdueOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
+    invoice_GetInvoices(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, statusFilter?: string | null | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfInvoiceResponse> {
         let url_ = this.baseUrl + "/api/invoice?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -689,10 +689,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (overdueOnly === null)
-            throw new globalThis.Error("The parameter 'overdueOnly' cannot be null.");
-        else if (overdueOnly !== undefined)
-            url_ += "overdueOnly=" + encodeURIComponent("" + overdueOnly) + "&";
+        if (statusFilter !== undefined && statusFilter !== null)
+            url_ += "statusFilter=" + encodeURIComponent("" + statusFilter) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -3879,6 +3879,7 @@ export interface InvoiceResponse {
     templateId?: number | null;
     vatInclusive?: boolean;
     payByDate?: Date;
+    paymentStatus?: string;
     items?: InvoiceItemResponse[];
 }
 

@@ -29,7 +29,8 @@ public class InvoiceController : AuthenticatedControllerBase
     /// </summary>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
-    /// <param name="overdueOnly">When true, return only overdue unpaid invoices</param>
+    /// <param name="statusFilter">Filter by payment status: "Paid" | "Overdue" | "NotPaid" (omit for all)</param>
+    /// <param name="search">Filter by client name (case-insensitive substring)</param>
     /// <returns>Paginated list of invoices</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<InvoiceResponse>), StatusCodes.Status200OK)]
@@ -38,9 +39,10 @@ public class InvoiceController : AuthenticatedControllerBase
         [FromQuery] int organizationId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] bool overdueOnly = false)
+        [FromQuery] string? statusFilter = null,
+        [FromQuery] string? search = null)
     {
-        var response = await _invoiceService.GetInvoicesAsync(organizationId, page, pageSize, overdueOnly);
+        var response = await _invoiceService.GetInvoicesAsync(organizationId, page, pageSize, statusFilter, search);
         return Ok(response);
     }
 
