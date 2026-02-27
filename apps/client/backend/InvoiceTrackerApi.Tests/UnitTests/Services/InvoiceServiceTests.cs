@@ -9,6 +9,7 @@ using InvoiceTrackerApi.Services.Invoice;
 using InvoiceTrackerApi.Services.PdfStorage;
 using InvoiceTrackerApi.Services.Workflow;
 using InvoiceTrackerApi.Tests.Helpers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Database.Models;
@@ -23,6 +24,7 @@ public class InvoiceServiceTests
     private readonly Mock<IKafkaProducerService> _kafkaMock;
     private readonly Mock<IPdfStorageService> _pdfStorageMock;
     private readonly Mock<IWorkflowService> _workflowServiceMock;
+    private readonly Mock<IConfiguration> _configurationMock;
     private readonly Mock<ILogger<InvoiceService>> _loggerMock;
     private readonly InvoiceService _service;
 
@@ -34,6 +36,7 @@ public class InvoiceServiceTests
         _kafkaMock = new Mock<IKafkaProducerService>();
         _pdfStorageMock = new Mock<IPdfStorageService>();
         _workflowServiceMock = new Mock<IWorkflowService>();
+        _configurationMock = new Mock<IConfiguration>();
         _loggerMock = new Mock<ILogger<InvoiceService>>();
 
         _service = new InvoiceService(
@@ -43,6 +46,7 @@ public class InvoiceServiceTests
             _kafkaMock.Object,
             _pdfStorageMock.Object,
             _workflowServiceMock.Object,
+            _configurationMock.Object,
             _loggerMock.Object);
     }
 

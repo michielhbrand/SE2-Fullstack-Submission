@@ -38,7 +38,6 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
     public async Task<IEnumerable<TemplateModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize)
     {
         return await _context.Templates
-            .Where(t => t.OrganizationId == organizationId)
             .OrderByDescending(t => t.Created)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -48,7 +47,7 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
     public async Task<IEnumerable<TemplateModel>> GetByOrganizationAndTypeAsync(int organizationId, TemplateType type)
     {
         return await _context.Templates
-            .Where(t => t.OrganizationId == organizationId && t.Type == type)
+            .Where(t => t.Type == type)
             .OrderByDescending(t => t.Created)
             .ToListAsync();
     }
@@ -60,8 +59,6 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
 
     public async Task<int> GetTotalCountByOrganizationAsync(int organizationId)
     {
-        return await _context.Templates
-            .Where(t => t.OrganizationId == organizationId)
-            .CountAsync();
+        return await _context.Templates.CountAsync();
     }
 }

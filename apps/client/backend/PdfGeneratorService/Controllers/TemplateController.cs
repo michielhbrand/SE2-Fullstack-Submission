@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.Services.Storage;
 using PdfGeneratorService.Services.Generation;
+using Shared.Database.Data;
 using Shared.Database.Models;
 
 namespace PdfGeneratorService.Controllers;
@@ -12,15 +14,18 @@ public class TemplateController : ControllerBase
 {
     private readonly IMinioStorageService _storageService;
     private readonly IPdfGenerationService _pdfGenerationService;
+    private readonly ApplicationDbContext _db;
     private readonly ILogger<TemplateController> _logger;
 
     public TemplateController(
         IMinioStorageService storageService,
         IPdfGenerationService pdfGenerationService,
+        ApplicationDbContext db,
         ILogger<TemplateController> logger)
     {
         _storageService = storageService;
         _pdfGenerationService = pdfGenerationService;
+        _db = db;
         _logger = logger;
     }
 
@@ -112,49 +117,63 @@ public class TemplateController : ControllerBase
     {
         try
         {
-            // Create sample invoice data for preview
-            var sampleInvoice = new Invoice
+            var template = await _db.Templates.FirstOrDefaultAsync(t => t.Id == templateId);
+            if (template == null)
+                return NotFound(new { message = $"Template with ID '{templateId}' not found" });
+
+            var sampleClient = new Client
             {
                 Id = 1,
-                ClientId = 1,
-                DateCreated = DateTime.UtcNow,
-                Client = new Client
-                {
-                    Id = 1,
-                    Name = "John Doe",
-                    Email = "john.doe@example.com",
-                    Address = "123 Sample Street, City, State 12345",
-                    Cellphone = "+1 (555) 123-4567",
-                    IsCompany = false,
-                    DateCreated = DateTime.UtcNow
-                },
-                Items = new List<InvoiceItem>
-                {
-                    new InvoiceItem
-                    {
-                        Description = "Sample Product 1",
-                        Quantity = 2,
-                        PricePerUnit = 50.00m
-                    },
-                    new InvoiceItem
-                    {
-                        Description = "Sample Service",
-                        Quantity = 1,
-                        PricePerUnit = 150.00m
-                    },
-                    new InvoiceItem
-                    {
-                        Description = "Sample Product 2",
-                        Quantity = 3,
-                        PricePerUnit = 25.00m
-                    }
-                }
+                Name = "John Doe",
+                Email = "john.doe@example.com",
+                Address = "123 Sample Street, City, State 12345",
+                Cellphone = "+1 (555) 123-4567",
+                IsCompany = false,
+                DateCreated = DateTime.UtcNow
             };
 
-            // Generate PDF preview using template ID
-            var pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, new List<BankAccount>(), templateId);
-            
-            return File(pdfBytes, "application/pdf", $"template-{templateId}_preview.pdf");
+            var sampleItems = new List<InvoiceItem>
+            {
+                new() { Description = "Sample Product 1",  Quantity = 2, PricePerUnit = 50.00m  },
+                new() { Description = "Sample Service",     Quantity = 1, PricePerUnit = 150.00m },
+                new() { Description = "Sample Product 2",  Quantity = 3, PricePerUnit = 25.00m  },
+            };
+
+            byte[] pdfBytes;
+
+            if (template.Type == TemplateType.Invoice)
+            {
+                var sampleInvoice = new Invoice
+                {
+                    Id = 1,
+                    ClientId = 1,
+                    DateCreated = DateTime.UtcNow,
+                    PayByDate = DateTime.UtcNow.AddDays(30),
+                    Client = sampleClient,
+                    Items = sampleItems,
+                };
+                pdfBytes = await _pdfGenerationService.GeneratePdfFromInvoiceAsync(sampleInvoice, new List<BankAccount>(), templateId);
+            }
+            else
+            {
+                var sampleQuote = new Quote
+                {
+                    Id = 1,
+                    ClientId = 1,
+                    DateCreated = DateTime.UtcNow,
+                    Client = sampleClient,
+                    Items = sampleItems.Select(i => new QuoteItem
+                    {
+                        Description = i.Description,
+                        Quantity = i.Quantity,
+                        PricePerUnit = i.PricePerUnit,
+                    }).ToList(),
+                };
+                pdfBytes = await _pdfGenerationService.GeneratePdfFromQuoteAsync(sampleQuote, templateId);
+            }
+
+            // Return inline (no filename) so the browser renders the PDF in the iframe
+            return File(pdfBytes, "application/pdf");
         }
         catch (Exception ex)
         {

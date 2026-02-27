@@ -88,6 +88,7 @@ public class WorkflowService : IWorkflowService
         [WorkflowEventType.InvoiceCreated] = WorkflowStatus.InvoiceCreated,
         [WorkflowEventType.SentForPayment] = WorkflowStatus.SentForPayment,
         [WorkflowEventType.ResentForPayment] = WorkflowStatus.SentForPayment,
+        [WorkflowEventType.OverdueReminderSent] = WorkflowStatus.SentForPayment, // status unchanged
         [WorkflowEventType.MarkedAsPaid] = WorkflowStatus.Paid,
         [WorkflowEventType.Cancelled] = WorkflowStatus.Cancelled,
         [WorkflowEventType.Terminated] = WorkflowStatus.Terminated
@@ -228,13 +229,8 @@ public class WorkflowService : IWorkflowService
         // Get the target status for this event
         var targetStatus = EventToStatusMap[request.EventType];
 
-        // Special case: QuoteModified doesn't change status (stays Rejected)
-        if (request.EventType != WorkflowEventType.QuoteModified)
-        {
-            // Validate the status transition
-            ValidateStatusTransition(workflow.Status, targetStatus, request.EventType);
-        }
-        else
+        // Special cases: events that record activity without changing status
+        if (request.EventType == WorkflowEventType.QuoteModified)
         {
             // QuoteModified is only valid when status is Rejected
             if (workflow.Status != WorkflowStatus.Rejected)
@@ -242,6 +238,20 @@ public class WorkflowService : IWorkflowService
                 throw new BusinessRuleException(
                     $"Cannot modify quote when workflow status is '{workflow.Status}'. Quote modification is only allowed when status is '{WorkflowStatus.Rejected}'");
             }
+        }
+        else if (request.EventType == WorkflowEventType.OverdueReminderSent)
+        {
+            // OverdueReminderSent is only valid when status is SentForPayment
+            if (workflow.Status != WorkflowStatus.SentForPayment)
+            {
+                throw new BusinessRuleException(
+                    $"Cannot send overdue reminder when workflow status is '{workflow.Status}'. Overdue reminders can only be sent when status is '{WorkflowStatus.SentForPayment}'");
+            }
+        }
+        else
+        {
+            // Validate the status transition
+            ValidateStatusTransition(workflow.Status, targetStatus, request.EventType);
         }
 
         // Add the event
@@ -256,8 +266,9 @@ public class WorkflowService : IWorkflowService
 
         workflow.Events.Add(workflowEvent);
 
-        // Update workflow status (except for QuoteModified which keeps Rejected)
-        if (request.EventType != WorkflowEventType.QuoteModified)
+        // Update workflow status (QuoteModified and OverdueReminderSent leave status unchanged)
+        if (request.EventType != WorkflowEventType.QuoteModified &&
+            request.EventType != WorkflowEventType.OverdueReminderSent)
         {
             workflow.Status = targetStatus;
         }
@@ -348,6 +359,35 @@ public class WorkflowService : IWorkflowService
                 _logger.LogError(ex,
                     "Failed to publish invoice generated event for WorkflowId: {WorkflowId}. " +
                     "Workflow status updated but email notification not triggered.",
+                    workflowId);
+            }
+        }
+
+        // Publish overdue Kafka event so EmailNotificationService sends the reminder email
+        if (request.EventType == WorkflowEventType.OverdueReminderSent)
+        {
+            try
+            {
+                if (workflow.InvoiceId.HasValue)
+                {
+                    await _kafkaProducer.PublishInvoiceOverdueEventAsync(workflow.InvoiceId.Value, workflowId);
+
+                    _logger.LogInformation(
+                        "Overdue reminder event published for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
+                        workflow.InvoiceId.Value, workflowId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Cannot publish overdue reminder event — workflow {WorkflowId} has no linked InvoiceId",
+                        workflowId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to publish overdue reminder event for WorkflowId: {WorkflowId}. " +
+                    "Workflow event recorded but email notification not triggered.",
                     workflowId);
             }
         }

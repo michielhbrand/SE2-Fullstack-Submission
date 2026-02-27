@@ -167,3 +167,4 @@ The following improvements are out of scope for the current submission but are p
 - **Grafana dashboard** — unified view linking trace spans to their correlated log lines (Tempo ↔ Loki correlation)
 - **Prometheus metrics endpoints** — expose `/metrics` per service and build Grafana dashboards for request rate, error rate, and duration (RED method)
 - **Enhanced health checks** — dependency-aware health checks for Kafka, MinIO, and PostgreSQL so that `/health` reports the actual reachability of each downstream dependency
+- **Organization-level template management** — allow each organization to create, upload, and manage their own invoice and quote HTML templates; currently all organizations share the same system-wide templates, with the infrastructure (storage keys, type scoping, and per-org uniqueness constraints) already in place to support this

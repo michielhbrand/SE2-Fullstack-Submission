@@ -9,6 +9,7 @@ import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
 import WorkflowEventModal from '../components/modals/WorkflowEventModal.vue'
 import ConvertToInvoiceModal from '../components/modals/ConvertToInvoiceModal.vue'
 import EditQuoteModal from '../components/modals/EditQuoteModal.vue'
+import TemplatePdfPreviewModal from '../components/modals/TemplatePdfPreviewModal.vue'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -280,23 +281,43 @@ const formatDateTime = (dateStr: string): string => {
 
 // PDF links in timeline (getEventPdfType imported from utils/workflow.ts)
 const loadingPdf = ref<string | null>(null)
+const pdfModalOpen = ref(false)
+const pdfPreviewUrl = ref<string | null>(null)
+const pdfPreviewLoading = ref(false)
+const pdfPreviewTitle = ref<string | null>(null)
 
 const openPdf = async (type: 'quote' | 'invoice', id: number) => {
   const key = `${type}-${id}`
   if (loadingPdf.value === key) return
   loadingPdf.value = key
+  pdfModalOpen.value = true
+  pdfPreviewLoading.value = true
+  pdfPreviewUrl.value = null
+  pdfPreviewTitle.value = type === 'quote' ? `Quote #${id}` : `Invoice #${id}`
   try {
     const response = type === 'quote'
       ? await quoteApi.getPdfUrl(id)
       : await invoiceApi.getPdfUrl(id)
-    if (response.url) window.open(response.url, '_blank')
-    else toast.error('PDF not available yet')
+    if (response.url) {
+      pdfPreviewUrl.value = response.url
+    } else {
+      toast.error('PDF not available yet')
+      pdfModalOpen.value = false
+    }
   } catch (error: any) {
     if (error.response?.status === 404) toast.error('PDF not yet generated for this document')
     else toast.error('Failed to load PDF')
+    pdfModalOpen.value = false
   } finally {
     loadingPdf.value = null
+    pdfPreviewLoading.value = false
   }
+}
+
+const closePdfModal = () => {
+  pdfModalOpen.value = false
+  pdfPreviewUrl.value = null
+  pdfPreviewTitle.value = null
 }
 
 const formatRelativeTime = (dateStr: string): string => {
@@ -436,6 +457,20 @@ const formatRelativeTime = (dateStr: string): string => {
                   <v-icon start>{{ action.icon }}</v-icon>
                   {{ action.label }}
                 </v-btn>
+
+                <!-- Send overdue reminder — only available when waiting for payment -->
+                <Button
+                  v-if="workflow.status === 'SentForPayment'"
+                  variant="outline"
+                  class="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  :disabled="actionLoading"
+                  @click="executeAction('OverdueReminderSent')"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                  </svg>
+                  Send Overdue Reminder
+                </Button>
 
                 <v-divider v-if="(availableActions.length > 0 || workflow.status === 'Rejected') && canCancel" vertical class="mx-2" />
 
@@ -600,6 +635,15 @@ const formatRelativeTime = (dateStr: string): string => {
       :workflow-id="workflowId"
       @close="showEditQuoteDialog = false"
       @saved="onQuoteSaved"
+    />
+
+    <!-- PDF preview dialog -->
+    <TemplatePdfPreviewModal
+      :show="pdfModalOpen"
+      :preview-url="pdfPreviewUrl"
+      :template-name="pdfPreviewTitle"
+      :loading="pdfPreviewLoading"
+      @close="closePdfModal"
     />
   </Layout>
 </template>
