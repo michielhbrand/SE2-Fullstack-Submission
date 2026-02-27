@@ -6,6 +6,7 @@ using ManagementApi.Endpoints.User;
 using ManagementApi.Exceptions;
 using ManagementApi.Extensions;
 using ManagementApi.Services.Auth;
+using ManagementApi.Services.SeedData;
 using ManagementApi.Services.User;
 using Serilog;
 using Serilog.Enrichers.Span;
@@ -54,6 +55,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
 builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ISeedDemoDataService, SeedDemoDataService>();
 
 var app = builder.Build();
 

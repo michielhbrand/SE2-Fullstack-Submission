@@ -9,6 +9,7 @@ import EditOrganizationDialog from "../components/EditOrganizationDialog.vue";
 import AddMemberDialog from "../components/AddMemberDialog.vue";
 import EditMemberDialog from "../components/EditMemberDialog.vue";
 import RemoveMemberDialog from "../components/RemoveMemberDialog.vue";
+import SeedDemoDataDialog from "../components/SeedDemoDataDialog.vue";
 import OrganizationMembersTable from "../components/OrganizationMembersTable.vue";
 import { organizationService } from "../services/organizations";
 import { apiClient } from "../api/client";
@@ -30,6 +31,8 @@ const isEditMemberDialogOpen = ref(false);
 const isRemoveMemberDialogOpen = ref(false);
 const selectedMember = ref<OrganizationMemberResponse | null>(null);
 const memberToRemove = ref<OrganizationMemberResponse | null>(null);
+const isSeedDialogOpen = ref(false);
+const isSeedingData = ref(false);
 
 const organizationId = computed(() => {
   const id = route.params.id;
@@ -109,6 +112,20 @@ const planBadgeClass = (name?: string) => {
   }
 };
 
+const handleSeedDemoData = async () => {
+  if (!organizationId.value) return;
+  isSeedingData.value = true;
+  try {
+    await apiClient.seedDemoData(organizationId.value);
+    toast.success("Demo data generated successfully!");
+    isSeedDialogOpen.value = false;
+  } catch (e: any) {
+    toast.error(getErrorMessage(e, "Failed to generate demo data"));
+  } finally {
+    isSeedingData.value = false;
+  }
+};
+
 onMounted(() => {
   fetchOrganization();
   fetchMembers();
@@ -159,14 +176,19 @@ onMounted(() => {
             {{ organization.PaymentPlan.Name }}
           </span>
         </div>
-        <Button
-          v-if="organization"
-          variant="outline"
-          @click="isEditDialogOpen = true"
-        >
-          <Pencil class="h-4 w-4 mr-2" />
-          Edit
-        </Button>
+        <div class="flex items-center gap-2">
+          <Button variant="outline" size="sm" @click="isSeedDialogOpen = true">
+            Generate Demo Data
+          </Button>
+          <Button
+            v-if="organization"
+            variant="outline"
+            @click="isEditDialogOpen = true"
+          >
+            <Pencil class="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </div>
       </div>
     </div>
 
@@ -398,6 +420,12 @@ onMounted(() => {
       v-model:open="isRemoveMemberDialogOpen"
       :member="memberToRemove"
       @confirm="handleRemoveMember"
+    />
+    <SeedDemoDataDialog
+      v-model:open="isSeedDialogOpen"
+      :organization-name="organization?.Name ?? 'Organization'"
+      :is-loading="isSeedingData"
+      @confirm="handleSeedDemoData"
     />
   </div>
 </template>

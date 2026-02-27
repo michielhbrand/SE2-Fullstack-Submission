@@ -12,6 +12,7 @@ public static class OrganizationEndpointsConfiguration
         group.MapGetOrganizationById();
         group.MapCreateOrganization();
         group.MapUpdateOrganization();
+        group.MapSeedDemoData();
 
         return app;
     }
