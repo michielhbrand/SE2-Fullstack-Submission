@@ -1,0 +1,14 @@
+**/node_modules
+**/bin
+**/obj
+**/.git
+**/dist
+**/coverage
+.vs
+**/.vs
+.vscode
+**/.vscode
+.idea
+**/.idea
+.DS_Store
+**/Thumbs.db

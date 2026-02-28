@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
@@ -13,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on port 5003
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5003);
+    options.Listen(IPAddress.Any, 5003);
 });
 
 builder.Host.UseSerilog((ctx, lc) => lc

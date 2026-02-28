@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.BackgroundServices;
 using Shared.Database.Data;
@@ -14,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on port 5001
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5001);
+    options.Listen(IPAddress.Any, 5001);
 });
 
 builder.Host.UseSerilog((ctx, lc) => lc

@@ -20,6 +20,8 @@ using InvoiceTrackerApi.Services.Dashboard;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Repositories.Workflow;
 using InvoiceTrackerApi.BackgroundServices;
+using Microsoft.EntityFrameworkCore;
+using Shared.Database.Data;
 using Serilog;
 using Serilog.Enrichers.Span;
 using Serilog.Formatting.Compact;
@@ -28,7 +30,7 @@ using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://localhost:5000");
+builder.WebHost.UseUrls("http://+:5000");
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration)
@@ -86,6 +88,13 @@ builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+// Apply any pending EF Core migrations on startup so Docker users need no manual steps
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {

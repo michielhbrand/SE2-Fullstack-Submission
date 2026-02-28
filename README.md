@@ -11,90 +11,33 @@
 | Tool | Version |
 |---|---|
 | Docker & Docker Compose | Latest |
-| .NET SDK | 8.0+ |
-| Node.js | 18+ |
 
-### Step 1 — Start Infrastructure
+### Start Everything
 
-```bash
-cd infrastructure
-docker-compose up -d
-```
-
-Wait ~30 seconds for Keycloak to initialize. Verify services are running:
-
-| Service | URL |
-|---|---|
-| Keycloak | http://localhost:9090 (admin / admin) |
-| Kafka UI | http://localhost:8088 |
-| MinIO Console | http://localhost:9003 (minioadmin / minioadmin) |
-| MailHog | http://localhost:8025 |
-
-### Step 2 — Start Backend Services
-
-Each service runs in its own terminal:
-
-**InvoiceTrackerApi:**
+From the repository root, run:
 
 ```bash
-cd apps/client/backend/InvoiceTrackerApi
-dotnet run
+docker-compose up --build
 ```
 
-→ http://localhost:5000 (Swagger: http://localhost:5000/swagger)
+This builds and starts all 14 services — infrastructure, backends, and frontends — in a single step. The first build takes a few minutes. Subsequent starts (without `--build`) are fast.
 
-**PdfGeneratorService:**
+> **Wait ~60 seconds** after startup for Keycloak to fully initialise before logging in.
 
-```bash
-cd apps/client/backend/PdfGeneratorService
-dotnet run
-```
+### Service URLs
 
-→ http://localhost:5001
+| Service | URL | Notes |
+|---|---|---|
+| Client App | http://localhost:5173 | Main invoice tracker |
+| Management App | http://localhost:5174 | Org & user admin |
+| InvoiceTrackerApi | http://localhost:5000/swagger | API docs |
+| ManagementApi | http://localhost:5002/swagger | API docs |
+| Keycloak | http://localhost:9090 | admin / admin |
+| MailHog | http://localhost:8025 | Captured emails |
+| MinIO Console | http://localhost:9003 | minioadmin / minioadmin |
+| Kafka UI | http://localhost:8088 | Kafka topics |
 
-**EmailNotificationService:**
-
-```bash
-cd apps/client/backend/EmailNotificationService
-dotnet run
-```
-
-→ http://localhost:5003
-
-**ManagementApi:**
-
-```bash
-cd apps/management/backend
-ASPNETCORE_ENVIRONMENT=Development dotnet run
-```
-
-→ http://localhost:5002 (Swagger: http://localhost:5002/swagger)
-
-### Step 3 — Start Frontend Dev Servers
-
-**Client Frontend:**
-
-```bash
-cd apps/client/frontend
-npm install
-npm run dev
-```
-
-→ http://localhost:5173
-
-**Management Frontend:**
-
-```bash
-cd apps/management/frontend
-npm install
-npm run dev
-```
-
-→ http://localhost:5174
-
-### Step 4 — Login
-
-Use the seeded Keycloak users:
+### Login
 
 | Username | Password | Role |
 |---|---|---|

@@ -106,12 +106,19 @@ public class PdfGenerationService : IPdfGenerationService
     /// </summary>
     private async Task<byte[]> RenderPdfAsync(string htmlContent, string documentLabel)
     {
-        var browserFetcher = new BrowserFetcher();
-        await browserFetcher.DownloadAsync();
+        // When PUPPETEER_EXECUTABLE_PATH is set (e.g. in Docker), use the system
+        // Chromium and skip the runtime download. Locally, the download runs as before.
+        var executablePath = Environment.GetEnvironmentVariable("PUPPETEER_EXECUTABLE_PATH");
+        if (string.IsNullOrEmpty(executablePath))
+        {
+            var browserFetcher = new BrowserFetcher();
+            await browserFetcher.DownloadAsync();
+        }
 
         await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
         {
             Headless = true,
+            ExecutablePath = string.IsNullOrEmpty(executablePath) ? null : executablePath,
             Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
         });
 
