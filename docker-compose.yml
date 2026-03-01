@@ -2,6 +2,24 @@ services:
 
   # ─── Infrastructure ────────────────────────────────────────────────────────
 
+  invoice-tracker-postgres:
+    image: postgres:15-alpine
+    container_name: invoice-tracker-keycloak-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - microservices-network
+
   invoice-tracker-keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: invoice-tracker-keycloak
@@ -14,6 +32,11 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://invoice-tracker-postgres/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      JAVA_OPTS_APPEND: "-Xms256m -Xmx512m"
     ports:
       - "9090:9090"
     command:
@@ -23,34 +46,26 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./infrastructure/keycloak-realm.json:/opt/keycloak/data/import/keycloak-realm.json
+    depends_on:
+      invoice-tracker-postgres:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - microservices-network
 
-  invoice-tracker-postgres:
+  invoice-tracker-appdb:
     image: postgres:15-alpine
-    container_name: invoice-tracker-keycloak-postgres
+    container_name: invoice-tracker-appdb-postgres
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - microservices-network
-
-  invoice-tracker-authdb:
-    image: postgres:15-alpine
-    container_name: invoice-tracker-authdb-postgres
-    environment:
-      POSTGRES_DB: authdb
+      POSTGRES_DB: invoicetracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5433:5432"
     volumes:
-      - authdb_data:/var/lib/postgresql/data
+      - appdb_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d authdb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d invoicetracker"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -64,9 +79,11 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_log:/var/lib/zookeeper/log
+    restart: unless-stopped
     networks:
       - microservices-network
 
@@ -86,8 +103,10 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     volumes:
       - kafka_data:/var/lib/kafka/data
+    restart: unless-stopped
     networks:
       - microservices-network
 
@@ -142,7 +161,7 @@ services:
       - "5000:5000"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-authdb;Port=5432;Database=authdb;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-appdb;Port=5432;Database=invoicetracker;Username=postgres;Password=postgres"
       # Keycloak: use host.docker.internal so the OIDC discovery call reaches the
       # host-exposed Keycloak, which (with KC_HOSTNAME=localhost) returns tokens
       # and metadata that both the browser and containers agree on.
@@ -152,7 +171,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      invoice-tracker-authdb:
+      invoice-tracker-appdb:
         condition: service_healthy
       invoice-tracker-kafka:
         condition: service_started
@@ -169,7 +188,7 @@ services:
       - "5001:5001"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-authdb;Port=5432;Database=authdb;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-appdb;Port=5432;Database=invoicetracker;Username=postgres;Password=postgres"
       Kafka__BootstrapServers: "invoice-tracker-kafka:29092"
       MinIO__Endpoint: "invoice-tracker-minio:9000"
       MinIO__AccessKey: "minioadmin"
@@ -177,7 +196,7 @@ services:
       MinIO__PublicEndpoint: "http://localhost:9002"
       PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium"
     depends_on:
-      invoice-tracker-authdb:
+      invoice-tracker-appdb:
         condition: service_healthy
       invoice-tracker-kafka:
         condition: service_started
@@ -202,7 +221,7 @@ services:
       - "5003:5003"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-authdb;Port=5432;Database=authdb;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-appdb;Port=5432;Database=invoicetracker;Username=postgres;Password=postgres"
       Kafka__BootstrapServers: "invoice-tracker-kafka:29092"
       MinIO__Endpoint: "invoice-tracker-minio:9000"
       MinIO__AccessKey: "minioadmin"
@@ -211,7 +230,7 @@ services:
       Smtp__Port: "1025"
       App__FrontendUrl: "http://localhost:5173"
     depends_on:
-      invoice-tracker-authdb:
+      invoice-tracker-appdb:
         condition: service_healthy
       invoice-tracker-kafka:
         condition: service_started
@@ -232,13 +251,13 @@ services:
       - "5002:5002"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-authdb;Port=5432;Database=authdb;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=invoice-tracker-appdb;Port=5432;Database=invoicetracker;Username=postgres;Password=postgres"
       Keycloak__Authority: "http://host.docker.internal:9090/realms/microservices"
       PdfGeneratorService__Url: "http://pdf-generator-service:5001"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      invoice-tracker-authdb:
+      invoice-tracker-appdb:
         condition: service_healthy
       pdf-generator-service:
         condition: service_healthy
@@ -273,7 +292,7 @@ services:
 volumes:
   keycloak_data:
   postgres_data:
-  authdb_data:
+  appdb_data:
   minio_data:
   zookeeper_data:
   zookeeper_log:

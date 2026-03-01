@@ -84,20 +84,33 @@ const handleLogin = async (credentials: { username: string; password: string }) 
         </div>
       </div>
 
-      <!-- Toggle Button at Bottom Center -->
-      <div class="flex justify-center mt-8">
+      <!-- Toggle Buttons -->
+      <div class="flex mt-6 rounded-lg overflow-hidden border border-gray-200">
         <button
-          @click="toggleAdminMode"
+          @click="isAdminMode && toggleAdminMode()"
           :disabled="isFlipping"
           :class="[
-            'px-6 py-2 rounded-lg font-medium transition-colors',
-            isAdminMode
-              ? 'bg-gray-900 text-white hover:bg-gray-800'
-              : 'bg-blue-600 text-white hover:bg-blue-700',
+            'flex-1 py-2.5 text-sm font-medium transition-colors',
+            !isAdminMode
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-500 hover:bg-gray-50',
             isFlipping && 'opacity-50 cursor-not-allowed'
           ]"
         >
-          {{ isAdminMode ? 'User' : 'Admin' }}
+          User
+        </button>
+        <button
+          @click="!isAdminMode && toggleAdminMode()"
+          :disabled="isFlipping"
+          :class="[
+            'flex-1 py-2.5 text-sm font-medium transition-colors border-l border-gray-200',
+            isAdminMode
+              ? 'bg-gray-900 text-white'
+              : 'bg-white text-gray-500 hover:bg-gray-50',
+            isFlipping && 'opacity-50 cursor-not-allowed'
+          ]"
+        >
+          Admin
         </button>
       </div>
     </div>

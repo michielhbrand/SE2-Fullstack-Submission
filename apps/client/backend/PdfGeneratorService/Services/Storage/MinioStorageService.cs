@@ -7,21 +7,22 @@ namespace PdfGeneratorService.Services.Storage;
 public class MinioStorageService : IMinioStorageService
 {
     private readonly IMinioClient _minioClient;
+    // Separate client whose endpoint matches the URL the browser will hit.
+    // PresignedGetObjectAsync is a local HMAC computation — no network call is
+    // made — so this client works correctly even though localhost:9002 is not
+    // reachable from inside the container.
+    private readonly IMinioClient _presignedUrlClient;
     private readonly ILogger<MinioStorageService> _logger;
     private readonly string _invoicesBucketName = "invoice-pdfs";
     private readonly string _invoiceTemplatesBucketName = "invoice-templates";
     private readonly string _quotesBucketName = "quote-pdfs";
     private readonly string _quoteTemplatesBucketName = "quote-templates";
-    private readonly string _internalBaseUrl;
-    private readonly string? _publicEndpoint;
 
     public MinioStorageService(IConfiguration configuration, ILogger<MinioStorageService> logger)
     {
         _logger = logger;
 
         var endpoint = configuration["MinIO:Endpoint"] ?? "localhost:9002";
-        _internalBaseUrl = $"http://{endpoint}";
-        _publicEndpoint = configuration["MinIO:PublicEndpoint"];
         var accessKey = configuration["MinIO:AccessKey"] ?? "minioadmin";
         var secretKey = configuration["MinIO:SecretKey"] ?? "minioadmin";
 
@@ -34,7 +35,7 @@ public class MinioStorageService : IMinioStorageService
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
             MaxConnectionsPerServer = 10
         };
-        
+
         var httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromMinutes(5),
@@ -47,8 +48,25 @@ public class MinioStorageService : IMinioStorageService
             .WithSSL(false)
             .WithHttpClient(httpClient)
             .Build();
-        
-        _logger.LogInformation("MinIO client initialized successfully");
+
+        // Build the presigned-URL client.  When MinIO:PublicEndpoint is set
+        // (e.g. "http://localhost:9002" in Docker) the signed URL uses that
+        // hostname so browsers can resolve it.  Without it we fall back to the
+        // same internal endpoint (works fine when running outside Docker).
+        var publicEndpoint = configuration["MinIO:PublicEndpoint"];
+        var signingEndpoint = !string.IsNullOrEmpty(publicEndpoint)
+            ? new Uri(publicEndpoint).Authority   // strips the scheme → "localhost:9002"
+            : endpoint;
+
+        _presignedUrlClient = new MinioClient()
+            .WithEndpoint(signingEndpoint)
+            .WithCredentials(accessKey, secretKey)
+            .WithSSL(false)
+            .Build();
+
+        _logger.LogInformation(
+            "MinIO clients initialised. Internal endpoint: {Endpoint}, Presigned-URL endpoint: {SigningEndpoint}",
+            endpoint, signingEndpoint);
     }
 
     public async Task EnsureBucketsExistAsync()
@@ -402,15 +420,7 @@ public class MinioStorageService : IMinioStorageService
                 .WithObject(objectName)
                 .WithExpiry(expiryInSeconds);
 
-            var presignedUrl = await _minioClient.PresignedGetObjectAsync(presignedGetObjectArgs);
-
-            // Rewrite the internal MinIO hostname to the public-facing endpoint so
-            // browser clients can resolve it (Docker internal hostnames are not
-            // accessible from outside the container network).
-            if (!string.IsNullOrEmpty(_publicEndpoint))
-            {
-                presignedUrl = presignedUrl.Replace(_internalBaseUrl, _publicEndpoint.TrimEnd('/'));
-            }
+            var presignedUrl = await _presignedUrlClient.PresignedGetObjectAsync(presignedGetObjectArgs);
 
             _logger.LogInformation("Successfully generated presigned URL for {StorageKey}", storageKey);
             return presignedUrl;

@@ -33,17 +33,17 @@ services:
     networks:
       - microservices-network
 
-  invoice-tracker-authdb:
+  invoice-tracker-appdb:
     image: postgres:15-alpine
-    container_name: invoice-tracker-authdb-postgres
+    container_name: invoice-tracker-appdb-postgres
     environment:
-      POSTGRES_DB: authdb
+      POSTGRES_DB: invoicetracker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5433:5432"
     volumes:
-      - authdb_data:/var/lib/postgresql/data
+      - appdb_data:/var/lib/postgresql/data
     networks:
       - microservices-network
 
@@ -123,7 +123,7 @@ services:
 volumes:
   keycloak_data:
   postgres_data:
-  authdb_data:
+  appdb_data:
   minio_data:
   zookeeper_data:
   zookeeper_log:

@@ -1,6 +1,7 @@
 using Shared.Database.Models;
 using Shared.Database.Data;
 using Microsoft.EntityFrameworkCore;
+using PdfGeneratorService.Services.Browser;
 using PdfGeneratorService.Services.Storage;
 using PuppeteerSharp;
 using System.Text;
@@ -11,6 +12,7 @@ namespace PdfGeneratorService.Services.Generation;
 public class PdfGenerationService : IPdfGenerationService
 {
     private readonly ILogger<PdfGenerationService> _logger;
+    private readonly IBrowserService _browserService;
     private readonly IMinioStorageService _storageService;
     private readonly IServiceProvider _serviceProvider;
     private readonly string _templatePath;
@@ -19,10 +21,12 @@ public class PdfGenerationService : IPdfGenerationService
     public PdfGenerationService(
         ILogger<PdfGenerationService> logger,
         IWebHostEnvironment env,
+        IBrowserService browserService,
         IMinioStorageService storageService,
         IServiceProvider serviceProvider)
     {
         _logger = logger;
+        _browserService = browserService;
         _storageService = storageService;
         _serviceProvider = serviceProvider;
         _templatePath = Path.Combine(env.ContentRootPath, "Templates", "InvoiceTemplate.html");
@@ -106,23 +110,7 @@ public class PdfGenerationService : IPdfGenerationService
     /// </summary>
     private async Task<byte[]> RenderPdfAsync(string htmlContent, string documentLabel)
     {
-        // When PUPPETEER_EXECUTABLE_PATH is set (e.g. in Docker), use the system
-        // Chromium and skip the runtime download. Locally, the download runs as before.
-        var executablePath = Environment.GetEnvironmentVariable("PUPPETEER_EXECUTABLE_PATH");
-        if (string.IsNullOrEmpty(executablePath))
-        {
-            var browserFetcher = new BrowserFetcher();
-            await browserFetcher.DownloadAsync();
-        }
-
-        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
-        {
-            Headless = true,
-            ExecutablePath = string.IsNullOrEmpty(executablePath) ? null : executablePath,
-            Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
-        });
-
-        await using var page = await browser.NewPageAsync();
+        await using var page = await _browserService.AcquirePageAsync();
         await page.SetContentAsync(htmlContent);
 
         var pdfBytes = await page.PdfDataAsync(new PdfOptions

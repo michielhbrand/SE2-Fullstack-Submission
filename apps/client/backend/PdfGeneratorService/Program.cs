@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using PdfGeneratorService.BackgroundServices;
 using Shared.Database.Data;
+using PdfGeneratorService.Services.Browser;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
 using Serilog;
@@ -40,6 +41,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Services
+builder.Services.AddSingleton<IBrowserService, BrowserService>();
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 builder.Services.AddScoped<IMinioStorageService, MinioStorageService>();
 

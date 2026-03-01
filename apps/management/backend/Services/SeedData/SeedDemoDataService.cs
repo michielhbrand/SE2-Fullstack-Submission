@@ -49,10 +49,26 @@ public class SeedDemoDataService : ISeedDemoDataService
         var clients = await CreateClientsAsync(organizationId, ct);
         var now = DateTime.UtcNow;
 
-        await SeedScenarioAAsync(organizationId, clients, now, ct);
-        await SeedScenarioBAsync(organizationId, clients, now, ct);
-        await SeedScenarioCAsync(organizationId, clients, now, ct);
-        await SeedScenarioDAsync(organizationId, clients, now, ct);
+        // Collect PDF generation tasks from all scenarios but do NOT await them yet —
+        // all DB records are committed before any task starts, so there is no race.
+        var pdfTasks = new List<Task>();
+
+        await SeedScenarioAAsync(organizationId, clients, now, ct, pdfTasks);
+        await SeedScenarioBAsync(organizationId, clients, now, ct, pdfTasks);
+        await SeedScenarioCAsync(organizationId, clients, now, ct, pdfTasks);
+        await SeedScenarioDAsync(organizationId, clients, now, ct, pdfTasks);
+
+        // Run all PDF generations in parallel, capped at 5 concurrent requests so
+        // Chromium doesn't open too many pages at once and exhaust Docker memory.
+        _logger.LogInformation("Generating {Count} PDFs in parallel (max 5 concurrent)...", pdfTasks.Count);
+        var semaphore = new SemaphoreSlim(5, 5);
+        var throttledTasks = pdfTasks.Select(async t =>
+        {
+            await semaphore.WaitAsync(ct);
+            try { await t; }
+            finally { semaphore.Release(); }
+        });
+        await Task.WhenAll(throttledTasks);
 
         _logger.LogInformation("Demo data seeding complete for organization {OrganizationId}", organizationId);
     }
@@ -86,7 +102,7 @@ public class SeedDemoDataService : ISeedDemoDataService
     // Scenario A — 8 Paid Workflows (revenue growth over 6 months)
     // -------------------------------------------------------------------------
 
-    private async Task SeedScenarioAAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct)
+    private async Task SeedScenarioAAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct, List<Task> pdfTasks)
     {
         var scenarios = new (Client Client, int DaysAgo, decimal Amount, string Type)[]
         {
@@ -104,13 +120,13 @@ public class SeedDemoDataService : ISeedDemoDataService
         {
             var createdAt = DateTime.SpecifyKind(now.AddDays(s.DaysAgo), DateTimeKind.Utc);
             if (s.Type == WorkflowType.InvoiceFirst)
-                await CreateInvoiceFirstPaidAsync(orgId, s.Client, createdAt, s.Amount, ct);
+                await CreateInvoiceFirstPaidAsync(orgId, s.Client, createdAt, s.Amount, ct, pdfTasks);
             else
-                await CreateQuoteFirstPaidAsync(orgId, s.Client, createdAt, s.Amount, ct);
+                await CreateQuoteFirstPaidAsync(orgId, s.Client, createdAt, s.Amount, ct, pdfTasks);
         }
     }
 
-    private async Task CreateInvoiceFirstPaidAsync(int orgId, Client client, DateTime createdAt, decimal amount, CancellationToken ct)
+    private async Task CreateInvoiceFirstPaidAsync(int orgId, Client client, DateTime createdAt, decimal amount, CancellationToken ct, List<Task> pdfTasks)
     {
         var invoice = new Invoice
         {
@@ -124,7 +140,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             invoice.Items.Add(item);
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync(ct);
-        await GenerateInvoicePdfAsync(invoice.Id, ct);
+        pdfTasks.Add(GenerateInvoicePdfAsync(invoice.Id, ct));
 
         var workflow = new Workflow
         {
@@ -146,7 +162,7 @@ public class SeedDemoDataService : ISeedDemoDataService
         await _db.SaveChangesAsync(ct);
     }
 
-    private async Task CreateQuoteFirstPaidAsync(int orgId, Client client, DateTime createdAt, decimal amount, CancellationToken ct)
+    private async Task CreateQuoteFirstPaidAsync(int orgId, Client client, DateTime createdAt, decimal amount, CancellationToken ct, List<Task> pdfTasks)
     {
         var quote = new Quote
         {
@@ -159,7 +175,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             quote.Items.Add(item);
         _db.Quotes.Add(quote);
         await _db.SaveChangesAsync(ct);
-        await GenerateQuotePdfAsync(quote.Id, ct);
+        pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
         var invoiceDate = createdAt.AddDays(5);
         var invoice = new Invoice
@@ -174,7 +190,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             invoice.Items.Add(item);
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync(ct);
-        await GenerateInvoicePdfAsync(invoice.Id, ct);
+        pdfTasks.Add(GenerateInvoicePdfAsync(invoice.Id, ct));
 
         var workflow = new Workflow
         {
@@ -204,7 +220,7 @@ public class SeedDemoDataService : ISeedDemoDataService
     // Scenario B — 3 Overdue Workflows
     // -------------------------------------------------------------------------
 
-    private async Task SeedScenarioBAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct)
+    private async Task SeedScenarioBAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct, List<Task> pdfTasks)
     {
         var scenarios = new (Client Client, int DaysOverdue, decimal Amount, bool OverdueReminder)[]
         {
@@ -230,7 +246,7 @@ public class SeedDemoDataService : ISeedDemoDataService
                 invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
-            await GenerateInvoicePdfAsync(invoice.Id, ct);
+            pdfTasks.Add(GenerateInvoicePdfAsync(invoice.Id, ct));
 
             var events = new List<WorkflowEvent>
             {
@@ -260,7 +276,7 @@ public class SeedDemoDataService : ISeedDemoDataService
     // Scenario C — 6 In-Progress Workflows
     // -------------------------------------------------------------------------
 
-    private async Task SeedScenarioCAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct)
+    private async Task SeedScenarioCAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct, List<Task> pdfTasks)
     {
         // 1. Cape Construction — Draft (QuoteFirst)
         {
@@ -269,7 +285,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(45_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -294,7 +310,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(35_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -320,7 +336,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(68_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -347,7 +363,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(52_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -375,7 +391,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateInvoiceItems(38_000m, 2)) invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
-            await GenerateInvoicePdfAsync(invoice.Id, ct);
+            pdfTasks.Add(GenerateInvoicePdfAsync(invoice.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -401,7 +417,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateInvoiceItems(75_000m, 2)) invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
-            await GenerateInvoicePdfAsync(invoice.Id, ct);
+            pdfTasks.Add(GenerateInvoicePdfAsync(invoice.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -425,7 +441,7 @@ public class SeedDemoDataService : ISeedDemoDataService
     // Scenario D — 2 Terminal Workflows
     // -------------------------------------------------------------------------
 
-    private async Task SeedScenarioDAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct)
+    private async Task SeedScenarioDAsync(int orgId, List<Client> clients, DateTime now, CancellationToken ct, List<Task> pdfTasks)
     {
         // 1. Innovate Digital — Cancelled
         {
@@ -434,7 +450,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(42_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
@@ -462,7 +478,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(28_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
-            await GenerateQuotePdfAsync(quote.Id, ct);
+            pdfTasks.Add(GenerateQuotePdfAsync(quote.Id, ct));
 
             _db.Workflows.Add(new Workflow
             {
