@@ -33,7 +33,8 @@ public class DefaultTemplateSeedService : IHostedService
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        await db.Database.MigrateAsync(cancellationToken);
+        if (db.Database.IsRelational())
+            await db.Database.MigrateAsync(cancellationToken);
 
         foreach (var (name, version, type, storageKey) in DefaultTemplates)
         {
