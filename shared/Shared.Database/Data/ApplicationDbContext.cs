@@ -98,7 +98,8 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Organization)
                 .WithMany()
                 .HasForeignKey(e => e.OrganizationId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.OrganizationId);
         });
 

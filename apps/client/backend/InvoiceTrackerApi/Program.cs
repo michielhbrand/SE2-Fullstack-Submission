@@ -80,6 +80,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 builder.Services.AddHostedService<OverdueInvoiceCheckService>();
+builder.Services.AddHostedService<DefaultTemplateSeedService>();
 builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
 builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 

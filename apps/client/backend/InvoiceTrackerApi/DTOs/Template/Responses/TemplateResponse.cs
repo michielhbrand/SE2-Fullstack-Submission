@@ -14,7 +14,7 @@ public class TemplateResponse
     public DateTime Created { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
     public TemplateType Type { get; set; }
-    public int OrganizationId { get; set; }
+    public int? OrganizationId { get; set; }
 }
 
 /// <summary>

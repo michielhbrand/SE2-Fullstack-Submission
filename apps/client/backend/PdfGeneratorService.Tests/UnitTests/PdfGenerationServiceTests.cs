@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PdfGeneratorService.Services.Browser;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
 using Shared.Database.Models;
@@ -23,12 +24,14 @@ public class PdfGenerationServiceTests
         var envMock = new Mock<IWebHostEnvironment>();
         envMock.Setup(e => e.ContentRootPath).Returns(Directory.GetCurrentDirectory());
 
+        var browserMock = new Mock<IBrowserService>();
         var storageMock = new Mock<IMinioStorageService>();
         var serviceProviderMock = new Mock<IServiceProvider>();
 
         _service = new PdfGenerationService(
             loggerMock.Object,
             envMock.Object,
+            browserMock.Object,
             storageMock.Object,
             serviceProviderMock.Object);
     }

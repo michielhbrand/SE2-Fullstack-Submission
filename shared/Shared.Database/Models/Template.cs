@@ -10,7 +10,6 @@ public enum TemplateType
     Quote
 }
 
-[Index(nameof(Name), nameof(Version), nameof(OrganizationId), IsUnique = true)]
 public class Template
 {
     [Key]
@@ -36,8 +35,9 @@ public class Template
     [Required]
     public TemplateType Type { get; set; }
 
-    [Required]
-    public int OrganizationId { get; set; }
+    // Null = system-level template visible to all organisations.
+    // Non-null = template created by a specific organisation (future use).
+    public int? OrganizationId { get; set; }
 
     [ForeignKey(nameof(OrganizationId))]
     public Organization? Organization { get; set; }
