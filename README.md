@@ -37,13 +37,35 @@ This builds and starts all 14 services — infrastructure, backends, and fronten
 | MinIO Console | http://localhost:9003 | minioadmin / minioadmin |
 | Kafka UI | http://localhost:8088 | Kafka topics |
 
-### Login
+### Demo Walkthrough
 
-| Username | Password | Role |
-|---|---|---|
-| `testuser` | `password123` | orgUser |
-| `admin` | `admin123` | orgAdmin |
-| `system` | `system123` | systemAdmin |
+Follow these steps to set up a fully populated demo environment from scratch.
+
+#### Step 1 — Open the Management Portal
+
+Navigate to **http://localhost:5174** and log in with the system administrator account:
+
+| Username | Password |
+|---|---|
+| `system` | `system123` |
+
+#### Step 2 — Create an Organisation
+
+Go to **Organizations → New Organization** and fill in the details for your demo organisation. Any name and details will work.
+
+#### Step 3 — Add a Member
+
+Open the organisation you just created and click **Add Member**. Create a user with an email address you'll remember — you'll use this to log in to the client portal in the final step.
+
+#### Step 4 — Generate Demo Data
+
+On the same organisation detail page, click **Generate Demo Data**. This populates the organisation with a realistic dataset including 10 clients, 8 paid workflows showing 6 months of revenue growth, 3 overdue invoices, and workflows in every possible status.
+
+#### Step 5 — Open the Client Portal
+
+Navigate to **http://localhost:5173** and log in using the **email address of the member you created** in Step 3. The password for all seeded members is the email address by default.
+
+You will land on a pre-populated dashboard showing revenue trends, overdue alerts, workflow pipeline, and a live activity timeline.
 
 ## System Architecture
 

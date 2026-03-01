@@ -89,11 +89,13 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Apply any pending EF Core migrations on startup so Docker users need no manual steps
+// Apply any pending EF Core migrations on startup so Docker users need no manual steps.
+// Guard against non-relational providers (e.g. InMemory used in integration tests).
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    if (db.Database.IsRelational())
+        db.Database.Migrate();
 }
 
 if (app.Environment.IsDevelopment())

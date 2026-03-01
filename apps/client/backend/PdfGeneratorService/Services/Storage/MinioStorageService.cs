@@ -12,12 +12,16 @@ public class MinioStorageService : IMinioStorageService
     private readonly string _invoiceTemplatesBucketName = "invoice-templates";
     private readonly string _quotesBucketName = "quote-pdfs";
     private readonly string _quoteTemplatesBucketName = "quote-templates";
+    private readonly string _internalBaseUrl;
+    private readonly string? _publicEndpoint;
 
     public MinioStorageService(IConfiguration configuration, ILogger<MinioStorageService> logger)
     {
         _logger = logger;
 
         var endpoint = configuration["MinIO:Endpoint"] ?? "localhost:9002";
+        _internalBaseUrl = $"http://{endpoint}";
+        _publicEndpoint = configuration["MinIO:PublicEndpoint"];
         var accessKey = configuration["MinIO:AccessKey"] ?? "minioadmin";
         var secretKey = configuration["MinIO:SecretKey"] ?? "minioadmin";
 
@@ -399,6 +403,14 @@ public class MinioStorageService : IMinioStorageService
                 .WithExpiry(expiryInSeconds);
 
             var presignedUrl = await _minioClient.PresignedGetObjectAsync(presignedGetObjectArgs);
+
+            // Rewrite the internal MinIO hostname to the public-facing endpoint so
+            // browser clients can resolve it (Docker internal hostnames are not
+            // accessible from outside the container network).
+            if (!string.IsNullOrEmpty(_publicEndpoint))
+            {
+                presignedUrl = presignedUrl.Replace(_internalBaseUrl, _publicEndpoint.TrimEnd('/'));
+            }
 
             _logger.LogInformation("Successfully generated presigned URL for {StorageKey}", storageKey);
             return presignedUrl;

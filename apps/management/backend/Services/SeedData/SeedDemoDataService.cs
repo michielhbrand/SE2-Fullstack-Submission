@@ -7,6 +7,8 @@ namespace ManagementApi.Services.SeedData;
 public class SeedDemoDataService : ISeedDemoDataService
 {
     private readonly ApplicationDbContext _db;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SeedDemoDataService> _logger;
 
     private static readonly string[] ServiceDescriptions =
@@ -28,9 +30,15 @@ public class SeedDemoDataService : ISeedDemoDataService
         "Architectural Drawing and Review",
     ];
 
-    public SeedDemoDataService(ApplicationDbContext db, ILogger<SeedDemoDataService> logger)
+    public SeedDemoDataService(
+        ApplicationDbContext db,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        ILogger<SeedDemoDataService> logger)
     {
         _db = db;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -116,6 +124,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             invoice.Items.Add(item);
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync(ct);
+        await GenerateInvoicePdfAsync(invoice.Id, ct);
 
         var workflow = new Workflow
         {
@@ -150,6 +159,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             quote.Items.Add(item);
         _db.Quotes.Add(quote);
         await _db.SaveChangesAsync(ct);
+        await GenerateQuotePdfAsync(quote.Id, ct);
 
         var invoiceDate = createdAt.AddDays(5);
         var invoice = new Invoice
@@ -164,6 +174,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             invoice.Items.Add(item);
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync(ct);
+        await GenerateInvoicePdfAsync(invoice.Id, ct);
 
         var workflow = new Workflow
         {
@@ -219,6 +230,7 @@ public class SeedDemoDataService : ISeedDemoDataService
                 invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
+            await GenerateInvoicePdfAsync(invoice.Id, ct);
 
             var events = new List<WorkflowEvent>
             {
@@ -257,6 +269,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(45_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -281,6 +294,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(35_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -306,6 +320,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(68_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -332,6 +347,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(52_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -359,6 +375,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateInvoiceItems(38_000m, 2)) invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
+            await GenerateInvoicePdfAsync(invoice.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -384,6 +401,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateInvoiceItems(75_000m, 2)) invoice.Items.Add(item);
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync(ct);
+            await GenerateInvoicePdfAsync(invoice.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -416,6 +434,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(42_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -443,6 +462,7 @@ public class SeedDemoDataService : ISeedDemoDataService
             foreach (var item in CreateQuoteItems(28_000m, 2)) quote.Items.Add(item);
             _db.Quotes.Add(quote);
             await _db.SaveChangesAsync(ct);
+            await GenerateQuotePdfAsync(quote.Id, ct);
 
             _db.Workflows.Add(new Workflow
             {
@@ -460,6 +480,45 @@ public class SeedDemoDataService : ISeedDemoDataService
                 },
             });
             await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PDF generation helpers — call PdfGeneratorService to produce PDFs for
+    // seeded documents without triggering Kafka events or email notifications.
+    // -------------------------------------------------------------------------
+
+    private async Task GenerateInvoicePdfAsync(int invoiceId, CancellationToken ct)
+    {
+        try
+        {
+            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.PostAsync(
+                $"{pdfServiceUrl}/api/pdf/generate/invoice/{invoiceId}", null, ct);
+            if (!response.IsSuccessStatusCode)
+                _logger.LogWarning("PDF generation failed for Invoice {InvoiceId}: {Status}", invoiceId, response.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not generate PDF for Invoice {InvoiceId}", invoiceId);
+        }
+    }
+
+    private async Task GenerateQuotePdfAsync(int quoteId, CancellationToken ct)
+    {
+        try
+        {
+            var pdfServiceUrl = _configuration["PdfGeneratorService:Url"] ?? "http://localhost:5001";
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.PostAsync(
+                $"{pdfServiceUrl}/api/pdf/generate/quote/{quoteId}", null, ct);
+            if (!response.IsSuccessStatusCode)
+                _logger.LogWarning("PDF generation failed for Quote {QuoteId}: {Status}", quoteId, response.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not generate PDF for Quote {QuoteId}", quoteId);
         }
     }
 
