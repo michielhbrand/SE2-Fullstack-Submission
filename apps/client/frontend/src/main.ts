@@ -36,7 +36,7 @@ app.use(vuetify)
 
 // Initialize auth store and token expiration check after pinia is registered
 const authStore = useAuthStore()
-authStore.initializeExpirationCheck()
+authStore.initialize()
 
 // Mount app
 app.mount('#app')

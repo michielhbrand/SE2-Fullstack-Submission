@@ -9,7 +9,7 @@ COPY . .
 ARG VITE_API_URL=http://localhost:5000
 ENV VITE_API_URL=${VITE_API_URL}
 
-RUN npx vite build
+RUN npm run build
 
 FROM nginx:alpine AS runtime
 COPY --from=build /app/dist /usr/share/nginx/html

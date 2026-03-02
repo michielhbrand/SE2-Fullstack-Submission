@@ -1,4 +1,19 @@
-import { ApiClient, type UserRole } from '../api/generated/api-client'
+import {
+  ApiClient,
+  type UserRole,
+  type CreateQuoteRequest,
+  type UpdateQuoteRequest,
+  type CreateClientRequest,
+  type UpdateClientRequest,
+  type CreateInvoiceRequest,
+  type UpdateInvoiceRequest,
+  type CreateOrganizationRequest,
+  type UpdateOrganizationRequest,
+  type CreateUserRequest,
+  type CreateWorkflowRequest,
+  type AddWorkflowEventRequest,
+  type CreateInvoiceFromQuoteRequest,
+} from '../api/generated/api-client'
 import { apiClient } from '../api/http-client'
 
 const client = new ApiClient(undefined, apiClient)
@@ -41,15 +56,7 @@ export const authApi = {
   },
 
   // Create a new user (admin only)
-  createUser: async (userData: {
-    username: string
-    email: string
-    firstName: string
-    lastName: string
-    password: string
-    role: string
-    organizationId?: number
-  }) => {
+  createUser: async (userData: CreateUserRequest) => {
     return await client.user_CreateUser(userData)
   },
 
@@ -109,12 +116,12 @@ export const quoteApi = {
   },
 
   // Create a new quote
-  createQuote: async (quoteData: any, organizationId?: number) => {
+  createQuote: async (quoteData: CreateQuoteRequest, organizationId?: number) => {
     return await client.quote_CreateQuote(quoteData, organizationId)
   },
 
   // Update a quote
-  updateQuote: async (id: number, quoteData: any) => {
+  updateQuote: async (id: number, quoteData: UpdateQuoteRequest) => {
     return await client.quote_UpdateQuote(id, quoteData)
   },
 
@@ -142,12 +149,12 @@ export const clientApi = {
   },
 
   // Create a new client
-  createClient: async (clientData: any, organizationId?: number) => {
+  createClient: async (clientData: CreateClientRequest, organizationId?: number) => {
     return await client.client_CreateClient(clientData, organizationId)
   },
 
   // Update a client
-  updateClient: async (id: number, clientData: any) => {
+  updateClient: async (id: number, clientData: UpdateClientRequest) => {
     return await client.client_UpdateClient(id, clientData)
   },
 
@@ -161,10 +168,7 @@ export const clientApi = {
 export const invoiceApi = {
   // Get all invoices for an organization
   getInvoices: async (organizationId: number, page: number = 1, pageSize: number = 10, statusFilter?: string, search?: string) => {
-    const response = await apiClient.get('/api/invoice', {
-      params: { organizationId, page, pageSize, statusFilter: statusFilter || undefined, search: search || undefined }
-    })
-    return JSON.parse(response.data)
+    return await client.invoice_GetInvoices(organizationId, page, pageSize, statusFilter, search)
   },
 
   // Get a specific invoice
@@ -173,12 +177,12 @@ export const invoiceApi = {
   },
 
   // Create a new invoice
-  createInvoice: async (invoiceData: any, organizationId?: number) => {
+  createInvoice: async (invoiceData: CreateInvoiceRequest, organizationId?: number) => {
     return await client.invoice_CreateInvoice(invoiceData, organizationId)
   },
 
   // Update an invoice
-  updateInvoice: async (id: number, invoiceData: any) => {
+  updateInvoice: async (id: number, invoiceData: UpdateInvoiceRequest) => {
     return await client.invoice_UpdateInvoice(id, invoiceData)
   },
 
@@ -216,12 +220,12 @@ export const organizationApi = {
   },
 
   // Create a new organization
-  createOrganization: async (organizationData: any) => {
+  createOrganization: async (organizationData: CreateOrganizationRequest) => {
     return await client.organization_CreateOrganization(organizationData)
   },
 
   // Update an organization
-  updateOrganization: async (id: number, organizationData: any) => {
+  updateOrganization: async (id: number, organizationData: UpdateOrganizationRequest) => {
     return await client.organization_UpdateOrganization(id, organizationData)
   },
 
@@ -257,12 +261,12 @@ export const workflowApi = {
   },
 
   // Create a new workflow
-  createWorkflow: async (data: { type: string; clientId: number; quoteId?: number; invoiceId?: number }, organizationId: number) => {
+  createWorkflow: async (data: CreateWorkflowRequest, organizationId: number) => {
     return await client.workflow_CreateWorkflow(data, organizationId)
   },
 
   // Add an event to a workflow
-  addEvent: async (workflowId: number, data: { eventType: string; description?: string; payByDays?: number }) => {
+  addEvent: async (workflowId: number, data: AddWorkflowEventRequest) => {
     return await client.workflow_AddEvent(workflowId, data)
   },
 
@@ -287,7 +291,7 @@ export const workflowApi = {
   },
 
   // Convert quote to invoice
-  convertQuoteToInvoice: async (data: { quoteId: number; templateId?: number; organizationId: number }) => {
+  convertQuoteToInvoice: async (data: CreateInvoiceFromQuoteRequest) => {
     return await client.invoice_ConvertQuoteToInvoice(data)
   }
 }
@@ -295,8 +299,7 @@ export const workflowApi = {
 // Dashboard API functions
 export const dashboardApi = {
   getDashboard: async (organizationId: number) => {
-    const response = await apiClient.get('/api/dashboard', { params: { organizationId } })
-    return JSON.parse(response.data)
+    return await client.dashboard_GetDashboard(organizationId)
   }
 }
 

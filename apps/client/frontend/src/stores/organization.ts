@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { organizationApi } from '../services/api'
 import type { OrganizationResponse } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
+import { extractErrorMessage } from '../lib/error-utils'
 
 const SELECTED_ORG_KEY = 'selected_organization_id'
 
@@ -19,61 +20,6 @@ export const useOrganizationStore = defineStore('organization', () => {
   const hasOrganizations = computed(() => organizations.value.length > 0)
   const currentOrganizationId = computed(() => currentOrganization.value?.id ?? null)
   const hasMultipleOrganizations = computed(() => organizations.value.length > 1)
-
-  // Helper function to extract error message from API error response
-  function extractErrorMessage(error: any, defaultMessage: string): string {
-    // Case 1: Check for validation errors first (highest priority)
-    if (error?.errors && typeof error.errors === 'object') {
-      const validationMessages: string[] = []
-      for (const field in error.errors) {
-        const fieldErrors = error.errors[field]
-        if (Array.isArray(fieldErrors)) {
-          validationMessages.push(...fieldErrors)
-        }
-      }
-      if (validationMessages.length > 0) {
-        return validationMessages.join('. ')
-      }
-    }
-    
-    // Case 2: NSwag-generated client throws the parsed Problem Details object directly
-    if (error?.detail || error?.title) {
-      return error.detail || error.title || defaultMessage
-    }
-    
-    // Case 3: Axios error with response data
-    let errorData = error?.response?.data
-    
-    // If data is a string, try to parse it as JSON
-    if (typeof errorData === 'string') {
-      try {
-        errorData = JSON.parse(errorData)
-      } catch {
-        // Keep errorData as the raw string if JSON parsing fails
-      }
-    }
-    
-    // Case 4: Check for ASP.NET Core validation errors in response data
-    if (errorData?.errors && typeof errorData.errors === 'object') {
-      const validationMessages: string[] = []
-      for (const field in errorData.errors) {
-        const fieldErrors = errorData.errors[field]
-        if (Array.isArray(fieldErrors)) {
-          validationMessages.push(...fieldErrors)
-        }
-      }
-      if (validationMessages.length > 0) {
-        return validationMessages.join('. ')
-      }
-    }
-    
-    // Extract the error message with proper fallback chain
-    return errorData?.detail
-      || errorData?.title
-      || errorData?.message
-      || error?.message
-      || defaultMessage
-  }
 
   // Actions
   async function fetchOrganizations(): Promise<OrganizationResponse[]> {

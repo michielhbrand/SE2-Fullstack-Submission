@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -28,13 +30,17 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vitest/coverage-v8": "^3.0.0",
+    "@vue/test-utils": "^2.4.0",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.23",
+    "jsdom": "^25.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-vuetify": "^2.1.2",
+    "vitest": "^3.0.0",
     "vue-tsc": "^3.1.4"
   }
 }

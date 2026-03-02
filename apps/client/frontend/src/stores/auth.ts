@@ -5,6 +5,7 @@ import { authApi } from '../services/api'
 import type { UserRole } from '../api/generated/api-client'
 import { toast } from 'vue-sonner'
 import { useOrganizationStore } from './organization'
+import { extractErrorMessage } from '../lib/error-utils'
 
 interface LoginCredentials {
   username: string
@@ -33,70 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   const TOKEN_EXPIRED_FLAG = 'token_expired_redirect'
   const IS_ADMIN_FLAG = 'is_admin_user'
 
-  // Helper function to extract error message from API error response
-  function extractErrorMessage(error: any, defaultMessage: string): string {
-    // Case 1: Check for validation errors first (highest priority)
-    // These come from ASP.NET Core model validation
-    if (error?.errors && typeof error.errors === 'object') {
-      const validationMessages: string[] = []
-      for (const field in error.errors) {
-        const fieldErrors = error.errors[field]
-        if (Array.isArray(fieldErrors)) {
-          validationMessages.push(...fieldErrors)
-        }
-      }
-      if (validationMessages.length > 0) {
-        return validationMessages.join('. ')
-      }
-    }
-    
-    // Case 2: NSwag-generated client throws the parsed Problem Details object directly
-    // This happens for documented status codes (400, 401, 403, etc.)
-    if (error?.detail || error?.title) {
-      return error.detail || error.title || defaultMessage
-    }
-    
-    // Case 2: Axios error with response data
-    let errorData = error?.response?.data
-    
-    // If data is a string, try to parse it as JSON
-    if (typeof errorData === 'string') {
-      try {
-        errorData = JSON.parse(errorData)
-      } catch {
-        // Keep errorData as the raw string if JSON parsing fails
-      }
-    }
-    
-    // Case 3: Check for ASP.NET Core validation errors in response data
-    if (errorData?.errors && typeof errorData.errors === 'object') {
-      // Extract all validation error messages
-      const validationMessages: string[] = []
-      for (const field in errorData.errors) {
-        const fieldErrors = errorData.errors[field]
-        if (Array.isArray(fieldErrors)) {
-          validationMessages.push(...fieldErrors)
-        }
-      }
-      if (validationMessages.length > 0) {
-        return validationMessages.join('. ')
-      }
-    }
-    
-    // Extract the error message with proper fallback chain
-    return errorData?.detail
-      || errorData?.title
-      || errorData?.message
-      || error?.message
-      || defaultMessage
-  }
-
-  const isAuthenticated = computed(() => {
-    if (!accessToken.value) {
-      loadTokenFromStorage()
-    }
-    return !!accessToken.value && !isTokenExpired()
-  })
+  const isAuthenticated = computed(() => !!accessToken.value && !isTokenExpired())
 
   // Actions
   function loadTokenFromStorage() {
@@ -160,10 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
   function initializeExpirationCheck() {
     const expirationTime = localStorage.getItem('token_expiration')
     if (!expirationTime) return
-    
+
     const expiration = parseInt(expirationTime, 10)
     const now = Date.now()
-    
+
     if (now >= expiration) {
       // Token already expired
       logout(true)
@@ -172,6 +110,11 @@ export const useAuthStore = defineStore('auth', () => {
       const remainingTime = Math.floor((expiration - now) / 1000)
       setupTokenExpirationCheck(remainingTime)
     }
+  }
+
+  function initialize() {
+    loadTokenFromStorage()
+    initializeExpirationCheck()
   }
 
   async function login(credentials: LoginCredentials, isAdminLogin: boolean = false): Promise<boolean> {
@@ -480,6 +423,7 @@ export const useAuthStore = defineStore('auth', () => {
     getAccessToken,
     getUserInfo,
     getCurrentUserId,
+    initialize,
     initializeExpirationCheck,
     wasRedirectedDueToExpiration,
     clearExpirationFlag,
