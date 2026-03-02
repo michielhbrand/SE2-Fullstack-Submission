@@ -1,6 +1,6 @@
 using FluentAssertions;
 using InvoiceTrackerApi.DTOs.Organization.Requests;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Repositories.Organization;
 using InvoiceTrackerApi.Repositories.OrganizationMember;
 using InvoiceTrackerApi.Services.Organization;
@@ -45,7 +45,7 @@ public class OrganizationServiceTests : IDisposable
     public async Task AddMember_NonAdmin_ThrowsForbiddenException()
     {
         var org = TestDataBuilder.CreateOrganization();
-        _orgRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(org);
+        _orgRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(org);
         _memberRepoMock.Setup(r => r.HasRoleAsync(1, "requester", "orgAdmin")).ReturnsAsync(false);
 
         var act = () => _service.AddMemberToOrganizationAsync(1, "new-user",
@@ -58,7 +58,7 @@ public class OrganizationServiceTests : IDisposable
     public async Task AddMember_AlreadyMember_ThrowsConflictException()
     {
         var org = TestDataBuilder.CreateOrganization();
-        _orgRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(org);
+        _orgRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(org);
         _memberRepoMock.Setup(r => r.HasRoleAsync(1, "admin", "orgAdmin")).ReturnsAsync(true);
         _memberRepoMock.Setup(r => r.GetMembershipAsync(1, "existing-user"))
             .ReturnsAsync(TestDataBuilder.CreateMember(1, "existing-user"));
@@ -79,7 +79,7 @@ public class OrganizationServiceTests : IDisposable
         var org = TestDataBuilder.CreateOrganization(paymentPlanId: 1);
         await _context.SaveChangesAsync();
 
-        _orgRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(org);
+        _orgRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(org);
         _memberRepoMock.Setup(r => r.HasRoleAsync(1, "admin", "orgAdmin")).ReturnsAsync(true);
         _memberRepoMock.Setup(r => r.GetMembershipAsync(1, "new-user")).ReturnsAsync((OrganizationMember?)null);
 
@@ -107,7 +107,7 @@ public class OrganizationServiceTests : IDisposable
 
         var org = TestDataBuilder.CreateOrganization(paymentPlanId: 3);
 
-        _orgRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(org);
+        _orgRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(org);
         _memberRepoMock.Setup(r => r.HasRoleAsync(1, "admin", "orgAdmin")).ReturnsAsync(true);
         _memberRepoMock.Setup(r => r.GetMembershipAsync(1, "new-user")).ReturnsAsync((OrganizationMember?)null);
         _memberRepoMock.Setup(r => r.AddMemberAsync(It.IsAny<OrganizationMember>()))
@@ -143,7 +143,7 @@ public class OrganizationServiceTests : IDisposable
     {
         var org = TestDataBuilder.CreateOrganization();
         _orgRepoMock.Setup(r => r.GetByIdWithDetailsAsync(1)).ReturnsAsync(org);
-        _orgRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Organization>())).Returns(Task.CompletedTask);
+        _orgRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Organization>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         var request = new CreateBankAccountRequest
         {

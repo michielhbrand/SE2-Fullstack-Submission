@@ -1,6 +1,6 @@
 using FluentAssertions;
 using InvoiceTrackerApi.DTOs.Invoice.Requests;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Invoice;
 using InvoiceTrackerApi.Repositories.Quote;
@@ -47,13 +47,14 @@ public class InvoiceServiceTests
             _pdfStorageMock.Object,
             _workflowServiceMock.Object,
             _configurationMock.Object,
+            TimeProvider.System,
             _loggerMock.Object);
     }
 
     [Fact]
     public async Task CreateInvoice_EmptyItems_ThrowsBusinessRuleException()
     {
-        _clientRepoMock.Setup(r => r.ExistsAsync(1)).ReturnsAsync(true);
+        _clientRepoMock.Setup(r => r.ExistsAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var request = new CreateInvoiceRequest
         {
@@ -70,7 +71,7 @@ public class InvoiceServiceTests
     [Fact]
     public async Task CreateInvoice_NonExistentClient_ThrowsBusinessRuleException()
     {
-        _clientRepoMock.Setup(r => r.ExistsAsync(99)).ReturnsAsync(false);
+        _clientRepoMock.Setup(r => r.ExistsAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var request = new CreateInvoiceRequest
         {

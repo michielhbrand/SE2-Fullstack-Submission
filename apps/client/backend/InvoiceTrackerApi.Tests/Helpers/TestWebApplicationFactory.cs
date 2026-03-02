@@ -1,6 +1,8 @@
 using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.PdfStorage;
+using InvoiceTrackerApi.Services.Workflow;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -51,6 +53,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (keycloakDescriptor != null) services.Remove(keycloakDescriptor);
             services.AddScoped(_ => new Mock<IKeycloakAuthService>().Object);
 
+            // ── Break circular DI: InvoiceService → IWorkflowService → IQuoteToInvoiceConversionService → IInvoiceService ──
+            services.RemoveAll(typeof(IQuoteToInvoiceConversionService));
+            services.AddScoped(_ => new Mock<IQuoteToInvoiceConversionService>().Object);
+
             // ── Bypass all authorization ───────────────────────────────────────
             services.AddAuthorization(opts =>
             {
@@ -90,6 +96,24 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 new PaymentPlan { Id = 2, Name = "Advanced", MaxUsers = 15, MonthlyCostRand = 2500m },
                 new PaymentPlan { Id = 3, Name = "Ultimate", MaxUsers = -1, MonthlyCostRand = 4000m }
             );
+            context.SaveChanges();
+        }
+
+        if (!context.Organizations.Any())
+        {
+            context.Organizations.Add(new Organization
+            {
+                Id = 1,
+                Name = "Test Organisation",
+                Active = true,
+                PaymentPlanId = 1
+            });
+            context.OrganizationMembers.Add(new OrganizationMember
+            {
+                OrganizationId = 1,
+                UserId = TestAuthHandler.TestUserId,
+                Role = "orgUser"
+            });
             context.SaveChanges();
         }
     }

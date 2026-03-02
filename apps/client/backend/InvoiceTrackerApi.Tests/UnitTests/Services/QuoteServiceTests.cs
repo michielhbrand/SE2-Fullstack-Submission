@@ -1,6 +1,6 @@
 using FluentAssertions;
 using InvoiceTrackerApi.DTOs.Quote.Requests;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Repositories.Client;
 using InvoiceTrackerApi.Repositories.Quote;
 using InvoiceTrackerApi.Services;
@@ -38,13 +38,14 @@ public class QuoteServiceTests
             _kafkaMock.Object,
             pdfStorageMock.Object,
             _workflowServiceMock.Object,
+            TimeProvider.System,
             _loggerMock.Object);
     }
 
     [Fact]
     public async Task CreateQuote_EmptyItems_ThrowsBusinessRuleException()
     {
-        _clientRepoMock.Setup(r => r.ExistsAsync(1)).ReturnsAsync(true);
+        _clientRepoMock.Setup(r => r.ExistsAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var request = new CreateQuoteRequest
         {
@@ -61,7 +62,7 @@ public class QuoteServiceTests
     [Fact]
     public async Task CreateQuote_NonExistentClient_ThrowsBusinessRuleException()
     {
-        _clientRepoMock.Setup(r => r.ExistsAsync(99)).ReturnsAsync(false);
+        _clientRepoMock.Setup(r => r.ExistsAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var request = new CreateQuoteRequest
         {
@@ -82,8 +83,8 @@ public class QuoteServiceTests
     public async Task CreateQuote_ValidRequest_PublishesKafkaEvent()
     {
         var quote = TestDataBuilder.CreateQuote(id: 5);
-        _clientRepoMock.Setup(r => r.ExistsAsync(1)).ReturnsAsync(true);
-        _quoteRepoMock.Setup(r => r.AddAsync(It.IsAny<Shared.Database.Models.Quote>()))
+        _clientRepoMock.Setup(r => r.ExistsAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _quoteRepoMock.Setup(r => r.AddAsync(It.IsAny<Shared.Database.Models.Quote>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(quote);
         _kafkaMock.Setup(k => k.PublishQuoteCreatedEventAsync(5)).Returns(Task.CompletedTask);
         _workflowServiceMock.Setup(w => w.CreateWorkflowAsync(It.IsAny<InvoiceTrackerApi.DTOs.Workflow.Requests.CreateWorkflowRequest>(), It.IsAny<int>(), It.IsAny<string>()))
@@ -108,8 +109,8 @@ public class QuoteServiceTests
     {
         var existing = TestDataBuilder.CreateQuote(id: 3);
         _quoteRepoMock.Setup(r => r.GetByIdWithDetailsAsync(3)).ReturnsAsync(existing);
-        _clientRepoMock.Setup(r => r.ExistsAsync(1)).ReturnsAsync(true);
-        _quoteRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Shared.Database.Models.Quote>())).Returns(Task.CompletedTask);
+        _clientRepoMock.Setup(r => r.ExistsAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _quoteRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Shared.Database.Models.Quote>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _kafkaMock.Setup(k => k.PublishQuoteCreatedEventAsync(3)).Returns(Task.CompletedTask);
 
         var request = new UpdateQuoteRequest

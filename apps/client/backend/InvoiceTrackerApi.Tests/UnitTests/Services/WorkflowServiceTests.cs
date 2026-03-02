@@ -1,11 +1,9 @@
 using FluentAssertions;
 using InvoiceTrackerApi.DTOs.Workflow.Requests;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Repositories.Workflow;
-using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Workflow;
 using InvoiceTrackerApi.Tests.Helpers;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Database.Models;
@@ -16,22 +14,23 @@ namespace InvoiceTrackerApi.Tests.UnitTests.Services;
 public class WorkflowServiceTests
 {
     private readonly Mock<IWorkflowRepository> _workflowRepoMock;
-    private readonly Mock<IKafkaProducerService> _kafkaMock;
-    private readonly Mock<IServiceProvider> _serviceProviderMock;
+    private readonly Mock<IWorkflowEventDispatcher> _dispatcherMock;
+    private readonly Mock<IQuoteToInvoiceConversionService> _conversionServiceMock;
     private readonly Mock<ILogger<WorkflowService>> _loggerMock;
     private readonly WorkflowService _service;
 
     public WorkflowServiceTests()
     {
         _workflowRepoMock = new Mock<IWorkflowRepository>();
-        _kafkaMock = new Mock<IKafkaProducerService>();
-        _serviceProviderMock = new Mock<IServiceProvider>();
+        _dispatcherMock = new Mock<IWorkflowEventDispatcher>();
+        _conversionServiceMock = new Mock<IQuoteToInvoiceConversionService>();
         _loggerMock = new Mock<ILogger<WorkflowService>>();
 
         _service = new WorkflowService(
             _workflowRepoMock.Object,
-            _kafkaMock.Object,
-            _serviceProviderMock.Object,
+            _dispatcherMock.Object,
+            _conversionServiceMock.Object,
+            TimeProvider.System,
             _loggerMock.Object);
     }
 
@@ -73,7 +72,7 @@ public class WorkflowServiceTests
     public async Task CreateWorkflow_QuoteFirst_CreatesWorkflowWithDraftStatus()
     {
         var savedWorkflow = TestDataBuilder.CreateWorkflow(id: 1, status: WorkflowStatus.Draft, quoteId: 10);
-        _workflowRepoMock.Setup(r => r.AddAsync(It.IsAny<WorkflowModel>()))
+        _workflowRepoMock.Setup(r => r.AddAsync(It.IsAny<WorkflowModel>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(savedWorkflow);
         _workflowRepoMock.Setup(r => r.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(savedWorkflow);
@@ -228,9 +227,6 @@ public class WorkflowServiceTests
         };
         SetupWorkflowRepo(workflow);
 
-        _kafkaMock.Setup(k => k.PublishQuoteApprovalRequestedEventAsync(It.IsAny<int>(), It.IsAny<int>()))
-            .Returns(Task.CompletedTask);
-
         var result = await _service.AddEventAsync(1,
             new AddWorkflowEventRequest { EventType = WorkflowEventType.ResentForApproval }, "user-1");
 
@@ -240,31 +236,33 @@ public class WorkflowServiceTests
     // ─── AddEvent — Kafka publishing ─────────────────────────────────────────
 
     [Fact]
-    public async Task AddEvent_SentForApproval_PublishesKafkaEvent()
+    public async Task AddEvent_SentForApproval_DispatchesEvent()
     {
         var workflow = TestDataBuilder.CreateWorkflow(status: WorkflowStatus.Draft, quoteId: 10);
         SetupWorkflowRepo(workflow);
-        _kafkaMock.Setup(k => k.PublishQuoteApprovalRequestedEventAsync(10, 1))
-            .Returns(Task.CompletedTask);
 
         await _service.AddEventAsync(1,
             new AddWorkflowEventRequest { EventType = WorkflowEventType.SentForApproval }, "user-1");
 
-        _kafkaMock.Verify(k => k.PublishQuoteApprovalRequestedEventAsync(10, 1), Times.Once);
+        _dispatcherMock.Verify(d => d.DispatchAsync(
+            It.Is<WorkflowEvent>(e => e.EventType == WorkflowEventType.SentForApproval),
+            It.IsAny<WorkflowModel>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task AddEvent_SentForPayment_PublishesKafkaEvent()
+    public async Task AddEvent_SentForPayment_DispatchesEvent()
     {
         var workflow = TestDataBuilder.CreateWorkflow(status: WorkflowStatus.InvoiceCreated, invoiceId: 5);
         SetupWorkflowRepo(workflow);
-        _kafkaMock.Setup(k => k.PublishInvoiceGeneratedEventAsync(5, 1))
-            .Returns(Task.CompletedTask);
 
         await _service.AddEventAsync(1,
             new AddWorkflowEventRequest { EventType = WorkflowEventType.SentForPayment }, "user-1");
 
-        _kafkaMock.Verify(k => k.PublishInvoiceGeneratedEventAsync(5, 1), Times.Once);
+        _dispatcherMock.Verify(d => d.DispatchAsync(
+            It.Is<WorkflowEvent>(e => e.EventType == WorkflowEventType.SentForPayment),
+            It.IsAny<WorkflowModel>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ─── Helper ──────────────────────────────────────────────────────────────
@@ -278,7 +276,7 @@ public class WorkflowServiceTests
     {
         _workflowRepoMock.Setup(r => r.GetByIdWithDetailsAsync(It.IsAny<int>()))
             .ReturnsAsync(workflow);
-        _workflowRepoMock.Setup(r => r.UpdateAsync(It.IsAny<WorkflowModel>()))
+        _workflowRepoMock.Setup(r => r.UpdateAsync(It.IsAny<WorkflowModel>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
     }
 }
