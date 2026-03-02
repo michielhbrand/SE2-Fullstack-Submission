@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DialogRoot, type DialogRootEmits, type DialogRootProps } from 'radix-vue'
+import { DialogRoot, type DialogRootEmits, type DialogRootProps } from 'reka-ui'
 import { computed, type HTMLAttributes } from 'vue'
 
 const props = defineProps<DialogRootProps & { class?: HTMLAttributes['class'] }>()

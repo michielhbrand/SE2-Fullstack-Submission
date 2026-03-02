@@ -1,11 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import {
-  Chart as ChartJS,
-  CategoryScale, LinearScale, BarElement,
-  ArcElement, Title, Tooltip, Legend
-} from 'chart.js'
-import { Bar, Doughnut } from 'vue-chartjs'
 import { Skeleton } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { dashboardApi } from '../services/api'
@@ -13,8 +7,6 @@ import { getStatusLabel, getEventLabel } from '../utils/workflow'
 import { useOrganizationStore } from '../stores/organization'
 import { useOrganizationContext } from '../composables/useOrganizationContext'
 import { toast } from 'vue-sonner'
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 
 const organizationStore = useOrganizationStore()
 const { ensureOrganizationContext } = useOrganizationContext()
@@ -56,59 +48,47 @@ const timeAgo = (dateStr: string) => {
 }
 
 // ── Revenue bar chart ─────────────────────────────────────────────────────────
-const revenueChartData = computed(() => ({
-  labels: data.value?.revenueByMonth?.map((m: any) => m.month) ?? [],
-  datasets: [{
-    label: 'Revenue',
-    data: data.value?.revenueByMonth?.map((m: any) => m.amount) ?? [],
-    backgroundColor: 'rgba(124, 58, 237, 0.85)',
-    borderRadius: 6,
-    borderSkipped: false,
-  }]
+const revenueSeries = computed(() => [{
+  name: 'Revenue',
+  data: data.value?.revenueByMonth?.map((m: any) => m.amount) ?? [],
+}])
+
+const revenueOptions = computed(() => ({
+  chart: { toolbar: { show: false }, background: 'transparent' },
+  colors: ['rgba(124,58,237,0.85)'],
+  plotOptions: { bar: { borderRadius: 6, columnWidth: '55%' } },
+  dataLabels: { enabled: false },
+  legend: { show: false },
+  xaxis: {
+    categories: data.value?.revenueByMonth?.map((m: any) => m.month) ?? [],
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  },
+  yaxis: {
+    labels: { formatter: (v: number) => fmtShort(v) },
+  },
+  grid: { borderColor: 'rgba(0,0,0,0.05)', xaxis: { lines: { show: false } } },
+  tooltip: { y: { formatter: (v: number) => fmtShort(v) } },
 }))
 
-const revenueChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      callbacks: { label: (ctx: any) => ' ' + fmtShort(ctx.parsed.y) }
-    }
-  },
-  scales: {
-    x: { grid: { display: false } },
-    y: {
-      grid: { color: 'rgba(0,0,0,0.05)' },
-      ticks: { callback: (v: any) => fmtShort(Number(v)) }
-    }
-  }
-}
-
 // ── Invoice status donut ──────────────────────────────────────────────────────
-const statusChartData = computed(() => {
+const statusSeries = computed(() => {
   const b = data.value?.invoiceStatusBreakdown
-  return {
-    labels: ['Paid', 'Overdue', 'Not Paid'],
-    datasets: [{
-      data: b ? [b.paid, b.overdue, b.notPaid] : [0, 0, 0],
-      backgroundColor: ['#059669', '#dc2626', '#d1d5db'],
-      borderWidth: 0,
-      hoverOffset: 6,
-    }]
-  }
+  return b ? [b.paid, b.overdue, b.notPaid] : [0, 0, 0]
 })
 
-const statusChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: '68%',
-  plugins: {
-    legend: {
-      position: 'bottom' as const,
-      labels: { padding: 16, boxWidth: 12, font: { size: 12 } }
-    }
-  }
+const statusOptions = {
+  labels: ['Paid', 'Overdue', 'Not Paid'],
+  colors: ['#059669', '#dc2626', '#d1d5db'],
+  chart: { background: 'transparent' },
+  plotOptions: { pie: { donut: { size: '68%' } } },
+  dataLabels: { enabled: false },
+  legend: {
+    position: 'bottom' as const,
+    fontSize: '12px',
+    itemMargin: { horizontal: 8 },
+  },
+  stroke: { width: 0 },
 }
 
 // ── Workflow pipeline ─────────────────────────────────────────────────────────
@@ -270,7 +250,7 @@ const activityDotColor = (eventType: string): string => {
             <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <h3 class="text-sm font-semibold text-gray-700 mb-4">Revenue — Last 6 Months</h3>
               <div style="height: 210px;">
-                <Bar :data="revenueChartData" :options="(revenueChartOptions as any)" />
+                <apexchart type="bar" height="210" :series="revenueSeries" :options="revenueOptions" />
               </div>
             </div>
 
@@ -278,7 +258,7 @@ const activityDotColor = (eventType: string): string => {
               <h3 class="text-sm font-semibold text-gray-700 mb-2">Invoice Breakdown</h3>
               <div class="flex-1 flex items-center justify-center">
                 <div style="height: 180px; width: 180px;">
-                  <Doughnut :data="statusChartData" :options="(statusChartOptions as any)" />
+                  <apexchart type="donut" height="180" :series="statusSeries" :options="statusOptions" />
                 </div>
               </div>
               <div class="grid grid-cols-3 gap-1 pt-2 border-t border-gray-100">

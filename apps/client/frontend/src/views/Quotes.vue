@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { quoteApi } from '../services/api'
+import { usePagination } from '../composables/usePagination'
 import { Skeleton, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import TemplatePdfPreviewModal from '../components/modals/TemplatePdfPreviewModal.vue'
@@ -13,11 +14,8 @@ const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const quotes = ref<any[]>([])
-const currentPage = ref(1)
-const pageSize = ref(10)
-const totalPages = ref(0)
-const totalCount = ref(0)
 const pdfModalOpen = ref(false)
+const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(10)
 const pdfPreviewUrl = ref<string | null>(null)
 const pdfPreviewLoading = ref(false)
 const pdfPreviewTitle = ref<string | null>(null)
@@ -34,7 +32,6 @@ const fetchQuotes = async () => {
     if (!orgId) return
     const response = await quoteApi.getQuotes(orgId, currentPage.value, pageSize.value)
     quotes.value = response.data || []
-    totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     toast.error('Failed to fetch quotes')
@@ -52,16 +49,6 @@ const onPageSizeChange = async () => {
   currentPage.value = 1
   await fetchQuotes()
 }
-
-const paginationPages = computed(() => {
-  const pages = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 const getTotalAmount = (quote: any) =>
   quote.items?.reduce((sum: number, item: any) =>

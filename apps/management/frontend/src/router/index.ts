@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import Login from "../views/Login.vue";
-import Dashboard from "../views/Dashboard.vue";
-import Organizations from "../views/Organizations.vue";
-import OrganizationDetails from "../views/OrganizationDetails.vue";
-import PaymentPlans from "../views/PaymentPlans.vue";
 import AppLayout from "../components/AppLayout.vue";
+
+const Dashboard = () => import("../views/Dashboard.vue");
+const Organizations = () => import("../views/Organizations.vue");
+const OrganizationDetails = () => import("../views/OrganizationDetails.vue");
+const PaymentPlans = () => import("../views/PaymentPlans.vue");
 
 const router = createRouter({
   history: createWebHistory(),

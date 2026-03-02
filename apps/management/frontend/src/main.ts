@@ -9,19 +9,6 @@ import "vue-sonner/style.css";
 
 import VueApexCharts from "vue3-apexcharts";
 
-import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
-import "@mdi/font/css/materialdesignicons.css";
-
-const vuetify = createVuetify({
-  components,
-  directives,
-  icons: {
-    defaultSet: "mdi",
-  },
-});
-
 const pinia = createPinia();
 
 const app = createApp(App);
@@ -29,7 +16,6 @@ const app = createApp(App);
 // Plugins
 app.use(pinia);
 app.use(router);
-app.use(vuetify);
 app.use(VueApexCharts);
 
 // Initialize auth store

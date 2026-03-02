@@ -8,18 +8,18 @@ import { useAuthStore } from './stores/auth'
 // Sonner toast notifications
 import 'vue-sonner/style.css'
 
+// ApexCharts
+import VueApexCharts from 'vue3-apexcharts'
+
 // Vuetify
-// import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
-import '@mdi/font/css/materialdesignicons.css'
+import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 
 const vuetify = createVuetify({
-  components,
-  directives,
   icons: {
     defaultSet: 'mdi',
+    aliases,
+    sets: { mdi },
   },
 })
 
@@ -33,6 +33,7 @@ const app = createApp(App)
 app.use(pinia)
 app.use(router)
 app.use(vuetify)
+app.use(VueApexCharts)
 
 // Initialize auth store and token expiration check after pinia is registered
 const authStore = useAuthStore()

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Skeleton, Badge, Button, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import { templateApi } from '../services/api'
+import { usePagination } from '../composables/usePagination'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 import TemplatePdfPreviewModal from '../components/modals/TemplatePdfPreviewModal.vue'
@@ -24,10 +25,7 @@ interface Template {
 
 const templates = ref<Template[]>([])
 const loading = ref(true)
-const currentPage = ref(1)
-const pageSize = ref(25)
-const totalPages = ref(0)
-const totalCount = ref(0)
+const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(25)
 
 const previewUrl = ref<string | null>(null)
 const previewLoading = ref(false)
@@ -58,7 +56,6 @@ const fetchTemplates = async () => {
       type: typeNames[template.type] ?? 'Unknown',
       organizationId: template.organizationId ?? 0
     }))
-    totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (err: any) {
     toast.error(err.response?.data?.message || 'Failed to load templates')
@@ -77,15 +74,6 @@ const onPageSizeChange = async () => {
   await fetchTemplates()
 }
 
-const paginationPages = computed(() => {
-  const pages = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 const previewTemplateHandler = async (template: any) => {
   previewLoading.value = true

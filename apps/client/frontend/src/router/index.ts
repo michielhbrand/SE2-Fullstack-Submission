@@ -1,18 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Login from '../views/Login.vue'
-import Dashboard from '../views/Dashboard.vue'
-import Welcome from '../views/Welcome.vue'
-import Clients from '../views/Clients.vue'
-import Invoices from '../views/Invoices.vue'
-import Quotes from '../views/Quotes.vue'
-import Templates from '../views/Templates.vue'
-import Workflows from '../views/Workflows.vue'
-import WorkflowDetail from '../views/WorkflowDetail.vue'
-import AdminDashboard from '../views/AdminDashboard.vue'
-import Users from '../views/admin/Users.vue'
-import PaymentDetails from '../views/admin/PaymentDetails.vue'
-import EditOrganization from '../views/admin/EditOrganization.vue'
+
+const Dashboard = () => import('../views/Dashboard.vue')
+const Welcome = () => import('../views/Welcome.vue')
+const Clients = () => import('../views/Clients.vue')
+const Invoices = () => import('../views/Invoices.vue')
+const Quotes = () => import('../views/Quotes.vue')
+const Templates = () => import('../views/Templates.vue')
+const Workflows = () => import('../views/Workflows.vue')
+const WorkflowDetail = () => import('../views/WorkflowDetail.vue')
+const AdminDashboard = () => import('../views/AdminDashboard.vue')
+const Users = () => import('../views/admin/Users.vue')
+const PaymentDetails = () => import('../views/admin/PaymentDetails.vue')
+const EditOrganization = () => import('../views/admin/EditOrganization.vue')
 
 const router = createRouter({
   history: createWebHistory(),

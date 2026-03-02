@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workflowApi } from '../services/api'
 import { useOrganizationStore } from '../stores/organization'
 import { useOrganizationContext } from '../composables/useOrganizationContext'
+import { usePagination } from '../composables/usePagination'
 import { Button, Skeleton, Input, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
@@ -14,10 +15,7 @@ const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const workflows = ref<any[]>([])
-const currentPage = ref(1)
-const pageSize = ref(10)
-const totalPages = ref(0)
-const totalCount = ref(0)
+const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(10)
 
 // Search & filter
 const searchQuery = ref('')
@@ -69,7 +67,6 @@ const fetchWorkflows = async () => {
       selectedStatuses.value.length > 0 ? selectedStatuses.value : undefined
     )
     workflows.value = response.data || []
-    totalPages.value = response.pagination?.totalPages || 0
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
     toast.error('Failed to fetch workflows')
@@ -107,16 +104,6 @@ const onPageSizeChange = async () => {
   currentPage.value = 1
   await fetchWorkflows()
 }
-
-const paginationPages = computed(() => {
-  const pages: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 const viewWorkflow = (id: number) => {
   router.push(`/workflows/${id}`)

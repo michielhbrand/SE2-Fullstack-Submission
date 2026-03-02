@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DialogTrigger, type DialogTriggerProps } from 'radix-vue'
+import { DialogTrigger, type DialogTriggerProps } from 'reka-ui'
 import { computed, type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 

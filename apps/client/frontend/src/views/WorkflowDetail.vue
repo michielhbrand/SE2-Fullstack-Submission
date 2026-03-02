@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  mdiRefresh, mdiSend, mdiCashFast, mdiSendClock, mdiCheckCircle,
+  mdiCloseCircle, mdiFileReplace, mdiCashCheck, mdiCancel, mdiStopCircle,
+  mdiFileDocumentPlus, mdiPencil, mdiTimelineClock, mdiBellAlert, mdiCircle,
+} from '@mdi/js'
 import { workflowApi, quoteApi, invoiceApi } from '../services/api'
 import { getStatusLabel, getStatusColor, getEventLabel, getEventPdfType } from '../utils/workflow'
 import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
@@ -76,33 +81,33 @@ const availableActions = computed(() => {
 
   const transitionMap: Record<string, Array<{ eventType: string; label: string; icon: string; color: string; requiresDescription?: boolean }>> = {
     Draft: [
-      { eventType: 'SentForApproval', label: 'Send for Approval', icon: 'mdi-send', color: 'amber' },
-      { eventType: 'SentForPayment', label: 'Send for Payment', icon: 'mdi-cash-fast', color: 'purple' },
+      { eventType: 'SentForApproval', label: 'Send for Approval', icon: mdiSend, color: 'amber' },
+      { eventType: 'SentForPayment', label: 'Send for Payment', icon: mdiCashFast, color: 'purple' },
     ],
     PendingApproval: [
-      { eventType: 'ResentForApproval', label: 'Resend for Approval', icon: 'mdi-send-clock', color: 'amber' },
-      { eventType: 'Approved', label: 'Approve', icon: 'mdi-check-circle', color: 'green' },
-      { eventType: 'Rejected', label: 'Reject', icon: 'mdi-close-circle', color: 'red', requiresDescription: true },
+      { eventType: 'ResentForApproval', label: 'Resend for Approval', icon: mdiSendClock, color: 'amber' },
+      { eventType: 'Approved', label: 'Approve', icon: mdiCheckCircle, color: 'green' },
+      { eventType: 'Rejected', label: 'Reject', icon: mdiCloseCircle, color: 'red', requiresDescription: true },
     ],
     Rejected: [],
     Approved: [
-      { eventType: 'ConvertedToInvoice', label: 'Convert to Invoice', icon: 'mdi-file-replace', color: 'blue' },
+      { eventType: 'ConvertedToInvoice', label: 'Convert to Invoice', icon: mdiFileReplace, color: 'blue' },
     ],
     InvoiceCreated: [
-      { eventType: 'SentForPayment', label: 'Send for Payment', icon: 'mdi-cash-fast', color: 'purple' },
+      { eventType: 'SentForPayment', label: 'Send for Payment', icon: mdiCashFast, color: 'purple' },
     ],
     SentForPayment: [
-      { eventType: 'ResentForPayment', label: 'Resend for Payment', icon: 'mdi-cash-fast', color: 'purple' },
-      { eventType: 'MarkedAsPaid', label: 'Mark as Paid', icon: 'mdi-cash-check', color: 'emerald' },
+      { eventType: 'ResentForPayment', label: 'Resend for Payment', icon: mdiCashFast, color: 'purple' },
+      { eventType: 'MarkedAsPaid', label: 'Mark as Paid', icon: mdiCashCheck, color: 'emerald' },
     ],
   }
 
   // Filter Draft actions based on type
   if (status === 'Draft') {
     if (type === 'QuoteFirst') {
-      actions.push({ eventType: 'SentForApproval', label: 'Send for Approval', icon: 'mdi-send', color: 'amber' })
+      actions.push({ eventType: 'SentForApproval', label: 'Send for Approval', icon: mdiSend, color: 'amber' })
     } else {
-      actions.push({ eventType: 'SentForPayment', label: 'Send for Payment', icon: 'mdi-cash-fast', color: 'purple' })
+      actions.push({ eventType: 'SentForPayment', label: 'Send for Payment', icon: mdiCashFast, color: 'purple' })
     }
   } else if (transitionMap[status]) {
     actions.push(...transitionMap[status])
@@ -110,7 +115,7 @@ const availableActions = computed(() => {
 
   // For Rejected status: once the quote has been edited, allow resending for approval
   if (status === 'Rejected' && hasModifiedAfterRejection.value) {
-    actions.push({ eventType: 'ResentForApproval', label: 'Resend for Approval', icon: 'mdi-send', color: 'amber' })
+    actions.push({ eventType: 'ResentForApproval', label: 'Resend for Approval', icon: mdiSend, color: 'amber' })
   }
 
   return actions
@@ -230,22 +235,22 @@ const getTypeLabel = (type: string): string => {
 
 const getEventIcon = (eventType: string): string => {
   const icons: Record<string, string> = {
-    QuoteCreated: 'mdi-file-document-plus',
-    SentForApproval: 'mdi-send',
-    Approved: 'mdi-check-circle',
-    Rejected: 'mdi-close-circle',
-    QuoteModified: 'mdi-pencil',
-    ResentForApproval: 'mdi-send-clock',
-    ResentForPayment: 'mdi-cash-fast',
-    ConvertedToInvoice: 'mdi-file-replace',
-    InvoiceCreated: 'mdi-file-document-plus',
-    SentForPayment: 'mdi-cash-fast',
-    MarkedAsPaid: 'mdi-cash-check',
-    Cancelled: 'mdi-cancel',
-    Terminated: 'mdi-stop-circle',
-    OverdueReminderSent: 'mdi-bell-alert',
+    QuoteCreated: mdiFileDocumentPlus,
+    SentForApproval: mdiSend,
+    Approved: mdiCheckCircle,
+    Rejected: mdiCloseCircle,
+    QuoteModified: mdiPencil,
+    ResentForApproval: mdiSendClock,
+    ResentForPayment: mdiCashFast,
+    ConvertedToInvoice: mdiFileReplace,
+    InvoiceCreated: mdiFileDocumentPlus,
+    SentForPayment: mdiCashFast,
+    MarkedAsPaid: mdiCashCheck,
+    Cancelled: mdiCancel,
+    Terminated: mdiStopCircle,
+    OverdueReminderSent: mdiBellAlert,
   }
-  return icons[eventType] || 'mdi-circle'
+  return icons[eventType] || mdiCircle
 }
 
 const getEventDotColor = (eventType: string): string => {
@@ -426,7 +431,7 @@ const formatRelativeTime = (dateStr: string): string => {
                   @click="refreshWorkflow"
                   title="Refresh workflow"
                 >
-                  <v-icon size="20">mdi-refresh</v-icon>
+                  <v-icon size="20" :icon="mdiRefresh" />
                 </v-btn>
               </div>
               <div class="flex flex-wrap gap-3">
@@ -454,7 +459,7 @@ const formatRelativeTime = (dateStr: string): string => {
                   variant="flat"
                   @click="executeAction(action.eventType, action.requiresDescription)"
                 >
-                  <v-icon start>{{ action.icon }}</v-icon>
+                  <v-icon start :icon="action.icon" />
                   {{ action.label }}
                 </v-btn>
 
@@ -482,7 +487,7 @@ const formatRelativeTime = (dateStr: string): string => {
                   :loading="actionLoading"
                   @click="cancelWorkflow"
                 >
-                  <v-icon start>mdi-cancel</v-icon>
+                  <v-icon start :icon="mdiCancel" />
                   Cancel
                 </v-btn>
               </div>
@@ -504,9 +509,7 @@ const formatRelativeTime = (dateStr: string): string => {
             'bg-red-50 border-red-200 text-red-800': workflow.status === 'Terminated',
           }">
             <div class="flex items-center gap-2">
-              <v-icon size="20">
-                {{ workflow.status === 'Paid' ? 'mdi-check-circle' : workflow.status === 'Cancelled' ? 'mdi-cancel' : 'mdi-stop-circle' }}
-              </v-icon>
+              <v-icon size="20" :icon="workflow.status === 'Paid' ? mdiCheckCircle : workflow.status === 'Cancelled' ? mdiCancel : mdiStopCircle" />
               <span class="font-medium">
                 This workflow has been {{ workflow.status.toLowerCase() }}. No further actions are available.
               </span>
@@ -586,7 +589,7 @@ const formatRelativeTime = (dateStr: string): string => {
               </div>
 
               <div v-else class="text-center text-gray-500 py-8">
-                <v-icon size="48" color="grey-lighten-2">mdi-timeline-clock</v-icon>
+                <v-icon size="48" color="grey-lighten-2" :icon="mdiTimelineClock" />
                 <p class="mt-2">No events recorded yet</p>
               </div>
             </div>
