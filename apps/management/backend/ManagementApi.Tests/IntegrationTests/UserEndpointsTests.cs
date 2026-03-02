@@ -25,7 +25,7 @@ public class UserEndpointsTests : IClassFixture<TestWebApplicationFactory>, IDis
     public async Task GetAllUsers_ShouldReturnOk()
     {
         // Act
-        var response = await _client.GetAsync("/api/users");
+        var response = await _client.GetAsync("/api/v1/users");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -40,7 +40,7 @@ public class UserEndpointsTests : IClassFixture<TestWebApplicationFactory>, IDis
     public async Task GetUserDirectory_InvalidPage_ShouldReturnBadRequest()
     {
         // Act
-        var response = await _client.GetAsync("/api/users/directory?page=0&pageSize=10");
+        var response = await _client.GetAsync("/api/v1/users/directory?page=0&pageSize=10");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -50,7 +50,7 @@ public class UserEndpointsTests : IClassFixture<TestWebApplicationFactory>, IDis
     public async Task GetUserDirectory_InvalidPageSize_ShouldReturnBadRequest()
     {
         // Act
-        var response = await _client.GetAsync("/api/users/directory?page=1&pageSize=0");
+        var response = await _client.GetAsync("/api/v1/users/directory?page=1&pageSize=0");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -70,7 +70,7 @@ public class UserEndpointsTests : IClassFixture<TestWebApplicationFactory>, IDis
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/users", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/users", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -80,7 +80,7 @@ public class UserEndpointsTests : IClassFixture<TestWebApplicationFactory>, IDis
     public async Task GetUser_NonExistentId_ShouldReturnNotFound()
     {
         // Act
-        var response = await _client.GetAsync("/api/users/non-existent-id");
+        var response = await _client.GetAsync("/api/v1/users/non-existent-id");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);

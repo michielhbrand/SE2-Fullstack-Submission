@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Button from '../components/ui/Button.vue'
 import Card from '../components/ui/Card.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const username = ref('')
 const loading = ref(true)

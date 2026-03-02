@@ -1,13 +1,13 @@
 namespace ManagementApi.DTOs.Organization;
 
-public record GetOrganizationsRequest
+public class GetOrganizationsRequest
 {
-    public string? Search { get; init; }
-    public string? Status { get; init; } = "all";
-    public string? SortBy { get; init; } = "name";
-    public string? SortDirection { get; init; } = "asc";
-    public int Page { get; init; } = 1;
-    public int PageSize { get; init; } = 20;
+    public string? Search { get; set; }
+    public string? Status { get; set; } = "all";
+    public string? SortBy { get; set; } = "name";
+    public string? SortDirection { get; set; } = "asc";
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
 }
 
 public record CreateOrganizationRequest

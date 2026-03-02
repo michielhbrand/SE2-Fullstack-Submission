@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label } from '../ui/index'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Label } from '../ui/index'
 import { templateApi, TemplateType, quoteApi, workflowApi } from '@/services/api'
 import { useOrganizationStore } from '@/stores/organization'
 import { toast } from 'vue-sonner'

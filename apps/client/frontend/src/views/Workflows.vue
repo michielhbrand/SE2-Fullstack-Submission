@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workflowApi } from '../services/api'
-import { useOrganizationStore } from '../stores/organization'
 import { useOrganizationContext } from '../composables/useOrganizationContext'
 import { usePagination } from '../composables/usePagination'
 import { Button, Skeleton, Input, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
@@ -10,7 +9,6 @@ import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const organizationStore = useOrganizationStore()
 const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)

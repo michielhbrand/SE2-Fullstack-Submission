@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type HTMLAttributes } from 'vue'
+import { type HTMLAttributes } from 'vue'
 import { type VariantProps, cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 

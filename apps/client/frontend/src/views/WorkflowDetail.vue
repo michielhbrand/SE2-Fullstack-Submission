@@ -8,7 +8,7 @@ import {
 } from '@mdi/js'
 import { workflowApi, quoteApi, invoiceApi } from '../services/api'
 import { getStatusLabel, getStatusColor, getEventLabel, getEventPdfType } from '../utils/workflow'
-import { Button, Spinner, Skeleton, Badge } from '../components/ui/index'
+import { Button, Skeleton } from '../components/ui/index'
 import Layout from '../components/Layout.vue'
 import CancelWorkflowModal from '../components/modals/CancelWorkflowModal.vue'
 import WorkflowEventModal from '../components/modals/WorkflowEventModal.vue'
