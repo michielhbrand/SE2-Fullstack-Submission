@@ -6,8 +6,8 @@ public class GetOrganizationsRequest
     public string? Status { get; set; } = "all";
     public string? SortBy { get; set; } = "name";
     public string? SortDirection { get; set; } = "asc";
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
+    public int? Page { get; set; }
+    public int? PageSize { get; set; }
 }
 
 public record CreateOrganizationRequest

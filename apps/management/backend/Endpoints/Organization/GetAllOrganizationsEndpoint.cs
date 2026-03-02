@@ -32,8 +32,8 @@ public static class GetAllOrganizationsEndpoint
         logger.LogInformation("Retrieving organizations with filters - Search: {Search}, Status: {Status}, SortBy: {SortBy}, SortDirection: {SortDirection}",
             query.Search, query.Status, query.SortBy, query.SortDirection);
 
-        var page = query.Page < 1 ? 1 : query.Page;
-        var pageSize = query.PageSize < 1 ? 20 : query.PageSize > 100 ? 100 : query.PageSize;
+        var page = Math.Max(1, query.Page ?? 1);
+        var pageSize = Math.Clamp(query.PageSize ?? 20, 1, 100);
 
         var queryable = db.Organizations
             .AsNoTracking()
