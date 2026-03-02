@@ -48,12 +48,13 @@ builder.Services.AddHostedService<QuoteApprovalRequestedConsumer>();
 builder.Services.AddHostedService<InvoiceGeneratedConsumer>();
 builder.Services.AddHostedService<OverdueInvoiceConsumer>();
 
-// Add CORS
+// Add CORS — only the client frontend needs to reach QuoteResponseController.
+var frontendUrl = builder.Configuration["App:FrontendUrl"] ?? "http://localhost:5173";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowClientFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(frontendUrl)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -76,7 +77,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Use CORS
-app.UseCors("AllowAll");
+app.UseCors("AllowClientFrontend");
 
 app.UseAuthorization();
 

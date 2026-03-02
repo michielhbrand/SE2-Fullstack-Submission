@@ -37,7 +37,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
-builder.Services.AddAuthenticationServices(builder.Configuration);
+builder.Services.AddAuthenticationServices(builder.Configuration, builder.Environment);
 builder.Services.AddHealthCheckServices(builder.Configuration);
 builder.Services.AddRateLimitingServices(builder.Configuration);
 

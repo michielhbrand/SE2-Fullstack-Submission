@@ -51,7 +51,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddSwaggerServices();
 builder.Services.AddCorsServices();
-builder.Services.AddAuthenticationServices(builder.Configuration);
+builder.Services.AddAuthenticationServices(builder.Configuration, builder.Environment);
 builder.Services.AddHealthCheckServices();
 builder.Services.AddValidationServices();
 
@@ -86,7 +86,8 @@ builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<InvoiceTrackerApi.Filters.OrganizationAuthorizationFilter>());
 
 var app = builder.Build();
 

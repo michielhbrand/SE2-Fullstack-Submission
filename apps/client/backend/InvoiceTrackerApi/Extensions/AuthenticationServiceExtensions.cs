@@ -7,19 +7,25 @@ namespace InvoiceTrackerApi.Extensions;
 
 public static class AuthenticationServiceExtensions
 {
-    public static IServiceCollection AddAuthenticationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAuthenticationServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
+        var audience = configuration["Keycloak:Audience"] ?? "backend-api";
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.Authority = configuration["Keycloak:Authority"];
-                options.Audience = configuration["Keycloak:Audience"];
-                options.RequireHttpsMetadata = false; // For development only
+                options.Audience = audience;
+                options.RequireHttpsMetadata = !environment.IsDevelopment();
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
-                    ValidateAudience = false,
+                    ValidateAudience = true,
+                    ValidAudiences = [audience],
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     NameClaimType = "preferred_username",
