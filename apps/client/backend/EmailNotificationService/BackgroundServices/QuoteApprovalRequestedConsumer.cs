@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Minio;
 using Minio.DataModel.Args;
+using Shared.Core.Messaging;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
 using System.Diagnostics;
@@ -22,7 +23,7 @@ public class QuoteApprovalRequestedConsumer : BackgroundService
     private readonly ILogger<QuoteApprovalRequestedConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly string _topic = "quote-approval-requested";
+    private readonly string _topic = KafkaTopics.QuoteApprovalRequested;
 
     public QuoteApprovalRequestedConsumer(
         ILogger<QuoteApprovalRequestedConsumer> logger,

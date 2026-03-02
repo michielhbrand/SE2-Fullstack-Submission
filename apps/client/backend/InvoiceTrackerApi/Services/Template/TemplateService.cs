@@ -18,17 +18,20 @@ public class TemplateService : ITemplateService
     private readonly ITemplateRepository _templateRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<TemplateService> _logger;
 
     public TemplateService(
         ITemplateRepository templateRepository,
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
+        TimeProvider timeProvider,
         ILogger<TemplateService> logger)
     {
         _templateRepository = templateRepository;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -101,7 +104,7 @@ public class TemplateService : ITemplateService
             var template = new TemplateModel
             {
                 CreatedBy = createdBy,
-                Created = DateTime.UtcNow,
+                Created = _timeProvider.GetUtcNow().UtcDateTime,
                 Version = request.Version,
                 Name = request.Name,
                 Type = request.Type,

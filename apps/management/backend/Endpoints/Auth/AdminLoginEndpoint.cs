@@ -25,7 +25,7 @@ public static class AdminLoginEndpoint
 
     private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> Handle(
         LoginRequest request,
-        IKeycloakAuthService authService,
+        IKeycloakTokenService authService,
         CancellationToken cancellationToken)
     {
         var result = await authService.LoginAsync(request.Username, request.Password, cancellationToken);

@@ -25,13 +25,18 @@ public static class GetAllOrganizationsEndpoint
         [AsParameters] GetOrganizationsRequest query,
         ApplicationDbContext db,
         ILoggerFactory loggerFactory,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         var logger = loggerFactory.CreateLogger("GetAllOrganizations");
         logger.LogInformation("Retrieving organizations with filters - Search: {Search}, Status: {Status}, SortBy: {SortBy}, SortDirection: {SortDirection}",
             query.Search, query.Status, query.SortBy, query.SortDirection);
 
+        var page = query.Page < 1 ? 1 : query.Page;
+        var pageSize = query.PageSize < 1 ? 20 : query.PageSize > 100 ? 100 : query.PageSize;
+
         var queryable = db.Organizations
+            .AsNoTracking()
             .Include(o => o.Address)
             .Include(o => o.Members)
             .Include(o => o.PaymentPlan)
@@ -79,9 +84,16 @@ public static class GetAllOrganizationsEndpoint
             _ => queryable.OrderBy(o => o.Name) // Default sort
         };
 
-        var organizations = await queryable.ToListAsync(cancellationToken);
+        var totalCount = await queryable.CountAsync(cancellationToken);
 
-        logger.LogInformation("Retrieved {Count} organizations after filtering", organizations.Count);
+        var organizations = await queryable
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        logger.LogInformation("Retrieved {Count}/{Total} organizations after filtering", organizations.Count, totalCount);
+
+        httpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
 
         var responses = organizations.Select(org => org.ToResponse()).ToList();
 

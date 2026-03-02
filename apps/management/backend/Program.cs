@@ -44,6 +44,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("SystemAdminOnly", policy =>
         policy.RequireRole("systemAdmin"));
 });
+builder.Services.Configure<ManagementApi.Services.Auth.KeycloakOptions>(
+    builder.Configuration.GetSection("Keycloak"));
 builder.Services.AddHealthCheckServices(builder.Configuration);
 builder.Services.AddRateLimitingServices(builder.Configuration);
 
@@ -58,7 +60,9 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<IKeycloakAuthService, KeycloakAuthService>();
+builder.Services.AddScoped<ManagementApi.Services.Auth.IKeycloakTokenService, ManagementApi.Services.Auth.KeycloakTokenService>();
+builder.Services.AddScoped<ManagementApi.Services.Auth.IKeycloakRoleService, ManagementApi.Services.Auth.KeycloakRoleService>();
+builder.Services.AddScoped<ManagementApi.Services.Auth.IKeycloakUserAdminService, ManagementApi.Services.Auth.KeycloakUserAdminService>();
 builder.Services.AddScoped<IUserDirectoryService, UserDirectoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISeedDemoDataService, SeedDemoDataService>();

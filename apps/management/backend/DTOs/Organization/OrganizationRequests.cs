@@ -6,6 +6,8 @@ public record GetOrganizationsRequest
     public string? Status { get; init; } = "all";
     public string? SortBy { get; init; } = "name";
     public string? SortDirection { get; init; } = "asc";
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
 }
 
 public record CreateOrganizationRequest

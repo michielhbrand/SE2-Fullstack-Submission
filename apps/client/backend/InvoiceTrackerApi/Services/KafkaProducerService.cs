@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using Shared.Core.Messaging;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -8,15 +9,17 @@ namespace InvoiceTrackerApi.Services;
 public class KafkaProducerService : IKafkaProducerService, IDisposable
 {
     private readonly IProducer<string, string> _producer;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<KafkaProducerService> _logger;
-    private readonly string _invoiceTopic = "invoice-created";
-    private readonly string _quoteTopic = "quote-created";
-    private readonly string _quoteApprovalTopic = "quote-approval-requested";
-    private readonly string _invoiceGeneratedTopic = "invoice-generated";
-    private readonly string _invoiceOverdueTopic = "invoice-overdue";
+    private readonly string _invoiceTopic = KafkaTopics.InvoiceCreated;
+    private readonly string _quoteTopic = KafkaTopics.QuoteCreated;
+    private readonly string _quoteApprovalTopic = KafkaTopics.QuoteApprovalRequested;
+    private readonly string _invoiceGeneratedTopic = KafkaTopics.InvoiceGenerated;
+    private readonly string _invoiceOverdueTopic = KafkaTopics.InvoiceOverdue;
 
-    public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
+    public KafkaProducerService(IConfiguration configuration, TimeProvider timeProvider, ILogger<KafkaProducerService> logger)
     {
+        _timeProvider = timeProvider;
         _logger = logger;
         
         var config = new ProducerConfig
@@ -34,7 +37,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             var message = new
             {
                 InvoiceId = invoiceId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var messageJson = JsonSerializer.Serialize(message);
@@ -65,7 +68,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             var message = new
             {
                 QuoteId = quoteId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var messageJson = JsonSerializer.Serialize(message);
@@ -97,7 +100,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             {
                 QuoteId = quoteId,
                 WorkflowId = workflowId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var messageJson = JsonSerializer.Serialize(message);
@@ -129,7 +132,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             {
                 InvoiceId = invoiceId,
                 WorkflowId = workflowId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var messageJson = JsonSerializer.Serialize(message);
@@ -161,7 +164,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             {
                 InvoiceId = invoiceId,
                 WorkflowId = workflowId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var messageJson = JsonSerializer.Serialize(message);

@@ -56,6 +56,7 @@ builder.Services.AddKeycloakJwtAuthentication(builder.Configuration, builder.Env
 builder.Services.AddHealthCheckServices();
 builder.Services.AddValidationServices();
 
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -76,6 +77,8 @@ builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IPdfStorageService, PdfStorageService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IQuoteToInvoiceConversionService, QuoteToInvoiceConversionService>();
+builder.Services.AddScoped<IWorkflowEventDispatcher, WorkflowEventDispatcher>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 

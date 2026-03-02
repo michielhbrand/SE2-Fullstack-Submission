@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Shared.Core.Messaging;
 using Shared.Database.Data;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
@@ -16,7 +17,7 @@ public class QuoteCreatedConsumer : BackgroundService
     private readonly ILogger<QuoteCreatedConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly string _topic = "quote-created";
+    private readonly string _topic = KafkaTopics.QuoteCreated;
 
     public QuoteCreatedConsumer(
         ILogger<QuoteCreatedConsumer> logger,

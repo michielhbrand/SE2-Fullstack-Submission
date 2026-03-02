@@ -29,18 +29,18 @@ public static class InvoiceMappingExtensions
         };
     }
 
-    public static InvoiceResponse ToDto(this Invoice invoice, string? workflowStatus)
+    public static InvoiceResponse ToDto(this Invoice invoice, string? workflowStatus, DateTime? now = null)
     {
         var dto = invoice.ToDto();
-        dto.PaymentStatus = ComputePaymentStatus(invoice.PayByDate, workflowStatus);
+        dto.PaymentStatus = ComputePaymentStatus(invoice.PayByDate, workflowStatus, now ?? DateTime.UtcNow);
         return dto;
     }
 
-    private static string ComputePaymentStatus(DateTime payByDate, string? workflowStatus)
+    private static string ComputePaymentStatus(DateTime payByDate, string? workflowStatus, DateTime now)
     {
         if (workflowStatus == WorkflowStatusConst.Paid)
             return "Paid";
-        if (payByDate < DateTime.UtcNow
+        if (payByDate < now
             && workflowStatus != WorkflowStatusConst.Cancelled
             && workflowStatus != WorkflowStatusConst.Terminated)
             return "Overdue";

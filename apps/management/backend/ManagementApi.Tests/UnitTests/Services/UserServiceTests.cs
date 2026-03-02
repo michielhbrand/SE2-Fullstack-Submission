@@ -16,7 +16,8 @@ namespace ManagementApi.Tests.UnitTests.Services;
 public class UserServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IKeycloakAuthService> _keycloakServiceMock;
+    private readonly Mock<IKeycloakUserAdminService> _keycloakUserAdminMock;
+    private readonly Mock<IKeycloakRoleService> _keycloakRoleMock;
     private readonly Mock<IUserDirectoryService> _userDirectoryServiceMock;
     private readonly Mock<ILogger<UserService>> _loggerMock;
     private readonly UserService _userService;
@@ -28,13 +29,15 @@ public class UserServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _keycloakServiceMock = new Mock<IKeycloakAuthService>();
+        _keycloakUserAdminMock = new Mock<IKeycloakUserAdminService>();
+        _keycloakRoleMock = new Mock<IKeycloakRoleService>();
         _userDirectoryServiceMock = new Mock<IUserDirectoryService>();
         _loggerMock = new Mock<ILogger<UserService>>();
 
         _userService = new UserService(
             _context,
-            _keycloakServiceMock.Object,
+            _keycloakUserAdminMock.Object,
+            _keycloakRoleMock.Object,
             _userDirectoryServiceMock.Object,
             _loggerMock.Object);
     }
@@ -71,7 +74,7 @@ public class UserServiceTests : IDisposable
             CreatedAt = DateTime.UtcNow
         };
 
-        _keycloakServiceMock
+        _keycloakUserAdminMock
             .Setup(x => x.CreateUserAsync(
                 request.Email,
                 request.FirstName,
@@ -152,7 +155,7 @@ public class UserServiceTests : IDisposable
             UpdatedAt = DateTime.UtcNow
         };
 
-        _keycloakServiceMock
+        _keycloakUserAdminMock
             .Setup(x => x.UpdateUserAsync(
                 userId,
                 request.FirstName,

@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Minio;
 using Minio.DataModel.Args;
+using Shared.Core.Messaging;
 using Shared.Database.Data;
 using Shared.Database.Models;
 using EmailNotificationService.Services;
@@ -23,7 +24,7 @@ public class OverdueInvoiceConsumer : BackgroundService
     private readonly ILogger<OverdueInvoiceConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly string _topic = "invoice-overdue";
+    private readonly string _topic = KafkaTopics.InvoiceOverdue;
 
     public OverdueInvoiceConsumer(
         ILogger<OverdueInvoiceConsumer> logger,

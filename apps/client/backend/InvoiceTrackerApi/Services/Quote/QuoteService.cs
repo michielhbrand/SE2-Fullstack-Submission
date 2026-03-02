@@ -24,6 +24,7 @@ public class QuoteService : IQuoteService
     private readonly IKafkaProducerService _kafkaProducer;
     private readonly IPdfStorageService _pdfStorageService;
     private readonly IWorkflowService _workflowService;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<QuoteService> _logger;
 
     public QuoteService(
@@ -32,6 +33,7 @@ public class QuoteService : IQuoteService
         IKafkaProducerService kafkaProducer,
         IPdfStorageService pdfStorageService,
         IWorkflowService workflowService,
+        TimeProvider timeProvider,
         ILogger<QuoteService> logger)
     {
         _quoteRepository = quoteRepository;
@@ -39,6 +41,7 @@ public class QuoteService : IQuoteService
         _kafkaProducer = kafkaProducer;
         _pdfStorageService = pdfStorageService;
         _workflowService = workflowService;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -99,9 +102,9 @@ public class QuoteService : IQuoteService
             TemplateId = request.TemplateId,
             VatInclusive = request.VatInclusive,
             OrganizationId = organizationId,
-            DateCreated = DateTime.UtcNow,
+            DateCreated = _timeProvider.GetUtcNow().UtcDateTime,
             ModifiedBy = modifiedBy,
-            LastModifiedDate = DateTime.UtcNow,
+            LastModifiedDate = _timeProvider.GetUtcNow().UtcDateTime,
             Items = request.Items.Select(item => new QuoteItem
             {
                 Description = item.Description,
@@ -175,7 +178,7 @@ public class QuoteService : IQuoteService
         existingQuote.NotificationSent = request.NotificationSent;
         existingQuote.TemplateId = request.TemplateId;
         existingQuote.VatInclusive = request.VatInclusive;
-        existingQuote.LastModifiedDate = DateTime.UtcNow;
+        existingQuote.LastModifiedDate = _timeProvider.GetUtcNow().UtcDateTime;
         existingQuote.ModifiedBy = modifiedBy;
 
         // Update items - clear and recreate

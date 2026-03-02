@@ -20,11 +20,15 @@ public class DefaultTemplateSeedService : IHostedService
         ("QuoteTemplate",   1, TemplateType.Quote,   "quote-templates/QuoteTemplate.html"),
     ];
 
+    private readonly TimeProvider _timeProvider;
+
     public DefaultTemplateSeedService(
         IServiceProvider serviceProvider,
+        TimeProvider timeProvider,
         ILogger<DefaultTemplateSeedService> logger)
     {
         _serviceProvider = serviceProvider;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -52,7 +56,7 @@ public class DefaultTemplateSeedService : IHostedService
                     StorageKey  = storageKey,
                     OrganizationId = null,
                     CreatedBy   = "system",
-                    Created     = DateTime.UtcNow,
+                    Created     = _timeProvider.GetUtcNow().UtcDateTime,
                 });
 
                 _logger.LogInformation("Seeding default template: {Name} v{Version} ({Type})",

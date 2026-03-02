@@ -27,6 +27,7 @@ public class InvoiceService : IInvoiceService
     private readonly IPdfStorageService _pdfStorageService;
     private readonly IWorkflowService _workflowService;
     private readonly IConfiguration _configuration;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<InvoiceService> _logger;
 
     public InvoiceService(
@@ -37,6 +38,7 @@ public class InvoiceService : IInvoiceService
         IPdfStorageService pdfStorageService,
         IWorkflowService workflowService,
         IConfiguration configuration,
+        TimeProvider timeProvider,
         ILogger<InvoiceService> logger)
     {
         _invoiceRepository = invoiceRepository;
@@ -46,6 +48,7 @@ public class InvoiceService : IInvoiceService
         _pdfStorageService = pdfStorageService;
         _workflowService = workflowService;
         _configuration = configuration;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -100,16 +103,17 @@ public class InvoiceService : IInvoiceService
             throw new BusinessRuleException("Invoice must contain at least one item");
         }
 
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var invoice = new InvoiceModel
         {
             ClientId = request.ClientId,
             TemplateId = request.TemplateId,
             VatInclusive = request.VatInclusive,
             OrganizationId = organizationId,
-            DateCreated = DateTime.UtcNow,
-            PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),
+            DateCreated = now,
+            PayByDate = now.AddDays(request.PayByDays),
             ModifiedBy = modifiedBy,
-            LastModifiedDate = DateTime.UtcNow,
+            LastModifiedDate = now,
             Items = request.Items.Select(item => new InvoiceItem
             {
                 Description = item.Description,
@@ -183,7 +187,7 @@ public class InvoiceService : IInvoiceService
         existingInvoice.NotificationSent = request.NotificationSent;
         existingInvoice.TemplateId = request.TemplateId;
         existingInvoice.VatInclusive = request.VatInclusive;
-        existingInvoice.LastModifiedDate = DateTime.UtcNow;
+        existingInvoice.LastModifiedDate = _timeProvider.GetUtcNow().UtcDateTime;
         existingInvoice.ModifiedBy = modifiedBy;
 
         // Update items - clear and recreate
@@ -253,16 +257,17 @@ public class InvoiceService : IInvoiceService
         // Create invoice from quote data
         // Do NOT inherit the quote's TemplateId — it's a Quote-type template and
         // would produce a PDF with quote placeholders/footer instead of invoice ones.
+        var convertNow = _timeProvider.GetUtcNow().UtcDateTime;
         var invoice = new InvoiceModel
         {
             ClientId = quote.ClientId,
             TemplateId = request.TemplateId,
             VatInclusive = request.VatInclusive ?? quote.VatInclusive,
             OrganizationId = organizationId,
-            DateCreated = DateTime.UtcNow,
-            PayByDate = DateTime.UtcNow.AddDays(request.PayByDays),
+            DateCreated = convertNow,
+            PayByDate = convertNow.AddDays(request.PayByDays),
             ModifiedBy = modifiedBy,
-            LastModifiedDate = DateTime.UtcNow,
+            LastModifiedDate = convertNow,
             Items = quote.Items.Select(item => new InvoiceItem
             {
                 Description = item.Description,
@@ -298,7 +303,7 @@ public class InvoiceService : IInvoiceService
             _configuration["OverdueInvoice:ReminderIntervalDays"], out var days) ? days : 7;
 
         var overdue = (await _invoiceRepository.GetOverdueAsync(
-            DateTime.UtcNow, reminderIntervalDays, organizationId, ct)).ToList();
+            _timeProvider.GetUtcNow().UtcDateTime, reminderIntervalDays, organizationId, ct)).ToList();
 
         foreach (var (invoice, workflowId) in overdue)
         {

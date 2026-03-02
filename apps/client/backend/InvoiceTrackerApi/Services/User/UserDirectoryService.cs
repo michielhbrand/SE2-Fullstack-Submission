@@ -15,15 +15,18 @@ public class UserDirectoryService : IUserDirectoryService
 {
     private readonly ApplicationDbContext _context;
     private readonly IKeycloakAuthService _keycloakService;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<UserDirectoryService> _logger;
 
     public UserDirectoryService(
         ApplicationDbContext context,
         IKeycloakAuthService keycloakService,
+        TimeProvider timeProvider,
         ILogger<UserDirectoryService> logger)
     {
         _context = context;
         _keycloakService = keycloakService;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -203,7 +206,7 @@ public class UserDirectoryService : IUserDirectoryService
                     Active = user.Active,
                     CreatedAt = user.CreatedAt,
                     UpdatedAt = user.UpdatedAt,
-                    LastSyncedAt = DateTime.UtcNow
+                    LastSyncedAt = _timeProvider.GetUtcNow().UtcDateTime
                 };
                 _context.UserDirectory.Add(userDirectory);
             }

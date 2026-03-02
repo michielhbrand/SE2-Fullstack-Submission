@@ -17,6 +17,7 @@ public class UserService : IUserService
     private readonly IKeycloakAuthService _keycloakService;
     private readonly IUserDirectoryService _userDirectoryService;
     private readonly IOrganizationMemberRepository _organizationMemberRepository;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
@@ -24,12 +25,14 @@ public class UserService : IUserService
         IKeycloakAuthService keycloakService,
         IUserDirectoryService userDirectoryService,
         IOrganizationMemberRepository organizationMemberRepository,
+        TimeProvider timeProvider,
         ILogger<UserService> logger)
     {
         _userRepository = userRepository;
         _keycloakService = keycloakService;
         _userDirectoryService = userDirectoryService;
         _organizationMemberRepository = organizationMemberRepository;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -56,7 +59,7 @@ public class UserService : IUserService
         {
             Id = userId,
             Active = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
         await _userRepository.AddAsync(user);
@@ -141,7 +144,7 @@ public class UserService : IUserService
         if (user != null)
         {
             user.Active = request.Active;
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
             await _userRepository.UpdateAsync(user);
             _logger.LogInformation("Updated user {UserId} active status to {Active}", userId, request.Active);
         }

@@ -10,15 +10,18 @@ namespace InvoiceTrackerApi.BackgroundServices;
 public class OverdueInvoiceCheckService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<OverdueInvoiceCheckService> _logger;
     private readonly IConfiguration _configuration;
 
     public OverdueInvoiceCheckService(
         IServiceProvider serviceProvider,
+        TimeProvider timeProvider,
         ILogger<OverdueInvoiceCheckService> logger,
         IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
+        _timeProvider = timeProvider;
         _logger = logger;
         _configuration = configuration;
     }
@@ -32,7 +35,7 @@ public class OverdueInvoiceCheckService : BackgroundService
         {
             _logger.LogInformation(
                 "Next overdue check scheduled in {Delay} (at {NextRun} UTC)",
-                initialDelay, DateTime.UtcNow.Add(initialDelay).ToString("HH:mm"));
+                initialDelay, _timeProvider.GetUtcNow().UtcDateTime.Add(initialDelay).ToString("HH:mm"));
             await Task.Delay(initialDelay, stoppingToken);
         }
 
@@ -76,7 +79,7 @@ public class OverdueInvoiceCheckService : BackgroundService
         if (!TimeSpan.TryParse(checkTimeStr, out var checkTime))
             checkTime = new TimeSpan(8, 0, 0);
 
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var nextRun = now.Date.Add(checkTime);
 
         if (nextRun <= now)

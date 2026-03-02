@@ -42,16 +42,14 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseInMemoryDatabase(dbName);
             });
 
-            // Mock Keycloak service for integration tests
-            var keycloakServiceDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(IKeycloakAuthService));
-            if (keycloakServiceDescriptor != null)
-            {
-                services.Remove(keycloakServiceDescriptor);
-            }
+            // Mock Keycloak services for integration tests
+            services.RemoveAll(typeof(IKeycloakTokenService));
+            services.RemoveAll(typeof(IKeycloakUserAdminService));
+            services.RemoveAll(typeof(IKeycloakRoleService));
 
-            var mockKeycloakService = new Mock<IKeycloakAuthService>();
-            services.AddSingleton(mockKeycloakService.Object);
+            services.AddSingleton(new Mock<IKeycloakTokenService>().Object);
+            services.AddSingleton(new Mock<IKeycloakUserAdminService>().Object);
+            services.AddSingleton(new Mock<IKeycloakRoleService>().Object);
 
             // Disable authorization for integration tests
             services.AddAuthorization(options =>

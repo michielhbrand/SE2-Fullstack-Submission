@@ -1,13 +1,9 @@
 using InvoiceTrackerApi.DTOs.Common;
-using InvoiceTrackerApi.DTOs.Invoice.Requests;
 using InvoiceTrackerApi.DTOs.Workflow.Requests;
 using InvoiceTrackerApi.DTOs.Workflow.Responses;
-using Shared.Core.Exceptions;
 using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Workflow;
-using InvoiceTrackerApi.Services.Invoice;
-using Microsoft.Extensions.DependencyInjection;
 using Shared.Database.Models;
 using WorkflowModel = Shared.Database.Models.Workflow;
 
@@ -19,91 +15,22 @@ namespace InvoiceTrackerApi.Services.Workflow;
 public class WorkflowService : IWorkflowService
 {
     private readonly IWorkflowRepository _workflowRepository;
-    private readonly IKafkaProducerService _kafkaProducer;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IWorkflowEventDispatcher _dispatcher;
+    private readonly IQuoteToInvoiceConversionService _conversionService;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<WorkflowService> _logger;
-
-    /// <summary>
-    /// Valid status transitions: key = current status, value = set of allowed next statuses
-    /// </summary>
-    private static readonly Dictionary<string, HashSet<string>> ValidTransitions = new()
-    {
-        [WorkflowStatus.Draft] = new HashSet<string>
-        {
-            WorkflowStatus.PendingApproval,
-            WorkflowStatus.InvoiceCreated,
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        [WorkflowStatus.PendingApproval] = new HashSet<string>
-        {
-            WorkflowStatus.PendingApproval, // resend for approval
-            WorkflowStatus.Approved,
-            WorkflowStatus.Rejected,
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        [WorkflowStatus.Approved] = new HashSet<string>
-        {
-            WorkflowStatus.InvoiceCreated,
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        [WorkflowStatus.Rejected] = new HashSet<string>
-        {
-            WorkflowStatus.PendingApproval, // re-send after modification
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        [WorkflowStatus.InvoiceCreated] = new HashSet<string>
-        {
-            WorkflowStatus.SentForPayment,
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        [WorkflowStatus.SentForPayment] = new HashSet<string>
-        {
-            WorkflowStatus.SentForPayment, // resend for payment
-            WorkflowStatus.Paid,
-            WorkflowStatus.Cancelled,
-            WorkflowStatus.Terminated
-        },
-        // Terminal states — no transitions allowed
-        [WorkflowStatus.Paid] = new HashSet<string>(),
-        [WorkflowStatus.Cancelled] = new HashSet<string>(),
-        [WorkflowStatus.Terminated] = new HashSet<string>()
-    };
-
-    /// <summary>
-    /// Maps event types to the resulting workflow status
-    /// </summary>
-    private static readonly Dictionary<string, string> EventToStatusMap = new()
-    {
-        [WorkflowEventType.QuoteCreated] = WorkflowStatus.Draft,
-        [WorkflowEventType.SentForApproval] = WorkflowStatus.PendingApproval,
-        [WorkflowEventType.Approved] = WorkflowStatus.Approved,
-        [WorkflowEventType.Rejected] = WorkflowStatus.Rejected,
-        [WorkflowEventType.QuoteModified] = WorkflowStatus.Rejected, // stays Rejected until re-sent
-        [WorkflowEventType.ResentForApproval] = WorkflowStatus.PendingApproval,
-        [WorkflowEventType.ConvertedToInvoice] = WorkflowStatus.InvoiceCreated,
-        [WorkflowEventType.InvoiceCreated] = WorkflowStatus.InvoiceCreated,
-        [WorkflowEventType.SentForPayment] = WorkflowStatus.SentForPayment,
-        [WorkflowEventType.ResentForPayment] = WorkflowStatus.SentForPayment,
-        [WorkflowEventType.OverdueReminderSent] = WorkflowStatus.SentForPayment, // status unchanged
-        [WorkflowEventType.MarkedAsPaid] = WorkflowStatus.Paid,
-        [WorkflowEventType.Cancelled] = WorkflowStatus.Cancelled,
-        [WorkflowEventType.Terminated] = WorkflowStatus.Terminated
-    };
 
     public WorkflowService(
         IWorkflowRepository workflowRepository,
-        IKafkaProducerService kafkaProducer,
-        IServiceProvider serviceProvider,
+        IWorkflowEventDispatcher dispatcher,
+        IQuoteToInvoiceConversionService conversionService,
+        TimeProvider timeProvider,
         ILogger<WorkflowService> logger)
     {
         _workflowRepository = workflowRepository;
-        _kafkaProducer = kafkaProducer;
-        _serviceProvider = serviceProvider;
+        _dispatcher = dispatcher;
+        _conversionService = conversionService;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -178,7 +105,7 @@ public class WorkflowService : IWorkflowService
             QuoteId = request.QuoteId,
             InvoiceId = request.InvoiceId,
             ClientId = request.ClientId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime,
             CreatedBy = userId,
             IsActive = true,
             Events = new List<WorkflowEvent>
@@ -190,7 +117,7 @@ public class WorkflowService : IWorkflowService
                         ? "Quote created — workflow started"
                         : "Invoice created — workflow started",
                     PerformedBy = userId,
-                    OccurredAt = DateTime.UtcNow
+                    OccurredAt = _timeProvider.GetUtcNow().UtcDateTime
                 }
             }
         };
@@ -222,13 +149,13 @@ public class WorkflowService : IWorkflowService
         }
 
         // Validate event type is known
-        if (!EventToStatusMap.ContainsKey(request.EventType))
+        if (!WorkflowStateMachine.IsKnownEventType(request.EventType))
         {
             throw new BusinessRuleException($"Unknown event type: {request.EventType}");
         }
 
         // Get the target status for this event
-        var targetStatus = EventToStatusMap[request.EventType];
+        var targetStatus = WorkflowStateMachine.GetTargetStatus(request.EventType)!;
 
         // Special cases: events that record activity without changing status
         if (request.EventType == WorkflowEventType.QuoteModified)
@@ -262,7 +189,7 @@ public class WorkflowService : IWorkflowService
             EventType = request.EventType,
             Description = request.Description,
             PerformedBy = userId,
-            OccurredAt = DateTime.UtcNow
+            OccurredAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
         workflow.Events.Add(workflowEvent);
@@ -274,7 +201,7 @@ public class WorkflowService : IWorkflowService
             workflow.Status = targetStatus;
         }
 
-        workflow.UpdatedAt = DateTime.UtcNow;
+        workflow.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
 
         await _workflowRepository.UpdateAsync(workflow);
 
@@ -302,96 +229,8 @@ public class WorkflowService : IWorkflowService
             }
         }
 
-        // Publish Kafka event for email notification when quote is sent for approval
-        if (request.EventType == WorkflowEventType.SentForApproval ||
-            request.EventType == WorkflowEventType.ResentForApproval)
-        {
-            try
-            {
-                if (workflow.QuoteId.HasValue)
-                {
-                    await _kafkaProducer.PublishQuoteApprovalRequestedEventAsync(
-                        workflow.QuoteId.Value, workflowId);
-
-                    _logger.LogInformation(
-                        "Quote approval requested event published for QuoteId: {QuoteId}, WorkflowId: {WorkflowId}",
-                        workflow.QuoteId.Value, workflowId);
-                }
-                else
-                {
-                    _logger.LogWarning(
-                        "Cannot publish quote approval event — workflow {WorkflowId} has no linked QuoteId",
-                        workflowId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Failed to publish quote approval requested event for WorkflowId: {WorkflowId}. " +
-                    "Workflow status updated but email notification not triggered.",
-                    workflowId);
-            }
-        }
-
-        // Publish Kafka event for email notification when invoice is sent for payment
-        if (request.EventType == WorkflowEventType.SentForPayment ||
-            request.EventType == WorkflowEventType.ResentForPayment)
-        {
-            try
-            {
-                if (workflow.InvoiceId.HasValue)
-                {
-                    await _kafkaProducer.PublishInvoiceGeneratedEventAsync(
-                        workflow.InvoiceId.Value, workflowId);
-
-                    _logger.LogInformation(
-                        "Invoice generated event published for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
-                        workflow.InvoiceId.Value, workflowId);
-                }
-                else
-                {
-                    _logger.LogWarning(
-                        "Cannot publish invoice generated event — workflow {WorkflowId} has no linked InvoiceId",
-                        workflowId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Failed to publish invoice generated event for WorkflowId: {WorkflowId}. " +
-                    "Workflow status updated but email notification not triggered.",
-                    workflowId);
-            }
-        }
-
-        // Publish overdue Kafka event so EmailNotificationService sends the reminder email
-        if (request.EventType == WorkflowEventType.OverdueReminderSent)
-        {
-            try
-            {
-                if (workflow.InvoiceId.HasValue)
-                {
-                    await _kafkaProducer.PublishInvoiceOverdueEventAsync(workflow.InvoiceId.Value, workflowId);
-
-                    _logger.LogInformation(
-                        "Overdue reminder event published for InvoiceId: {InvoiceId}, WorkflowId: {WorkflowId}",
-                        workflow.InvoiceId.Value, workflowId);
-                }
-                else
-                {
-                    _logger.LogWarning(
-                        "Cannot publish overdue reminder event — workflow {WorkflowId} has no linked InvoiceId",
-                        workflowId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Failed to publish overdue reminder event for WorkflowId: {WorkflowId}. " +
-                    "Workflow event recorded but email notification not triggered.",
-                    workflowId);
-            }
-        }
+        // Dispatch Kafka events for email notifications
+        await _dispatcher.DispatchAsync(workflowEvent, workflow);
 
         // Auto-create invoice when quote is converted to invoice
         if (request.EventType == WorkflowEventType.ConvertedToInvoice)
@@ -400,14 +239,9 @@ public class WorkflowService : IWorkflowService
             {
                 try
                 {
-                    // Resolve IInvoiceService lazily to avoid circular dependency
-                    var invoiceService = _serviceProvider.GetRequiredService<IInvoiceService>();
-                    var invoiceResult = await invoiceService.ConvertQuoteToInvoiceAsync(
-                        new ConvertQuoteToInvoiceRequest
-                        {
-                            QuoteId = workflow.QuoteId.Value,
-                            PayByDays = request.PayByDays
-                        },
+                    var invoiceResult = await _conversionService.ConvertAsync(
+                        workflow.QuoteId.Value,
+                        request.PayByDays,
                         userId,
                         workflow.OrganizationId);
 
@@ -473,18 +307,12 @@ public class WorkflowService : IWorkflowService
     /// <summary>
     /// Validates that a status transition is allowed according to the state machine
     /// </summary>
-    private void ValidateStatusTransition(string currentStatus, string targetStatus, string eventType)
+    private static void ValidateStatusTransition(string currentStatus, string targetStatus, string eventType)
     {
-        if (!ValidTransitions.TryGetValue(currentStatus, out var allowedTransitions))
-        {
-            throw new BusinessRuleException($"Unknown workflow status: {currentStatus}");
-        }
-
-        if (!allowedTransitions.Contains(targetStatus))
+        if (!WorkflowStateMachine.IsValidTransition(currentStatus, targetStatus))
         {
             throw new BusinessRuleException(
-                $"Invalid workflow transition: cannot move from '{currentStatus}' to '{targetStatus}' via event '{eventType}'. " +
-                $"Allowed transitions from '{currentStatus}': [{string.Join(", ", allowedTransitions)}]");
+                $"Invalid workflow transition: cannot move from '{currentStatus}' to '{targetStatus}' via event '{eventType}'.");
         }
     }
 }

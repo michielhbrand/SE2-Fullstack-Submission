@@ -10,8 +10,11 @@ namespace InvoiceTrackerApi.Repositories.Invoice;
 /// </summary>
 public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
 {
-    public InvoiceRepository(ApplicationDbContext context) : base(context)
+    private readonly TimeProvider _timeProvider;
+
+    public InvoiceRepository(ApplicationDbContext context, TimeProvider timeProvider) : base(context)
     {
+        _timeProvider = timeProvider;
     }
 
     public async Task<InvoiceModel?> GetByIdWithDetailsAsync(int id)
@@ -68,7 +71,7 @@ public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
 
     private IQueryable<InvoiceModel> BuildFilteredQuery(int organizationId, string? statusFilter, string? search)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var terminal = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
 
         var query = _context.Invoices
@@ -96,7 +99,7 @@ public class InvoiceRepository : Repository<InvoiceModel>, IInvoiceRepository
     public async Task<IEnumerable<(InvoiceModel Invoice, int WorkflowId)>> GetOverdueAsync(
         DateTime cutoff, int reminderIntervalDays, int? organizationId = null, CancellationToken ct = default)
     {
-        var reminderCutoff = DateTime.UtcNow.AddDays(-reminderIntervalDays);
+        var reminderCutoff = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-reminderIntervalDays);
         var blocked = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
 
         var workflowQuery = _context.Workflows

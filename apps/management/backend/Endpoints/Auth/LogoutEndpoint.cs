@@ -23,7 +23,7 @@ public static class LogoutEndpoint
 
     private static async Task<Results<NoContent, ProblemHttpResult>> Handle(
         LogoutRequest request,
-        IKeycloakAuthService authService,
+        IKeycloakTokenService authService,
         CancellationToken cancellationToken)
     {
         await authService.LogoutAsync(request.RefreshToken, cancellationToken);

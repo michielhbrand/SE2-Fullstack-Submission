@@ -22,11 +22,11 @@ public abstract class Repository<T> : IRepository<T> where T : class
         _dbSet = context.Set<T>();
     }
 
-    public virtual async Task<T?> GetByIdAsync(int id)
+    public virtual async Task<T?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         try
         {
-            return await _dbSet.FindAsync(id);
+            return await _dbSet.FindAsync(new object[] { id }, ct);
         }
         catch (Exception ex) when (ex is not AppException)
         {
@@ -34,12 +34,12 @@ public abstract class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public virtual async Task<T> AddAsync(T entity)
+    public virtual async Task<T> AddAsync(T entity, CancellationToken ct = default)
     {
         try
         {
             _dbSet.Add(entity);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
             return entity;
         }
         catch (DbUpdateException ex)
@@ -52,12 +52,12 @@ public abstract class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public virtual async Task UpdateAsync(T entity)
+    public virtual async Task UpdateAsync(T entity, CancellationToken ct = default)
     {
         try
         {
             _dbSet.Update(entity);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -73,12 +73,12 @@ public abstract class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public virtual async Task DeleteAsync(T entity)
+    public virtual async Task DeleteAsync(T entity, CancellationToken ct = default)
     {
         try
         {
             _dbSet.Remove(entity);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
         }
         catch (DbUpdateException ex)
         {
@@ -90,11 +90,11 @@ public abstract class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public virtual async Task<bool> ExistsAsync(int id)
+    public virtual async Task<bool> ExistsAsync(int id, CancellationToken ct = default)
     {
         try
         {
-            var entity = await _dbSet.FindAsync(id);
+            var entity = await _dbSet.FindAsync(new object[] { id }, ct);
             return entity != null;
         }
         catch (Exception ex) when (ex is not AppException)

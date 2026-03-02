@@ -7,14 +7,21 @@ namespace InvoiceTrackerApi.Controllers;
 [Produces("application/json")]
 public class HealthController : ControllerBase
 {
+    private readonly TimeProvider _timeProvider;
+
+    public HealthController(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult GetHealth()
     {
-        return Ok(new 
-        { 
+        return Ok(new
+        {
             status = "healthy",
-            timestamp = DateTime.UtcNow,
+            timestamp = _timeProvider.GetUtcNow().UtcDateTime,
             service = "InvoiceTrackerApi"
         });
     }

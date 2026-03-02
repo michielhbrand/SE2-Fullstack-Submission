@@ -16,18 +16,21 @@ namespace ManagementApi.Services.User;
 public class UserService : IUserService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IKeycloakAuthService _keycloakService;
+    private readonly IKeycloakUserAdminService _keycloakUserAdmin;
+    private readonly IKeycloakRoleService _keycloakRole;
     private readonly IUserDirectoryService _userDirectoryService;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
         ApplicationDbContext context,
-        IKeycloakAuthService keycloakService,
+        IKeycloakUserAdminService keycloakUserAdmin,
+        IKeycloakRoleService keycloakRole,
         IUserDirectoryService userDirectoryService,
         ILogger<UserService> logger)
     {
         _context = context;
-        _keycloakService = keycloakService;
+        _keycloakUserAdmin = keycloakUserAdmin;
+        _keycloakRole = keycloakRole;
         _userDirectoryService = userDirectoryService;
         _logger = logger;
     }
@@ -44,7 +47,7 @@ public class UserService : IUserService
         }
 
         // Create user in Keycloak
-        var keycloakUser = await _keycloakService.CreateUserAsync(
+        var keycloakUser = await _keycloakUserAdmin.CreateUserAsync(
             request.Email,
             request.FirstName,
             request.LastName,
@@ -137,7 +140,7 @@ public class UserService : IUserService
         // Update identity fields in Keycloak
         if (request.FirstName != null || request.LastName != null || request.Active.HasValue)
         {
-            await _keycloakService.UpdateUserAsync(
+            await _keycloakUserAdmin.UpdateUserAsync(
                 userId,
                 request.FirstName,
                 request.LastName,
@@ -148,7 +151,7 @@ public class UserService : IUserService
         // Update role in Keycloak if provided
         if (request.Role.HasValue)
         {
-            await _keycloakService.UpdateUserRoleAsync(userId, request.Role.Value, cancellationToken);
+            await _keycloakRole.UpdateUserRoleAsync(userId, request.Role.Value, cancellationToken);
             _logger.LogInformation("Updated role for user {UserId} to {Role}", userId, request.Role.Value);
         }
 

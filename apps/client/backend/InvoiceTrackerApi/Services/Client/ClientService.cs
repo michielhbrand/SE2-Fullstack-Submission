@@ -14,11 +14,13 @@ namespace InvoiceTrackerApi.Services.Client;
 public class ClientService : IClientService
 {
     private readonly IClientRepository _clientRepository;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<ClientService> _logger;
 
-    public ClientService(IClientRepository clientRepository, ILogger<ClientService> logger)
+    public ClientService(IClientRepository clientRepository, TimeProvider timeProvider, ILogger<ClientService> logger)
     {
         _clientRepository = clientRepository;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -69,9 +71,9 @@ public class ClientService : IClientService
 
         var client = request.ToModel();
         client.OrganizationId = organizationId;
-        client.DateCreated = DateTime.UtcNow;
+        client.DateCreated = _timeProvider.GetUtcNow().UtcDateTime;
         client.ModifiedBy = modifiedBy;
-        client.LastModifiedDate = DateTime.UtcNow;
+        client.LastModifiedDate = _timeProvider.GetUtcNow().UtcDateTime;
 
         var createdClient = await _clientRepository.AddAsync(client);
 
@@ -104,7 +106,7 @@ public class ClientService : IClientService
         existingClient.IsCompany = request.IsCompany;
         existingClient.VatNumber = request.VatNumber;
         existingClient.KeycloakUserId = request.KeycloakUserId;
-        existingClient.LastModifiedDate = DateTime.UtcNow;
+        existingClient.LastModifiedDate = _timeProvider.GetUtcNow().UtcDateTime;
         existingClient.ModifiedBy = modifiedBy;
 
         await _clientRepository.UpdateAsync(existingClient);

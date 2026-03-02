@@ -8,34 +8,57 @@ namespace InvoiceTrackerApi.Services.Dashboard;
 public class DashboardService : IDashboardService
 {
     private readonly ApplicationDbContext _context;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<DashboardService> _logger;
 
-    public DashboardService(ApplicationDbContext context, ILogger<DashboardService> logger)
+    public DashboardService(ApplicationDbContext context, TimeProvider timeProvider, ILogger<DashboardService> logger)
     {
         _context = context;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
     public async Task<DashboardResponse> GetDashboardAsync(int organizationId)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        var kpis                    = await GetKpiDataAsync(organizationId, now);
+        var statusBreakdown         = await GetStatusBreakdownAsync(organizationId, now);
+        var revenueByMonth          = await GetRevenueByMonthAsync(organizationId, now);
+        var topClients              = await GetTopClientsAsync(organizationId);
+        var recentActivity          = await GetRecentActivityAsync(organizationId);
+        var overdueInvoices         = await GetOverdueInvoicesAsync(organizationId, now);
+
+        _logger.LogInformation(
+            "Dashboard loaded for OrgId {OrgId}: revenue={Revenue:C}, outstanding={Outstanding:C}, overdue={Overdue}",
+            organizationId, kpis.TotalRevenue, kpis.OutstandingAmount, overdueInvoices.Count);
+
+        return new DashboardResponse
+        {
+            Kpis                    = kpis,
+            RevenueByMonth          = revenueByMonth,
+            InvoiceStatusBreakdown  = statusBreakdown.InvoiceStatus,
+            WorkflowStatusBreakdown = statusBreakdown.WorkflowStatus,
+            TopClients              = topClients,
+            RecentActivity          = recentActivity,
+            OverdueInvoices         = overdueInvoices
+        };
+    }
+
+    private async Task<DashboardKpis> GetKpiDataAsync(int organizationId, DateTime now)
+    {
         var terminal = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
 
-        // ── Shared: all invoice-linked workflows ────────────────────────────────
         var workflowData = await _context.Workflows
+            .AsNoTracking()
             .Where(w => w.OrganizationId == organizationId && w.InvoiceId != null)
-            .Select(w => new
-            {
-                w.Status,
-                InvoiceId = w.InvoiceId!.Value,
-                PayByDate = w.Invoice!.PayByDate
-            })
+            .Select(w => new { w.Status, InvoiceId = w.InvoiceId!.Value, PayByDate = w.Invoice!.PayByDate })
             .ToListAsync();
 
         var allInvoiceIds = workflowData.Select(x => x.InvoiceId).Distinct().ToList();
-
         var allInvoiceTotals = allInvoiceIds.Any()
             ? (await _context.InvoiceItems
+                .AsNoTracking()
                 .Where(i => allInvoiceIds.Contains(i.InvoiceId))
                 .GroupBy(i => i.InvoiceId)
                 .Select(g => new { InvoiceId = g.Key, Total = g.Sum(i => i.Quantity * i.PricePerUnit) })
@@ -43,7 +66,6 @@ public class DashboardService : IDashboardService
                 .ToDictionary(x => x.InvoiceId, x => x.Total)
             : new Dictionary<int, decimal>();
 
-        // ── KPIs ────────────────────────────────────────────────────────────────
         var totalRevenue = workflowData
             .Where(x => x.Status == WorkflowStatus.Paid)
             .Sum(x => allInvoiceTotals.GetValueOrDefault(x.InvoiceId));
@@ -57,18 +79,39 @@ public class DashboardService : IDashboardService
             .Sum(x => allInvoiceTotals.GetValueOrDefault(x.InvoiceId));
 
         var activeWorkflows = await _context.Workflows
-            .Where(w => w.OrganizationId == organizationId && !terminal.Contains(w.Status))
-            .CountAsync();
+            .AsNoTracking()
+            .CountAsync(w => w.OrganizationId == organizationId && !terminal.Contains(w.Status));
 
         var totalInvoices = await _context.Invoices
-            .Where(i => i.OrganizationId == organizationId)
-            .CountAsync();
+            .AsNoTracking()
+            .CountAsync(i => i.OrganizationId == organizationId);
 
         var totalClients = await _context.Clients
-            .Where(c => c.OrganizationId == organizationId)
-            .CountAsync();
+            .AsNoTracking()
+            .CountAsync(c => c.OrganizationId == organizationId);
 
-        // ── Invoice Status Breakdown ─────────────────────────────────────────────
+        return new DashboardKpis
+        {
+            TotalRevenue      = totalRevenue,
+            OutstandingAmount = outstandingAmount,
+            OverdueAmount     = overdueAmount,
+            ActiveWorkflows   = activeWorkflows,
+            TotalInvoices     = totalInvoices,
+            TotalClients      = totalClients
+        };
+    }
+
+    private async Task<(InvoiceStatusBreakdown InvoiceStatus, List<WorkflowStatusCount> WorkflowStatus)>
+        GetStatusBreakdownAsync(int organizationId, DateTime now)
+    {
+        var terminal = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
+
+        var workflowData = await _context.Workflows
+            .AsNoTracking()
+            .Where(w => w.OrganizationId == organizationId && w.InvoiceId != null)
+            .Select(w => new { w.Status, PayByDate = w.Invoice!.PayByDate })
+            .ToListAsync();
+
         var invoiceStatusBreakdown = new InvoiceStatusBreakdown
         {
             Paid    = workflowData.Count(x => x.Status == WorkflowStatus.Paid),
@@ -76,25 +119,30 @@ public class DashboardService : IDashboardService
             NotPaid = workflowData.Count(x => !terminal.Contains(x.Status) && x.PayByDate >= now)
         };
 
-        // ── Workflow Status Breakdown ────────────────────────────────────────────
         var workflowStatusBreakdown = await _context.Workflows
+            .AsNoTracking()
             .Where(w => w.OrganizationId == organizationId)
             .GroupBy(w => w.Status)
             .Select(g => new WorkflowStatusCount { Status = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToListAsync();
 
-        // ── Revenue by Month (last 6 months, keyed to payment date) ─────────────
+        return (invoiceStatusBreakdown, workflowStatusBreakdown);
+    }
+
+    private async Task<List<MonthlyRevenue>> GetRevenueByMonthAsync(int organizationId, DateTime now)
+    {
         var sixMonthsAgo = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-5);
 
         var paidEvents = await _context.WorkflowEvents
+            .AsNoTracking()
             .Where(we => we.EventType == WorkflowEventType.MarkedAsPaid
                       && we.OccurredAt >= sixMonthsAgo
                       && we.Workflow!.OrganizationId == organizationId
                       && we.Workflow.InvoiceId != null)
             .Select(we => new
             {
-                Month = new DateTime(we.OccurredAt.Year, we.OccurredAt.Month, 1),
+                Month     = new DateTime(we.OccurredAt.Year, we.OccurredAt.Month, 1),
                 InvoiceId = we.Workflow!.InvoiceId!.Value
             })
             .ToListAsync();
@@ -102,6 +150,7 @@ public class DashboardService : IDashboardService
         var paidEventInvoiceIds = paidEvents.Select(x => x.InvoiceId).Distinct().ToList();
         var paidTotalsMap = paidEventInvoiceIds.Any()
             ? (await _context.InvoiceItems
+                .AsNoTracking()
                 .Where(i => paidEventInvoiceIds.Contains(i.InvoiceId))
                 .GroupBy(i => i.InvoiceId)
                 .Select(g => new { InvoiceId = g.Key, Total = g.Sum(i => i.Quantity * i.PricePerUnit) })
@@ -109,7 +158,7 @@ public class DashboardService : IDashboardService
                 .ToDictionary(x => x.InvoiceId, x => x.Total)
             : new Dictionary<int, decimal>();
 
-        var revenueByMonth = Enumerable.Range(0, 6)
+        return Enumerable.Range(0, 6)
             .Select(offset => sixMonthsAgo.AddMonths(offset))
             .Select(m => new MonthlyRevenue
             {
@@ -119,9 +168,12 @@ public class DashboardService : IDashboardService
                     .Sum(e => paidTotalsMap.GetValueOrDefault(e.InvoiceId))
             })
             .ToList();
+    }
 
-        // ── Top 5 Clients by Revenue (paid invoices) ─────────────────────────────
+    private async Task<List<TopClient>> GetTopClientsAsync(int organizationId)
+    {
         var paidWorkflowClients = await _context.Workflows
+            .AsNoTracking()
             .Where(w => w.OrganizationId == organizationId
                      && w.Status == WorkflowStatus.Paid
                      && w.InvoiceId != null)
@@ -131,6 +183,7 @@ public class DashboardService : IDashboardService
         var clientInvoiceIds = paidWorkflowClients.Select(x => x.InvoiceId).Distinct().ToList();
         var clientTotalsMap = clientInvoiceIds.Any()
             ? (await _context.InvoiceItems
+                .AsNoTracking()
                 .Where(i => clientInvoiceIds.Contains(i.InvoiceId))
                 .GroupBy(i => i.InvoiceId)
                 .Select(g => new { InvoiceId = g.Key, Total = g.Sum(i => i.Quantity * i.PricePerUnit) })
@@ -138,7 +191,7 @@ public class DashboardService : IDashboardService
                 .ToDictionary(x => x.InvoiceId, x => x.Total)
             : new Dictionary<int, decimal>();
 
-        var topClients = paidWorkflowClients
+        return paidWorkflowClients
             .GroupBy(x => x.ClientName)
             .Select(g => new TopClient
             {
@@ -149,9 +202,12 @@ public class DashboardService : IDashboardService
             .OrderByDescending(c => c.Revenue)
             .Take(5)
             .ToList();
+    }
 
-        // ── Recent Activity (last 8 events) ──────────────────────────────────────
-        var recentActivity = await _context.WorkflowEvents
+    private async Task<List<RecentActivityItem>> GetRecentActivityAsync(int organizationId)
+    {
+        return await _context.WorkflowEvents
+            .AsNoTracking()
             .Where(we => we.Workflow!.OrganizationId == organizationId)
             .OrderByDescending(we => we.OccurredAt)
             .Take(8)
@@ -163,9 +219,14 @@ public class DashboardService : IDashboardService
                 OccurredAt = we.OccurredAt
             })
             .ToListAsync();
+    }
 
-        // ── Overdue Invoices (most overdue first, top 6) ─────────────────────────
+    private async Task<List<OverdueInvoiceItem>> GetOverdueInvoicesAsync(int organizationId, DateTime now)
+    {
+        var terminal = new[] { WorkflowStatus.Paid, WorkflowStatus.Cancelled, WorkflowStatus.Terminated };
+
         var overdueWorkflows = await _context.Workflows
+            .AsNoTracking()
             .Where(w => w.OrganizationId == organizationId
                      && w.InvoiceId != null
                      && !terminal.Contains(w.Status)
@@ -183,6 +244,7 @@ public class DashboardService : IDashboardService
         var overdueInvoiceIds = overdueWorkflows.Select(x => x.InvoiceId).ToList();
         var overdueTotalsMap = overdueInvoiceIds.Any()
             ? (await _context.InvoiceItems
+                .AsNoTracking()
                 .Where(i => overdueInvoiceIds.Contains(i.InvoiceId))
                 .GroupBy(i => i.InvoiceId)
                 .Select(g => new { InvoiceId = g.Key, Total = g.Sum(i => i.Quantity * i.PricePerUnit) })
@@ -190,39 +252,16 @@ public class DashboardService : IDashboardService
                 .ToDictionary(x => x.InvoiceId, x => x.Total)
             : new Dictionary<int, decimal>();
 
-        var overdueInvoices = overdueWorkflows
+        return overdueWorkflows
             .Select(x => new OverdueInvoiceItem
             {
-                InvoiceId  = x.InvoiceId,
-                ClientName = x.ClientName,
-                Amount     = overdueTotalsMap.GetValueOrDefault(x.InvoiceId),
+                InvoiceId   = x.InvoiceId,
+                ClientName  = x.ClientName,
+                Amount      = overdueTotalsMap.GetValueOrDefault(x.InvoiceId),
                 DaysOverdue = (int)(now - x.PayByDate).TotalDays,
-                PayByDate  = x.PayByDate
+                PayByDate   = x.PayByDate
             })
             .OrderByDescending(x => x.DaysOverdue)
             .ToList();
-
-        _logger.LogInformation(
-            "Dashboard loaded for OrgId {OrgId}: revenue={Revenue:C}, outstanding={Outstanding:C}, overdue={Overdue}",
-            organizationId, totalRevenue, outstandingAmount, overdueInvoices.Count);
-
-        return new DashboardResponse
-        {
-            Kpis = new DashboardKpis
-            {
-                TotalRevenue      = totalRevenue,
-                OutstandingAmount = outstandingAmount,
-                OverdueAmount     = overdueAmount,
-                ActiveWorkflows   = activeWorkflows,
-                TotalInvoices     = totalInvoices,
-                TotalClients      = totalClients
-            },
-            RevenueByMonth          = revenueByMonth,
-            InvoiceStatusBreakdown  = invoiceStatusBreakdown,
-            WorkflowStatusBreakdown = workflowStatusBreakdown,
-            TopClients              = topClients,
-            RecentActivity          = recentActivity,
-            OverdueInvoices         = overdueInvoices
-        };
     }
 }

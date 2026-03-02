@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Shared.Core.Messaging;
 using Shared.Database.Data;
 using PdfGeneratorService.Services.Generation;
 using PdfGeneratorService.Services.Storage;
@@ -16,7 +17,7 @@ public class InvoiceCreatedConsumer : BackgroundService
     private readonly ILogger<InvoiceCreatedConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly string _topic = "invoice-created";
+    private readonly string _topic = KafkaTopics.InvoiceCreated;
 
     public InvoiceCreatedConsumer(
         ILogger<InvoiceCreatedConsumer> logger,

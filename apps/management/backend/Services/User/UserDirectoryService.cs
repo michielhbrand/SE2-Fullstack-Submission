@@ -15,16 +15,19 @@ namespace ManagementApi.Services.User;
 public class UserDirectoryService : IUserDirectoryService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IKeycloakAuthService _keycloakService;
+    private readonly IKeycloakUserAdminService _keycloakUserAdmin;
+    private readonly IKeycloakRoleService _keycloakRole;
     private readonly ILogger<UserDirectoryService> _logger;
 
     public UserDirectoryService(
         ApplicationDbContext context,
-        IKeycloakAuthService keycloakService,
+        IKeycloakUserAdminService keycloakUserAdmin,
+        IKeycloakRoleService keycloakRole,
         ILogger<UserDirectoryService> logger)
     {
         _context = context;
-        _keycloakService = keycloakService;
+        _keycloakUserAdmin = keycloakUserAdmin;
+        _keycloakRole = keycloakRole;
         _logger = logger;
     }
 
@@ -110,20 +113,17 @@ public class UserDirectoryService : IUserDirectoryService
             .Where(m => m.OrganizationId == organizationId)
             .ToListAsync(cancellationToken);
 
-        var memberResponses = new List<OrganizationMemberResponse>();
+        var userIds = members.Select(m => m.UserId).ToList();
+        var userDirectories = await _context.UserDirectory
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
 
-        foreach (var member in members)
-        {
-            var userDirectory = await _context.UserDirectory
-                .FirstOrDefaultAsync(u => u.Id == member.UserId, cancellationToken);
-
-            if (userDirectory != null)
-            {
-                memberResponses.Add(userDirectory.ToOrganizationMemberResponse(member));
-            }
-        }
-
-        return memberResponses.OrderBy(m => m.Email).ToList();
+        return members
+            .Where(m => userDirectories.ContainsKey(m.UserId))
+            .Select(m => userDirectories[m.UserId].ToOrganizationMemberResponse(m))
+            .OrderBy(m => m.Email)
+            .ToList();
     }
 
     public async Task SyncUserAsync(string userId, CancellationToken cancellationToken = default)
@@ -141,10 +141,10 @@ public class UserDirectoryService : IUserDirectoryService
             }
 
             // Get user from Keycloak
-            var keycloakUser = await _keycloakService.GetUserByIdAsync(userId, cancellationToken);
+            var keycloakUser = await _keycloakUserAdmin.GetUserByIdAsync(userId, cancellationToken);
 
             // Get roles from Keycloak
-            var rolesList = await _keycloakService.GetUserRolesAsync(userId, cancellationToken);
+            var rolesList = await _keycloakRole.GetUserRolesAsync(userId, cancellationToken);
             var roles = string.Join(",", rolesList);
 
             // Upsert to UserDirectory
@@ -197,17 +197,15 @@ public class UserDirectoryService : IUserDirectoryService
 
         var users = await _context.Users.ToListAsync(cancellationToken);
 
-        foreach (var user in users)
+        var semaphore = new SemaphoreSlim(5);
+        var tasks = users.Select(async user =>
         {
-            try
-            {
-                await SyncUserAsync(user.Id, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error syncing user {UserId}, continuing with next user", user.Id);
-            }
-        }
+            await semaphore.WaitAsync(cancellationToken);
+            try { await SyncUserAsync(user.Id, cancellationToken); }
+            catch (Exception ex) { _logger.LogError(ex, "Error syncing user {UserId}", user.Id); }
+            finally { semaphore.Release(); }
+        });
+        await Task.WhenAll(tasks);
 
         _logger.LogInformation("Completed full sync of {Count} users to UserDirectory", users.Count);
     }

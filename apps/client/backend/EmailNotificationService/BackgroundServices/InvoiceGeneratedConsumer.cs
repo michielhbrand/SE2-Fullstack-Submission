@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Minio;
 using Minio.DataModel.Args;
+using Shared.Core.Messaging;
 using Shared.Database.Data;
 using EmailNotificationService.Services;
 using System.Diagnostics;
@@ -22,7 +23,7 @@ public class InvoiceGeneratedConsumer : BackgroundService
     private readonly ILogger<InvoiceGeneratedConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly string _topic = "invoice-generated";
+    private readonly string _topic = KafkaTopics.InvoiceGenerated;
 
     public InvoiceGeneratedConsumer(
         ILogger<InvoiceGeneratedConsumer> logger,
