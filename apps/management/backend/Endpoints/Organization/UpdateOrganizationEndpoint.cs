@@ -1,6 +1,6 @@
 using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Exceptions.Application;
 using ManagementApi.Filters;
 using Shared.Database.Models;
 using Microsoft.AspNetCore.Http.HttpResults;

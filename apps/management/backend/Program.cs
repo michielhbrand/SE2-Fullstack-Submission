@@ -3,8 +3,9 @@ using ManagementApi.Endpoints.Auth;
 using ManagementApi.Endpoints.Organization;
 using ManagementApi.Endpoints.PaymentPlan;
 using ManagementApi.Endpoints.User;
-using ManagementApi.Exceptions;
 using ManagementApi.Extensions;
+using Shared.Core.Exceptions;
+using Shared.Core.Extensions;
 using ManagementApi.Services.Auth;
 using ManagementApi.Services.SeedData;
 using ManagementApi.Services.User;
@@ -36,8 +37,13 @@ builder.Services.AddOpenTelemetry()
 
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddSwaggerServices();
-builder.Services.AddCorsServices();
-builder.Services.AddAuthenticationServices(builder.Configuration, builder.Environment);
+builder.Services.AddCorsPolicy("AllowManagementPortal", "http://localhost:5174");
+builder.Services.AddKeycloakJwtAuthentication(builder.Configuration, builder.Environment);
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SystemAdminOnly", policy =>
+        policy.RequireRole("systemAdmin"));
+});
 builder.Services.AddHealthCheckServices(builder.Configuration);
 builder.Services.AddRateLimitingServices(builder.Configuration);
 

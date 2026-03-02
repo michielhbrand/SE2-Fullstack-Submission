@@ -1,6 +1,10 @@
 using System.Text.Json;
 using InvoiceTrackerApi.Repositories.OrganizationMember;
-using InvoiceTrackerApi.Services.Auth.Models;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
+using Shared.Core.Exceptions.Infrastructure;
+using Shared.Core.Keycloak;
+using Shared.Core.Keycloak.Models;
 
 namespace InvoiceTrackerApi.Services.Auth;
 
@@ -40,7 +44,7 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            throw new Exceptions.ValidationException("Username and password are required");
+            throw new ValidationException("Username and password are required");
         }
 
         try
@@ -66,7 +70,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Login failed for user: {Username}. Status: {Status}", username, response.StatusCode);
-                throw new Exceptions.UnauthorizedException("Invalid username or password");
+                throw new UnauthorizedException("Invalid username or password");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -78,7 +82,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (keycloakResponse == null)
             {
                 _logger.LogError("Failed to deserialize Keycloak token response");
-                throw new Exceptions.InfrastructureException("Authentication service returned invalid response");
+                throw new InfrastructureException("Authentication service returned invalid response");
             }
 
             var roles = _tokenService.ExtractRolesFromToken(keycloakResponse.Access_Token);
@@ -91,20 +95,20 @@ public class KeycloakAuthService : IKeycloakAuthService
                 if (!belongsToOrganization)
                 {
                     _logger.LogWarning("User {Username} (ID: {UserId}) attempted to login but does not belong to any organization", username, userId);
-                    throw new Exceptions.ForbiddenException("User has not been assigned to an organization");
+                    throw new ForbiddenException("User has not been assigned to an organization");
                 }
             }
             else
             {
                 _logger.LogError("Failed to extract user ID from token for user: {Username}", username);
-                throw new Exceptions.InfrastructureException("Failed to validate user information");
+                throw new InfrastructureException("Failed to validate user information");
             }
             
             // If admin login, verify user has orgAdmin or systemAdmin role
             if (isAdminLogin && !roles.Contains(UserRole.OrgAdmin.ToRoleString()) && !roles.Contains(UserRole.SystemAdmin.ToRoleString()))
             {
                 _logger.LogWarning("User {Username} attempted admin login without admin role", username);
-                throw new Exceptions.ForbiddenException("User does not have admin privileges");
+                throw new ForbiddenException("User does not have admin privileges");
             }
 
             _logger.LogInformation("Login successful for user: {Username} with roles: {Roles}", username, string.Join(", ", roles));
@@ -118,7 +122,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                 Roles = roles
             };
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -126,12 +130,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during login for user: {Username}", username);
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during login for user: {Username}", username);
-            throw new Exceptions.InfrastructureException("An unexpected error occurred during authentication", ex);
+            throw new InfrastructureException("An unexpected error occurred during authentication", ex);
         }
     }
 
@@ -139,7 +143,7 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            throw new Exceptions.ValidationException("Refresh token is required");
+            throw new ValidationException("Refresh token is required");
         }
 
         try
@@ -161,7 +165,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Token refresh failed. Status: {Status}", response.StatusCode);
-                throw new Exceptions.UnauthorizedException("Refresh token is invalid or expired");
+                throw new UnauthorizedException("Refresh token is invalid or expired");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -173,7 +177,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (keycloakResponse == null)
             {
                 _logger.LogError("Failed to deserialize Keycloak token response");
-                throw new Exceptions.InfrastructureException("Authentication service returned invalid response");
+                throw new InfrastructureException("Authentication service returned invalid response");
             }
 
             var roles = _tokenService.ExtractRolesFromToken(keycloakResponse.Access_Token);
@@ -189,7 +193,7 @@ public class KeycloakAuthService : IKeycloakAuthService
                 Roles = roles
             };
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -197,12 +201,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during token refresh");
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during token refresh");
-            throw new Exceptions.InfrastructureException("An unexpected error occurred during token refresh", ex);
+            throw new InfrastructureException("An unexpected error occurred during token refresh", ex);
         }
     }
 
@@ -210,7 +214,7 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            throw new Exceptions.ValidationException("Refresh token is required");
+            throw new ValidationException("Refresh token is required");
         }
 
         try
@@ -239,12 +243,12 @@ public class KeycloakAuthService : IKeycloakAuthService
                     return;
                 }
                 
-                throw new Exceptions.BusinessRuleException("Unable to logout. The refresh token may be invalid or expired.");
+                throw new BusinessRuleException("Unable to logout. The refresh token may be invalid or expired.");
             }
 
             _logger.LogInformation("Logout successful");
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -252,12 +256,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error during logout");
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during logout");
-            throw new Exceptions.InfrastructureException("An unexpected error occurred during logout", ex);
+            throw new InfrastructureException("An unexpected error occurred during logout", ex);
         }
     }
 
@@ -316,12 +320,12 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (role == UserRole.SystemAdmin)
             {
                 _logger.LogWarning("Attempt to assign systemAdmin role to user {UserId} was blocked", userId);
-                throw new Exceptions.ForbiddenException("Cannot assign System Admin role through this endpoint. System Admin role can only be managed directly in Keycloak.");
+                throw new ForbiddenException("Cannot assign System Admin role through this endpoint. System Admin role can only be managed directly in Keycloak.");
             }
 
             if (role != UserRole.OrgUser && role != UserRole.OrgAdmin)
             {
-                throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+                throw new ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
             }
 
             var roleString = role.ToRoleString();
@@ -336,7 +340,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (!string.IsNullOrEmpty(currentUserId) && currentUserId == userId && role == UserRole.OrgUser && isCurrentUserAdmin)
             {
                 _logger.LogWarning("User {UserId} attempted to demote themselves, which is not allowed", userId);
-                throw new Exceptions.ForbiddenException("You cannot demote yourself");
+                throw new ForbiddenException("You cannot demote yourself");
             }
 
             var allRoles = await _adminClient.GetAllRolesAsync(keycloakAdminToken);
@@ -346,7 +350,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             if (targetRole == null)
             {
                 _logger.LogWarning("Role {Role} not found in available roles", roleString);
-                throw new Exceptions.BusinessRuleException($"Role '{roleString}' not found in realm");
+                throw new BusinessRuleException($"Role '{roleString}' not found in realm");
             }
             
             _logger.LogInformation("Found role {Role} with ID: {RoleId}", roleString, targetRole.Id);
@@ -363,7 +367,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             
             _logger.LogInformation("Successfully updated user {UserId} to role {Role}", userId, roleString);
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -371,12 +375,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error updating user role");
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error updating user role");
-            throw new Exceptions.InfrastructureException("An unexpected error occurred while updating user role", ex);
+            throw new InfrastructureException("An unexpected error occurred while updating user role", ex);
         }
     }
 
@@ -384,35 +388,35 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         if (string.IsNullOrWhiteSpace(username))
         {
-            throw new Exceptions.ValidationException("Username is required");
+            throw new ValidationException("Username is required");
         }
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new Exceptions.ValidationException("Email is required");
+            throw new ValidationException("Email is required");
         }
         if (string.IsNullOrWhiteSpace(firstName))
         {
-            throw new Exceptions.ValidationException("First name is required");
+            throw new ValidationException("First name is required");
         }
         if (string.IsNullOrWhiteSpace(lastName))
         {
-            throw new Exceptions.ValidationException("Last name is required");
+            throw new ValidationException("Last name is required");
         }
         if (string.IsNullOrWhiteSpace(password))
         {
-            throw new Exceptions.ValidationException("Password is required");
+            throw new ValidationException("Password is required");
         }
 
         // Prevent creation of systemAdmin users
         if (role == UserRole.SystemAdmin)
         {
             _logger.LogWarning("Attempt to create systemAdmin user '{Username}' was blocked", username);
-            throw new Exceptions.ForbiddenException("Cannot create System Admin users through this endpoint. System Admin role can only be managed directly in Keycloak.");
+            throw new ForbiddenException("Cannot create System Admin users through this endpoint. System Admin role can only be managed directly in Keycloak.");
         }
 
         if (role != UserRole.OrgUser && role != UserRole.OrgAdmin)
         {
-            throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+            throw new ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
         }
 
         try
@@ -431,7 +435,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             
             return userId;
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -439,12 +443,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error creating user {Username}", username);
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error creating user {Username}", username);
-            throw new Exceptions.InfrastructureException("An unexpected error occurred while creating user", ex);
+            throw new InfrastructureException("An unexpected error occurred while creating user", ex);
         }
     }
 
@@ -452,15 +456,15 @@ public class KeycloakAuthService : IKeycloakAuthService
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
-            throw new Exceptions.ValidationException("User ID is required");
+            throw new ValidationException("User ID is required");
         }
         if (string.IsNullOrWhiteSpace(firstName))
         {
-            throw new Exceptions.ValidationException("First name is required");
+            throw new ValidationException("First name is required");
         }
         if (string.IsNullOrWhiteSpace(lastName))
         {
-            throw new Exceptions.ValidationException("Last name is required");
+            throw new ValidationException("Last name is required");
         }
 
         try
@@ -473,7 +477,7 @@ public class KeycloakAuthService : IKeycloakAuthService
             
             _logger.LogInformation("Successfully updated user details for user {UserId}", userId);
         }
-        catch (Exceptions.AppException)
+        catch (AppException)
         {
             // Re-throw application exceptions
             throw;
@@ -481,12 +485,12 @@ public class KeycloakAuthService : IKeycloakAuthService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error updating user details for user {UserId}", userId);
-            throw new Exceptions.InfrastructureException("Authentication service is unavailable", ex);
+            throw new InfrastructureException("Authentication service is unavailable", ex);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error updating user details for user {UserId}", userId);
-            throw new Exceptions.InfrastructureException("An unexpected error occurred while updating user details", ex);
+            throw new InfrastructureException("An unexpected error occurred while updating user details", ex);
         }
     }
 }

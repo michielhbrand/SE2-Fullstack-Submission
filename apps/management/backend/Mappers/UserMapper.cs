@@ -1,5 +1,5 @@
-using ManagementApi.DTOs.Auth;
 using ManagementApi.DTOs.User;
+using Shared.Core.Keycloak.Models;
 using Shared.Database.Models;
 
 namespace ManagementApi.Mappers;

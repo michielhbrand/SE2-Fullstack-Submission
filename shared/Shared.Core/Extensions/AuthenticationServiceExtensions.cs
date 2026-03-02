@@ -1,16 +1,22 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace ManagementApi.Extensions;
+namespace Shared.Core.Extensions;
 
 public static class AuthenticationServiceExtensions
 {
-    public static IServiceCollection AddAuthenticationServices(
+    public static IServiceCollection AddKeycloakJwtAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        bool mapInboundClaims = false,
+        string nameClaimType = "preferred_username")
     {
         var audience = configuration["Keycloak:Audience"] ?? "backend-api";
 
@@ -20,6 +26,7 @@ public static class AuthenticationServiceExtensions
                 options.Authority = configuration["Keycloak:Authority"];
                 options.Audience = audience;
                 options.RequireHttpsMetadata = !environment.IsDevelopment();
+                options.MapInboundClaims = mapInboundClaims;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -27,20 +34,20 @@ public static class AuthenticationServiceExtensions
                     ValidAudiences = [audience],
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
+                    NameClaimType = nameClaimType,
                     RoleClaimType = ClaimTypes.Role
                 };
-                
+
                 options.Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
                         logger.LogError(context.Exception, "Authentication failed");
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
-                        // Extract roles from Keycloak's realm_access claim
                         if (context.Principal?.Identity is ClaimsIdentity identity)
                         {
                             var realmAccessClaim = identity.FindFirst("realm_access");
@@ -59,18 +66,16 @@ public static class AuthenticationServiceExtensions
                                         foreach (var role in roles)
                                         {
                                             if (!string.IsNullOrEmpty(role))
-                                            {
                                                 identity.AddClaim(new Claim(ClaimTypes.Role, role));
-                                            }
                                         }
 
-                                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
                                         logger.LogInformation("Token validated with roles: {Roles}", string.Join(", ", roles));
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
                                     logger.LogError(ex, "Error extracting roles from realm_access claim");
                                 }
                             }
@@ -79,7 +84,7 @@ public static class AuthenticationServiceExtensions
                     },
                     OnChallenge = context =>
                     {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
                         logger.LogWarning("Authentication challenge: {Error}, {ErrorDescription}",
                             context.Error, context.ErrorDescription);
                         return Task.CompletedTask;
@@ -87,11 +92,7 @@ public static class AuthenticationServiceExtensions
                 };
             });
 
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy("SystemAdminOnly", policy =>
-                policy.RequireRole("systemAdmin"));
-        });
+        services.AddAuthorization();
 
         return services;
     }

@@ -746,7 +746,7 @@ export class ManagementApiClient {
     }
 
     createUser(request: CreateUserRequest, cancelToken?: CancelToken): Promise<UserResponse> {
-        let url_ = this.baseUrl + "/api/users";
+        let url_ = this.baseUrl + "/api/v1/users";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -819,7 +819,7 @@ export class ManagementApiClient {
     }
 
     getAllUsers( cancelToken?: CancelToken): Promise<UserResponse[]> {
-        let url_ = this.baseUrl + "/api/users";
+        let url_ = this.baseUrl + "/api/v1/users";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -881,7 +881,7 @@ export class ManagementApiClient {
     }
 
     updateUser(userId: string, request: UpdateUserRequest, cancelToken?: CancelToken): Promise<UserResponse> {
-        let url_ = this.baseUrl + "/api/users/{userId}";
+        let url_ = this.baseUrl + "/api/v1/users/{userId}";
         if (userId === undefined || userId === null)
             throw new globalThis.Error("The parameter 'userId' must be defined.");
         url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
@@ -964,7 +964,7 @@ export class ManagementApiClient {
     }
 
     getUser(userId: string, cancelToken?: CancelToken): Promise<UserResponse> {
-        let url_ = this.baseUrl + "/api/users/{userId}";
+        let url_ = this.baseUrl + "/api/v1/users/{userId}";
         if (userId === undefined || userId === null)
             throw new globalThis.Error("The parameter 'userId' must be defined.");
         url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
@@ -1043,7 +1043,7 @@ export class ManagementApiClient {
     }
 
     getUserDirectory(page: number, pageSize: number, sortDescending: boolean, searchTerm?: string | null | undefined, sortBy?: string | null | undefined, activeOnly?: boolean | null | undefined, cancelToken?: CancelToken): Promise<PagedUserDirectoryResponse> {
-        let url_ = this.baseUrl + "/api/users/directory?";
+        let url_ = this.baseUrl + "/api/v1/users/directory?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -1130,7 +1130,7 @@ export class ManagementApiClient {
     }
 
     syncUserDirectory( cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/users/directory/sync";
+        let url_ = this.baseUrl + "/api/v1/users/directory/sync";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -1188,7 +1188,7 @@ export class ManagementApiClient {
     }
 
     addUserToOrganization(organizationId: number, request: CreateOrganizationMemberRequest, cancelToken?: CancelToken): Promise<OrganizationMemberResponse> {
-        let url_ = this.baseUrl + "/api/organizations/{organizationId}/members";
+        let url_ = this.baseUrl + "/api/v1/organizations/{organizationId}/members";
         if (organizationId === undefined || organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' must be defined.");
         url_ = url_.replace("{organizationId}", encodeURIComponent("" + organizationId));
@@ -1271,7 +1271,7 @@ export class ManagementApiClient {
     }
 
     getOrganizationMembers(organizationId: number, cancelToken?: CancelToken): Promise<OrganizationMemberResponse[]> {
-        let url_ = this.baseUrl + "/api/organizations/{organizationId}/members";
+        let url_ = this.baseUrl + "/api/v1/organizations/{organizationId}/members";
         if (organizationId === undefined || organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' must be defined.");
         url_ = url_.replace("{organizationId}", encodeURIComponent("" + organizationId));
@@ -1343,7 +1343,7 @@ export class ManagementApiClient {
     }
 
     removeUserFromOrganization(organizationId: number, userId: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/organizations/{organizationId}/members/{userId}";
+        let url_ = this.baseUrl + "/api/v1/organizations/{organizationId}/members/{userId}";
         if (organizationId === undefined || organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' must be defined.");
         url_ = url_.replace("{organizationId}", encodeURIComponent("" + organizationId));

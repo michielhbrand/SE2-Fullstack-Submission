@@ -1,7 +1,8 @@
 using FluentAssertions;
 using Shared.Database.Data;
 using ManagementApi.DTOs.User;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Exceptions.Application;
+using Shared.Core.Keycloak.Models;
 using Shared.Database.Models;
 using ManagementApi.Services.Auth;
 using ManagementApi.Services.User;
@@ -51,7 +52,7 @@ public class UserServiceTests : IDisposable
             Role = UserRole.OrgUser
         };
 
-        var keycloakUser = new DTOs.Auth.KeycloakUserResponse
+        var keycloakUser = new KeycloakUserResponse
         {
             Id = "keycloak-user-id",
             Email = request.Email,

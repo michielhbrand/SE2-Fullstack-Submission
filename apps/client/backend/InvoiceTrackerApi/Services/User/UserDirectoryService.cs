@@ -1,6 +1,7 @@
 using Shared.Database.Data;
 using InvoiceTrackerApi.DTOs.User;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 

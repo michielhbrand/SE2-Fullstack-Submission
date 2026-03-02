@@ -1,5 +1,5 @@
 using FluentAssertions;
-using ManagementApi.DTOs.Auth;
+using Shared.Core.Keycloak.Models;
 using ManagementApi.Mappers;
 using Shared.Database.Models;
 

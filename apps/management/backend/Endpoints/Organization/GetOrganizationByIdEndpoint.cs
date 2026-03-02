@@ -1,6 +1,6 @@
 using Shared.Database.Data;
 using ManagementApi.DTOs.Organization;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Exceptions.Application;
 using ManagementApi.Mappers;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;

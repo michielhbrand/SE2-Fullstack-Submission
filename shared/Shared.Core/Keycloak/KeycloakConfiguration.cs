@@ -1,4 +1,7 @@
-namespace InvoiceTrackerApi.Services.Auth;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace Shared.Core.Keycloak;
 
 /// <summary>
 /// Holds Keycloak configuration settings extracted from application configuration.
@@ -14,22 +17,21 @@ public class KeycloakConfiguration
 
     public KeycloakConfiguration(IConfiguration configuration, ILogger logger)
     {
-        // Extract Keycloak configuration
-        var authority = configuration["Keycloak:Authority"] 
+        var authority = configuration["Keycloak:Authority"]
             ?? throw new InvalidOperationException("Keycloak:Authority not configured");
-        
+
         // Parse authority to extract base URL and realm
         // Authority format: http://localhost:9090/realms/microservices
         var authorityUri = new Uri(authority);
         var pathSegments = authorityUri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        
+
         KeycloakUrl = $"{authorityUri.Scheme}://{authorityUri.Authority}";
         Realm = pathSegments.Length >= 2 ? pathSegments[1] : "microservices";
         ClientId = configuration["Keycloak:ClientId"] ?? "frontend-app";
-        AdminClientId = configuration["Keycloak:ClientId"] ?? "frontend-app"; // Use same client for admin login
+        AdminClientId = configuration["Keycloak:ClientId"] ?? "frontend-app";
         AdminUsername = configuration["Keycloak:AdminUsername"] ?? "admin";
         AdminPassword = configuration["Keycloak:AdminPassword"] ?? "admin";
-        
+
         logger.LogInformation(
             "KeycloakConfiguration initialized with URL: {Url}, Realm: {Realm}, ClientId: {ClientId}",
             KeycloakUrl, Realm, ClientId);

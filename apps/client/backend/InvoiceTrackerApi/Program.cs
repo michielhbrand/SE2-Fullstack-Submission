@@ -1,5 +1,6 @@
 using InvoiceTrackerApi.Extensions;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Extensions;
 using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.Client;
@@ -50,8 +51,8 @@ builder.Services.AddOpenTelemetry()
 
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddSwaggerServices();
-builder.Services.AddCorsServices();
-builder.Services.AddAuthenticationServices(builder.Configuration, builder.Environment);
+builder.Services.AddCorsPolicy("AllowFrontend", "http://localhost:5173", "http://localhost:3000");
+builder.Services.AddKeycloakJwtAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHealthCheckServices();
 builder.Services.AddValidationServices();
 

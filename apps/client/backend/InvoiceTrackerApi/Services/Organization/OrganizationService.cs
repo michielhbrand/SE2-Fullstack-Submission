@@ -1,7 +1,8 @@
 using Shared.Database.Data;
 using InvoiceTrackerApi.DTOs.Organization.Requests;
 using InvoiceTrackerApi.DTOs.Organization.Responses;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Organization;
 using InvoiceTrackerApi.Repositories.OrganizationMember;

@@ -6,7 +6,7 @@ public static class UserEndpointsConfiguration
 {
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
-        var usersGroup = app.MapGroup("/api/users")
+        var usersGroup = app.MapGroup("/api/v1/users")
             .WithTags("Users")
             .RequireAuthorization(new AuthorizeAttribute { Roles = "systemAdmin" });
 
@@ -17,7 +17,7 @@ public static class UserEndpointsConfiguration
         usersGroup.MapGetUser();
         usersGroup.MapSyncUserDirectory();
 
-        var organizationsGroup = app.MapGroup("/api/organizations")
+        var organizationsGroup = app.MapGroup("/api/v1/organizations")
             .WithTags("Organization Members")
             .RequireAuthorization(new AuthorizeAttribute { Roles = "systemAdmin" });
 

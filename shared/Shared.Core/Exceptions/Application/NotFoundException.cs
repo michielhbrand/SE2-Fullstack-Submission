@@ -1,9 +1,5 @@
-namespace InvoiceTrackerApi.Exceptions;
+namespace Shared.Core.Exceptions.Application;
 
-/// <summary>
-/// Exception thrown when a requested entity is not found.
-/// Maps to HTTP 404 Not Found.
-/// </summary>
 public class NotFoundException : AppException
 {
     public override int StatusCode => 404;
@@ -11,11 +7,6 @@ public class NotFoundException : AppException
     public override string Title => "Resource Not Found";
 
     public NotFoundException(string entityName, object key)
-        : base($"{entityName} with ID {key} not found")
-    {
-    }
-
-    public NotFoundException(string message) : base(message)
-    {
-    }
+        : base($"{entityName} with ID {key} not found") { }
+    public NotFoundException(string message) : base(message) { }
 }

@@ -1,4 +1,5 @@
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
 
 namespace InvoiceTrackerApi.Services.PdfStorage;
 

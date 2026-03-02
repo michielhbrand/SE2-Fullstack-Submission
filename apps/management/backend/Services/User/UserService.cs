@@ -1,6 +1,6 @@
 using Shared.Database.Data;
 using ManagementApi.DTOs.User;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Exceptions.Application;
 using ManagementApi.Mappers;
 using Shared.Database.Models;
 using ManagementApi.Services.Auth;

@@ -1,8 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using ManagementApi.DTOs.Auth;
-using ManagementApi.Exceptions;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Keycloak.Models;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
 using Shared.Database.Models;
 
 namespace ManagementApi.Services.Auth;

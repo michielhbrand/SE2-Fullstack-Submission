@@ -1,7 +1,8 @@
 using InvoiceTrackerApi.DTOs.Client.Requests;
 using InvoiceTrackerApi.DTOs.Client.Responses;
 using InvoiceTrackerApi.DTOs.Common;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
 using InvoiceTrackerApi.Mappers;
 using InvoiceTrackerApi.Repositories.Client;
 

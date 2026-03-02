@@ -1,5 +1,10 @@
 using System.Text;
 using System.Text.Json;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
+using Shared.Core.Exceptions.Infrastructure;
+using Shared.Core.Keycloak;
+using Shared.Core.Keycloak.Models;
 using InvoiceTrackerApi.Services.Auth.Models;
 
 namespace InvoiceTrackerApi.Services.Auth;
@@ -45,7 +50,7 @@ public class KeycloakAdminClient
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Failed to get admin access token. Status: {Status}", response.StatusCode);
-                throw new Exceptions.InfrastructureException("Failed to authenticate with Keycloak admin API");
+                throw new InfrastructureException("Failed to authenticate with Keycloak admin API");
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -54,7 +59,7 @@ public class KeycloakAdminClient
 
             if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.Access_Token))
             {
-                throw new Exceptions.InfrastructureException("Invalid admin token response");
+                throw new InfrastructureException("Invalid admin token response");
             }
 
             return tokenResponse.Access_Token;
@@ -62,14 +67,14 @@ public class KeycloakAdminClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting admin access token");
-            throw new Exceptions.InfrastructureException("Failed to obtain admin access token", ex);
+            throw new InfrastructureException("Failed to obtain admin access token", ex);
         }
     }
 
     /// <summary>
     /// Gets all users from Keycloak.
     /// </summary>
-    public async Task<List<KeycloakUser>> GetAllUsersAsync(string adminToken)
+    public async Task<List<KeycloakUserResponse>> GetAllUsersAsync(string adminToken)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, _config.GetUsersEndpoint());
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
@@ -79,16 +84,16 @@ public class KeycloakAdminClient
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Failed to get users. Status: {Status}", response.StatusCode);
-            return new List<KeycloakUser>();
+            return new List<KeycloakUserResponse>();
         }
         
         var content = await response.Content.ReadAsStringAsync();
-        var users = JsonSerializer.Deserialize<List<KeycloakUser>>(content, new JsonSerializerOptions
+        var users = JsonSerializer.Deserialize<List<KeycloakUserResponse>>(content, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
         
-        return users ?? new List<KeycloakUser>();
+        return users ?? new List<KeycloakUserResponse>();
     }
 
     /// <summary>
@@ -104,7 +109,7 @@ public class KeycloakAdminClient
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Failed to get available roles. Status: {Status}", response.StatusCode);
-            throw new Exceptions.BusinessRuleException("Failed to retrieve available roles from authentication service");
+            throw new BusinessRuleException("Failed to retrieve available roles from authentication service");
         }
         
         var content = await response.Content.ReadAsStringAsync();
@@ -194,10 +199,10 @@ public class KeycloakAdminClient
             // Check for conflict (user already exists)
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
-                throw new Exceptions.ConflictException("A user with this username or email already exists");
+                throw new ConflictException("A user with this username or email already exists");
             }
             
-            throw new Exceptions.BusinessRuleException("Failed to create user in Keycloak");
+            throw new BusinessRuleException("Failed to create user in Keycloak");
         }
         
         // Extract user ID from Location header
@@ -205,7 +210,7 @@ public class KeycloakAdminClient
         if (string.IsNullOrEmpty(locationHeader))
         {
             _logger.LogError("Failed to get user ID from Location header after creating user {Username}", username);
-            throw new Exceptions.BusinessRuleException("Failed to retrieve created user ID");
+            throw new BusinessRuleException("Failed to retrieve created user ID");
         }
         
         return locationHeader.Split('/').Last();
@@ -255,7 +260,7 @@ public class KeycloakAdminClient
         {
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning("Failed to add user role. Status: {Status}", response.StatusCode);
-            throw new Exceptions.BusinessRuleException("Failed to update user role in Keycloak");
+            throw new BusinessRuleException("Failed to update user role in Keycloak");
         }
     }
 
@@ -287,7 +292,7 @@ public class KeycloakAdminClient
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning("Failed to update user details for user {UserId}. Status: {Status}, Error: {Error}",
                 userId, response.StatusCode, errorContent);
-            throw new Exceptions.BusinessRuleException("Failed to update user details in Keycloak");
+            throw new BusinessRuleException("Failed to update user details in Keycloak");
         }
     }
 }

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions.Application;
 
 namespace InvoiceTrackerApi.Controllers;
 

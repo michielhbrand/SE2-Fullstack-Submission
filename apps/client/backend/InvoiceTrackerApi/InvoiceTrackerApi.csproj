@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../../shared/Shared.Database/Shared.Database.csproj" />
+    <ProjectReference Include="../../../../shared/Shared.Core/Shared.Core.csproj" />
   </ItemGroup>
 
 </Project>

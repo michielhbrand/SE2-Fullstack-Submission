@@ -1,5 +1,5 @@
 using ManagementApi.DTOs.PaymentPlan;
-using ManagementApi.Exceptions.Application;
+using Shared.Core.Exceptions.Application;
 using ManagementApi.Filters;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Shared.Database.Data;

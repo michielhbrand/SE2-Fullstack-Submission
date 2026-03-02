@@ -3,6 +3,7 @@ using Shared.Database.Models;
 using InvoiceTrackerApi.Repositories.OrganizationMember;
 using InvoiceTrackerApi.Repositories.User;
 using InvoiceTrackerApi.Services.Auth;
+using Shared.Core.Exceptions.Application;
 using UserRole = InvoiceTrackerApi.Services.Auth.UserRole;
 
 namespace InvoiceTrackerApi.Services.User;
@@ -39,7 +40,7 @@ public class UserService : IUserService
     {
         if (!UserRoleExtensions.TryParseRoleString(request.Role, out var role))
         {
-            throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+            throw new ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
         }
 
         var userId = await _keycloakService.CreateUserAsync(
@@ -130,7 +131,7 @@ public class UserService : IUserService
     {
         if (request.Role != UserRole.OrgUser && request.Role != UserRole.OrgAdmin)
         {
-            throw new Exceptions.ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
+            throw new ValidationException($"Invalid role. Must be one of: {string.Join(", ", UserRoleExtensions.GetAssignableRoleStrings())}");
         }
 
         await _keycloakService.UpdateUserDetailsAsync(adminToken, userId, request.FirstName, request.LastName);

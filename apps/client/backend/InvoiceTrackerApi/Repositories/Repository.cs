@@ -1,5 +1,7 @@
 using Shared.Database.Data;
-using InvoiceTrackerApi.Exceptions;
+using Shared.Core.Exceptions;
+using Shared.Core.Exceptions.Application;
+using Shared.Core.Exceptions.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceTrackerApi.Repositories;

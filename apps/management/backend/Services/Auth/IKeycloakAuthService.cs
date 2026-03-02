@@ -1,4 +1,5 @@
 using ManagementApi.DTOs.Auth;
+using Shared.Core.Keycloak.Models;
 using Shared.Database.Models;
 
 namespace ManagementApi.Services.Auth;
