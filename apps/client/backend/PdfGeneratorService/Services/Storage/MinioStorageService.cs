@@ -340,9 +340,9 @@ public class MinioStorageService : IMinioStorageService
             var getObjectArgs = new GetObjectArgs()
                 .WithBucket(_invoiceTemplatesBucketName)
                 .WithObject(templateName)
-                .WithCallbackStream(async (stream) =>
+                .WithCallbackStream(stream =>
                 {
-                    await stream.CopyToAsync(memoryStream);
+                    stream.CopyTo(memoryStream);
                 });
 
             await _minioClient.GetObjectAsync(getObjectArgs);
@@ -378,15 +378,15 @@ public class MinioStorageService : IMinioStorageService
             var getObjectArgs = new GetObjectArgs()
                 .WithBucket(_quoteTemplatesBucketName)
                 .WithObject(templateName)
-                .WithCallbackStream(async (stream) =>
+                .WithCallbackStream(stream =>
                 {
-                    await stream.CopyToAsync(memoryStream);
+                    stream.CopyTo(memoryStream);
                 });
 
             await _minioClient.GetObjectAsync(getObjectArgs);
 
             var htmlContent = Encoding.UTF8.GetString(memoryStream.ToArray());
-            
+
             _logger.LogInformation("Successfully retrieved quote template: {TemplateName}, Size: {Size} bytes",
                 templateName, memoryStream.Length);
 
