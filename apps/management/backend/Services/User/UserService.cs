@@ -51,7 +51,7 @@ public class UserService : IUserService
             request.Email,
             request.FirstName,
             request.LastName,
-            request.Email, // Default password is email
+            "password123", // Default password for all new users
             request.Role,
             cancellationToken);
 

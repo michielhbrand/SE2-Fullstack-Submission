@@ -12,7 +12,7 @@ public static class CreateUserEndpoint
         return group.MapPost("/", Handle)
             .WithName("CreateUser")
             .WithSummary("Create a new user")
-            .WithDescription("Creates a new user in Keycloak and the local database. Default password is the user's email address.")
+            .WithDescription("Creates a new user in Keycloak and the local database. Default password is 'password123'.")
             .WithOpenApi()
             .Produces<UserResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)

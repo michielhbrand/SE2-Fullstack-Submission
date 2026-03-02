@@ -66,9 +66,10 @@
 ### Purpose & Responsibility
 
 - Single responsibility: consume Kafka events and send email notifications with PDF attachments
-- Handles two event types:
+- Handles three event types:
   - `quote-approval-requested` — sends quote approval emails to clients with a link to approve/reject
   - `invoice-generated` — sends invoice emails to clients with the PDF attached
+  - `invoice-overdue` — sends overdue payment reminder emails, triggered when an admin manually fires the overdue check or the `OverdueInvoiceCheckService` background task runs
 
 ### Kafka Consumer Pattern
 
@@ -112,7 +113,7 @@
 ### Logging
 
 - **Serilog** with `CompactJsonFormatter` writes structured JSON to stdout — every log line is enriched with `ServiceName`, `Environment`, `MachineName`, and `ThreadId`
-- All four `BackgroundService` consumers (`InvoiceCreatedConsumer`, `QuoteCreatedConsumer`, `QuoteApprovalRequestedConsumer`, `InvoiceGeneratedConsumer`) manually extract W3C `traceparent`/`tracestate` headers from incoming Kafka messages and start a child `Activity` restoring the trace context from the producer
+- All five `BackgroundService` consumers (`InvoiceCreatedConsumer`, `QuoteCreatedConsumer` in `PdfGeneratorService`; `QuoteApprovalRequestedConsumer`, `InvoiceGeneratedConsumer`, `InvoiceOverdueConsumer` in `EmailNotificationService`) manually extract W3C `traceparent`/`tracestate` headers from incoming Kafka messages and start a child `Activity` restoring the trace context from the producer
 - **`Serilog.Enrichers.Span`** embeds the restored `TraceId` into every log entry inside the consumer — consumer logs in `PdfGeneratorService` and `EmailNotificationService` share the same `TraceId` as the originating HTTP request in `InvoiceTrackerApi`
 - Kafka consumer events logged with topic, partition, and offset for traceability
 - Email delivery and PDF generation outcomes logged for operational visibility

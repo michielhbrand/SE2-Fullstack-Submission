@@ -75,7 +75,7 @@
 
 - Same **global exception handler** pattern as InvoiceTrackerApi — consistent error responses across both APIs
 - RFC 9457 Problem Details for all error responses
-- Leaner exception hierarchy focused on management concerns:
+- Exception types sourced from the shared **`Shared.Core`** library (`Shared.Core.Exceptions.Application`):
   - `NotFoundException` (404), `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `ServiceUnavailableException` (503)
 - **`GlobalExceptionHandler`** includes `traceId` (from `httpContext.TraceIdentifier`) in all `ProblemDetails` responses — this is part of a consistent cross-service pattern shared with `InvoiceTrackerApi`
 - **Serilog** with `CompactJsonFormatter` writes structured JSON to stdout, enriched with `ServiceName`, `Environment`, `MachineName`, and `ThreadId`; `Serilog.Enrichers.Span` embeds `TraceId` and `SpanId` into every log entry
@@ -85,6 +85,13 @@
 - Same **Keycloak JWT Bearer** authentication as InvoiceTrackerApi — shared identity provider
 - Separate CORS policy (`AllowManagementPortal`) — only the management frontend origin is permitted
 - `systemAdmin` role required for management operations — enforced at the endpoint level
+
+## User Provisioning
+
+- New users are created via the **Keycloak Admin REST API** (`KeycloakUserAdminService`) — the management backend provisions the identity directly in Keycloak, no self-registration required
+- Default password for all new users is `password123` — a fixed password used regardless of the user's email address, which avoids failures when an email address is shorter than Keycloak's minimum password length
+- Users can change their password via the Keycloak account portal at any time
+- `GetOrganizationsRequest` uses a plain `class` with regular `set` properties (not a `record` with `init`) — required for correct `[AsParameters]` query-string binding in .NET 8 when optional integer parameters are absent from the request
 
 ## Testing Strategy
 

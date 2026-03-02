@@ -58,10 +58,10 @@
 
 - **Global exception handler** (`GlobalExceptionHandler`) implements `IExceptionHandler` — the .NET 8 recommended approach
 - All exceptions map to **RFC 9457 Problem Details** responses — standardized, machine-readable error format
-- Custom exception hierarchy:
-  - `AppException` (abstract base) — carries `StatusCode`, `Type` (RFC URI), and `Title`
-  - Application exceptions: `NotFoundException` (404), `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `ConflictException` (409), `DuplicateEntityException` (409), `BusinessRuleException` (422)
-  - Infrastructure exceptions: `DatabaseUnavailableException` (503), `InfrastructureException` (500)
+- Custom exception hierarchy lives in the **`Shared.Core`** library (shared with `ManagementApi`):
+  - `AppException` (abstract base, `Shared.Core.Exceptions`) — carries `StatusCode`, `Type` (RFC URI), and `Title`
+  - Application exceptions (`Shared.Core.Exceptions.Application`): `NotFoundException` (404), `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `ConflictException` (409), `DuplicateEntityException` (409), `BusinessRuleException` (422)
+  - Infrastructure exceptions (`Shared.Core.Exceptions.Infrastructure`): `DatabaseUnavailableException` (503), `InfrastructureException` (500)
 - **No try/catch in controllers** — exceptions bubble up to the global handler, keeping controllers clean
 - Repository layer wraps raw database exceptions (`DbUpdateException`, `DbUpdateConcurrencyException`) into typed application exceptions
 
@@ -84,7 +84,10 @@
 - Token validation: issuer, lifetime, and signing key validated; audience validation relaxed for development flexibility
 - **Keycloak realm roles** extracted from the `realm_access` claim in the `OnTokenValidated` event and mapped to standard .NET `ClaimTypes.Role`
 - Role-based authorization available via `[Authorize(Roles = "...")]` on controllers/actions
-- Organization-level authorization enforced at the service layer — users can only access data within their organization
+- **`OrganizationAuthorizationFilter`** — globally-applied `IAsyncActionFilter` that closes IDOR vulnerabilities by verifying the authenticated user is a member of the `organizationId` present in each request (query string or route parameter) before the action executes
+  - Returns `403 Forbidden` if the user is not a member of the requested organization
+  - Opt-out via `[SkipOrgAuth]` attribute for endpoints that intentionally have no organization context
+  - Result cached in `HttpContext.Items["OrgAuthPassed"]` per request — the membership check runs at most once even if multiple filter stages fire
 
 ## Validation
 
@@ -101,6 +104,13 @@
   - `DbUpdateConcurrencyException` → `ConflictException` (optimistic concurrency)
   - Generic exceptions → `DatabaseUnavailableException`
 - `when (ex is not AppException)` guard prevents double-wrapping of already-typed exceptions
+
+## Workflow Service Architecture
+
+- `WorkflowService` implements the workflow state machine — validates event transitions, mutates status, and records `WorkflowEvent` entries
+- **`IWorkflowEventDispatcher`** / `WorkflowEventDispatcher` — separates Kafka publishing from the state machine logic; maps workflow event types to the correct Kafka topic and publishes asynchronously with error isolation (a Kafka failure does not roll back the state transition)
+- **`IQuoteToInvoiceConversionService`** / `QuoteToInvoiceConversionService` — isolates the quote-to-invoice conversion step that is triggered by the `ConvertedToInvoice` workflow event
+- **`TimeProvider`** injected into services that generate timestamps — improves testability by allowing deterministic time in unit tests
 
 ## Kafka Event Production
 

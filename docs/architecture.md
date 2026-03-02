@@ -3,9 +3,12 @@
 ## Monorepo Structure
 
 - **Single repository** houses both the Client Application and the Management Application
-- Enables shared code (database models, migrations) without publishing internal packages
+- Enables shared code without publishing internal packages
 - Simplifies CI/CD — one pipeline can build, test, and deploy all services
 - Clear folder separation (`apps/client`, `apps/management`, `shared`, `infrastructure`) keeps boundaries explicit
+- **Shared libraries** under `shared/`:
+  - `Shared.Database` — EF Core models, `ApplicationDbContext`, and migrations; single source of truth for the data schema across all services
+  - `Shared.Core` — cross-cutting concerns extracted from individual services: the full exception hierarchy (`AppException` and all subclasses), `GlobalExceptionHandler`, Keycloak JWT authentication extension (`AddKeycloakJwtAuthentication`), CORS extension (`AddCorsPolicy`), and Keycloak configuration/response models
 
 ## Application Separation
 
@@ -28,7 +31,7 @@
               │                                         │
               │  invoice-created  ·  quote-created      │
               │  quote-approval-requested               │
-              │  invoice-generated                      │
+              │  invoice-generated  ·  invoice-overdue  │
               └──────┬──────────────────────┬───────────┘
                      │ consume              │ consume
                      ▼                      ▼
@@ -45,7 +48,7 @@
   - Fault tolerance — if a microservice is down, events queue in Kafka and are processed on recovery
   - Scalability — consumers can be scaled independently based on load
   - Auditability — Kafka retains event history for replay and debugging
-- Topics are domain-specific: `invoice-created`, `quote-created`, `quote-approval-requested`, `invoice-generated`
+- Topics are domain-specific: `invoice-created`, `quote-created`, `quote-approval-requested`, `invoice-generated`, `invoice-overdue`
 - **Confluent Kafka** client library chosen for its production-grade .NET support
 
 ## Identity & Access Management (Keycloak)

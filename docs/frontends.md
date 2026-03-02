@@ -37,13 +37,19 @@
 
 ## Component Libraries
 
-- **Radix Vue / Reka UI** — headless, accessible UI primitives
+- **Reka UI** — headless, accessible UI primitives
   - Provides behavior and accessibility (ARIA, keyboard navigation) without opinionated styling
   - Components like Dialog, Select, Dropdown, Tooltip follow WAI-ARIA patterns out of the box
   - Styled with Tailwind — full visual control
-- **Vuetify** — used selectively for complex data components
-  - Material Design component library with rich data table, form, and layout components
-  - `vite-plugin-vuetify` for tree-shaking — only imported components are bundled
+  - `radix-vue` was removed; all primitives migrated to `reka-ui`, its direct successor with an identical API
+- **Vuetify** — used in the client app only for the workflow timeline (`v-timeline`, `v-timeline-item`, `v-btn`, `v-icon`, `v-divider`)
+  - Management app has no Vuetify dependency — removed entirely
+  - `vite-plugin-vuetify` with `autoImport: true` handles tree-shaking — only components used in templates are bundled; no barrel `import * as components`
+  - Icons served from **`@mdi/js`** as SVG path strings via the `mdi-svg` iconset — eliminates the ~500 KB `@mdi/font` CSS bundle
+- **ApexCharts** / **vue3-apexcharts** — data visualisation
+  - Used in both the client dashboard (revenue bar chart, invoice status donut) and the management dashboard
+  - Replaced the client app's original `chart.js` / `vue-chartjs` — unifies the charting library across both frontends
+  - `VueApexCharts` registered globally in `main.ts`; charts rendered as `<apexchart>` with reactive `series` and `options` props
 - **Lucide Vue Next** — icon library
   - Tree-shakeable SVG icons — only used icons are included in the bundle
   - Consistent icon style across the application
@@ -73,6 +79,9 @@
   - `requiresAdmin` meta — restricts admin routes to admin users
   - Authenticated users redirected away from login page to their appropriate dashboard
 - Nested routes for admin section (`/admin/users`, `/admin/payment-details`, `/admin/edit-organization`)
+- **Lazy-loaded routes** — all route components except `Login` (and `AppLayout` in the management app) use dynamic imports (`const Dashboard = () => import(...)`)
+  - Each route is a separate JS chunk — the browser downloads only the code needed for the current page
+  - Login page loads eagerly since it is always the first page an unauthenticated user sees
 
 ## Auto-Generated API Clients (NSwag)
 
@@ -143,3 +152,10 @@
 - Organization switcher allows users belonging to multiple organizations to switch context
 - Active organization stored in Pinia and persisted — all API calls scoped to the selected organization
 - Organization context initialized on login and cleared on logout
+
+## Composables
+
+- **`useOrganizationContext`** — resolves the active organization on page load, used by all data-fetching views via `ensureOrganizationContext()` before their first API call
+- **`usePagination(defaultPageSize)`** — encapsulates shared pagination state across `Invoices.vue`, `Quotes.vue`, `Templates.vue`, and `Workflows.vue`
+  - Exposes `page`, `pageSize`, `total`, `totalPages` (computed from `total / pageSize`), and `paginationPages` (windowed page number list for the UI)
+  - Extracted to eliminate identical `ref()` declarations and `paginationPages` computed logic that was copy-pasted across four views
