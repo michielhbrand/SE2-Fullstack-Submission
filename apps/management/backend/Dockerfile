@@ -4,10 +4,12 @@ WORKDIR /src
 COPY certs/ca-bundle.crt /usr/local/share/ca-certificates/corporate.crt
 RUN update-ca-certificates
 
+COPY shared/Shared.Core/Shared.Core.csproj shared/Shared.Core/
 COPY shared/Shared.Database/Shared.Database.csproj shared/Shared.Database/
 COPY apps/management/backend/ManagementApi.csproj apps/management/backend/
 RUN dotnet restore apps/management/backend/ManagementApi.csproj
 
+COPY shared/Shared.Core/ shared/Shared.Core/
 COPY shared/Shared.Database/ shared/Shared.Database/
 COPY apps/management/backend/ apps/management/backend/
 RUN dotnet publish apps/management/backend/ManagementApi.csproj \

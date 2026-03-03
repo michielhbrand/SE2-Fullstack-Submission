@@ -6,11 +6,13 @@ COPY certs/ca-bundle.crt /usr/local/share/ca-certificates/corporate.crt
 RUN update-ca-certificates
 
 # Copy project files first for layer caching
+COPY shared/Shared.Core/Shared.Core.csproj shared/Shared.Core/
 COPY shared/Shared.Database/Shared.Database.csproj shared/Shared.Database/
 COPY apps/client/backend/InvoiceTrackerApi/InvoiceTrackerApi.csproj apps/client/backend/InvoiceTrackerApi/
 RUN dotnet restore apps/client/backend/InvoiceTrackerApi/InvoiceTrackerApi.csproj
 
 # Copy source and publish
+COPY shared/Shared.Core/ shared/Shared.Core/
 COPY shared/Shared.Database/ shared/Shared.Database/
 COPY apps/client/backend/InvoiceTrackerApi/ apps/client/backend/InvoiceTrackerApi/
 RUN dotnet publish apps/client/backend/InvoiceTrackerApi/InvoiceTrackerApi.csproj \

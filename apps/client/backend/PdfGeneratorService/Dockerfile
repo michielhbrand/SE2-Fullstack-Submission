@@ -4,10 +4,12 @@ WORKDIR /src
 COPY certs/ca-bundle.crt /usr/local/share/ca-certificates/corporate.crt
 RUN update-ca-certificates
 
+COPY shared/Shared.Core/Shared.Core.csproj shared/Shared.Core/
 COPY shared/Shared.Database/Shared.Database.csproj shared/Shared.Database/
 COPY apps/client/backend/PdfGeneratorService/PdfGeneratorService.csproj apps/client/backend/PdfGeneratorService/
 RUN dotnet restore apps/client/backend/PdfGeneratorService/PdfGeneratorService.csproj
 
+COPY shared/Shared.Core/ shared/Shared.Core/
 COPY shared/Shared.Database/ shared/Shared.Database/
 COPY apps/client/backend/PdfGeneratorService/ apps/client/backend/PdfGeneratorService/
 RUN dotnet publish apps/client/backend/PdfGeneratorService/PdfGeneratorService.csproj \
