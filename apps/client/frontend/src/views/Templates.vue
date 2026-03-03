@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Skeleton, Badge, Button, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '../components/ui/index'
-import { templateApi } from '../services/api'
+import { templateApi, type TemplateType } from '../services/api'
 import { usePagination } from '../composables/usePagination'
 import Layout from '../components/Layout.vue'
 import { toast } from 'vue-sonner'
@@ -26,15 +26,15 @@ interface Template {
 const templates = ref<Template[]>([])
 const loading = ref(true)
 const search = ref<string>('')
-const typeFilter = ref<number | null>(null)
+const typeFilter = ref<TemplateType | null>(null)
 const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(25)
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const typeFilterOptions = [
-  { value: null,  label: 'All' },
-  { value: 0,     label: 'Invoice' },
-  { value: 1,     label: 'Quote' },
+const typeFilterOptions: { value: TemplateType | null; label: string }[] = [
+  { value: null,        label: 'All' },
+  { value: 0 as const,  label: 'Invoice' },
+  { value: 1 as const,  label: 'Quote' },
 ]
 
 const onSearchInput = () => {
@@ -45,7 +45,7 @@ const onSearchInput = () => {
   }, 300)
 }
 
-const setTypeFilter = async (value: number | null) => {
+const setTypeFilter = async (value: TemplateType | null) => {
   typeFilter.value = value
   currentPage.value = 1
   await fetchTemplates()

@@ -79,7 +79,7 @@ public class UserServiceTests : IDisposable
                 request.Email,
                 request.FirstName,
                 request.LastName,
-                request.Email,
+                It.IsAny<string>(),
                 request.Role,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(keycloakUser);

@@ -73,7 +73,7 @@ export const authApi = {
 // Template API functions
 export const templateApi = {
   // Get all templates for an organization
-  getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25, search?: string, type?: number) => {
+  getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25, search?: string, type?: TemplateType) => {
     return await client.template_GetTemplates(organizationId, page, pageSize, search || null, type ?? null)
   },
 
