@@ -8,6 +8,6 @@ namespace InvoiceTrackerApi.Repositories.Quote;
 public interface IQuoteRepository : IRepository<QuoteModel>
 {
     Task<QuoteModel?> GetByIdWithDetailsAsync(int id);
-    Task<IEnumerable<QuoteModel>> GetAllAsync(int organizationId, int page, int pageSize);
-    Task<int> GetTotalCountAsync(int organizationId);
+    Task<IEnumerable<QuoteModel>> GetAllAsync(int organizationId, int page, int pageSize, string? search = null);
+    Task<int> GetTotalCountAsync(int organizationId, string? search = null);
 }

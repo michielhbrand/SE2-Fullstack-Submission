@@ -39,6 +39,8 @@ echo "📥 Fetching OpenAPI specification..."
 "$NSWAG_PATH" run nswag.json
 
 if [ $? -eq 0 ]; then
+    OUTPUT="../../frontend/src/api/generated/api-client.ts"
+    printf '%s\n' '// @ts-nocheck' "$(cat "$OUTPUT")" > "$OUTPUT"
     echo ""
     echo "✅ TypeScript API client generated successfully!"
     echo "   Location: apps/client/frontend/src/api/generated/api-client.ts"

@@ -35,9 +35,17 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<TemplateModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize)
+    public async Task<IEnumerable<TemplateModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize, string? search = null, TemplateType? type = null)
     {
-        return await _context.Templates
+        var query = _context.Templates.Where(t => t.OrganizationId == organizationId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
+
+        if (type.HasValue)
+            query = query.Where(t => t.Type == type.Value);
+
+        return await query
             .OrderByDescending(t => t.Created)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -57,8 +65,16 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
         return await _context.Templates.CountAsync();
     }
 
-    public async Task<int> GetTotalCountByOrganizationAsync(int organizationId)
+    public async Task<int> GetTotalCountByOrganizationAsync(int organizationId, string? search = null, TemplateType? type = null)
     {
-        return await _context.Templates.CountAsync();
+        var query = _context.Templates.Where(t => t.OrganizationId == organizationId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
+
+        if (type.HasValue)
+            query = query.Where(t => t.Type == type.Value);
+
+        return await query.CountAsync();
     }
 }

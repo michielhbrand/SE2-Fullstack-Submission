@@ -37,9 +37,11 @@ public class TemplateController : AuthenticatedControllerBase
     public async Task<ActionResult<PaginatedResponse<TemplateResponse>>> GetTemplates(
         [FromQuery] int organizationId,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] TemplateType? type = null)
     {
-        var response = await _templateService.GetTemplatesAsync(organizationId, page, pageSize);
+        var response = await _templateService.GetTemplatesAsync(organizationId, page, pageSize, search, type);
         return Ok(response);
     }
 

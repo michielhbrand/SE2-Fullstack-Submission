@@ -80,6 +80,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IQuoteToInvoiceConversionService, QuoteToInvoiceConversionService>();
 builder.Services.AddScoped<IWorkflowEventDispatcher, WorkflowEventDispatcher>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped(sp => new Lazy<IWorkflowService>(sp.GetRequiredService<IWorkflowService>));
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();

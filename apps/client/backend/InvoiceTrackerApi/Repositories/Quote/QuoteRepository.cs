@@ -21,22 +21,30 @@ public class QuoteRepository : Repository<QuoteModel>, IQuoteRepository
             .FirstOrDefaultAsync(q => q.Id == id);
     }
 
-    public async Task<IEnumerable<QuoteModel>> GetAllAsync(int organizationId, int page, int pageSize)
+    public async Task<IEnumerable<QuoteModel>> GetAllAsync(int organizationId, int page, int pageSize, string? search = null)
     {
-        return await _context.Quotes
+        var query = _context.Quotes
             .Include(q => q.Items)
             .Include(q => q.Client)
-            .Where(q => q.OrganizationId == organizationId)
+            .Where(q => q.OrganizationId == organizationId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(q => q.Client!.Name.ToLower().Contains(search.ToLower()));
+
+        return await query
             .OrderByDescending(q => q.DateCreated)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
-    public async Task<int> GetTotalCountAsync(int organizationId)
+    public async Task<int> GetTotalCountAsync(int organizationId, string? search = null)
     {
-        return await _context.Quotes
-            .Where(q => q.OrganizationId == organizationId)
-            .CountAsync();
+        var query = _context.Quotes.Where(q => q.OrganizationId == organizationId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(q => q.Client!.Name.ToLower().Contains(search.ToLower()));
+
+        return await query.CountAsync();
     }
 }

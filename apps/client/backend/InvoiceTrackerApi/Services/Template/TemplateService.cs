@@ -35,15 +35,15 @@ public class TemplateService : ITemplateService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int organizationId, int page, int pageSize)
+    public async Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int organizationId, int page, int pageSize, string? search = null, TemplateType? type = null)
     {
         // Input validation
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
-        var templates = await _templateRepository.GetAllByOrganizationAsync(organizationId, page, pageSize);
-        var totalCount = await _templateRepository.GetTotalCountByOrganizationAsync(organizationId);
+        var templates = await _templateRepository.GetAllByOrganizationAsync(organizationId, page, pageSize, search, type);
+        var totalCount = await _templateRepository.GetTotalCountByOrganizationAsync(organizationId, search, type);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PaginatedResponse<TemplateResponse>

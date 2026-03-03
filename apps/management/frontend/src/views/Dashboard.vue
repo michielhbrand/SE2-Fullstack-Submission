@@ -22,7 +22,7 @@ import { getErrorMessage } from "../lib/error-utils";
 
 const router = useRouter();
 const organizations = ref<OrganizationResponse[]>([]);
-const isLoading = ref(false);
+const isLoading = ref(true);
 const isCreateDialogOpen = ref(false);
 
 const fetchOrganizations = async () => {
@@ -154,10 +154,10 @@ const revenueDonutOptions = computed(() => {
     labels: names,
     colors,
     legend: {
-      position: "bottom",
+      position: "bottom" as const,
       fontFamily: "inherit",
       fontSize: "13px",
-      markers: { width: 10, height: 10, radius: 5 },
+      markers: { size: 10 },
     },
     stroke: { width: 0 },
     plotOptions: {

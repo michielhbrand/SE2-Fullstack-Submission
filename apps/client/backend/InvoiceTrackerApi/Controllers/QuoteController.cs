@@ -37,9 +37,10 @@ public class QuoteController : AuthenticatedControllerBase
     public async Task<ActionResult<PaginatedResponse<QuoteResponse>>> GetQuotes(
         [FromQuery] int organizationId,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null)
     {
-        var response = await _quoteService.GetQuotesAsync(organizationId, page, pageSize);
+        var response = await _quoteService.GetQuotesAsync(organizationId, page, pageSize, search);
         return Ok(response);
     }
 

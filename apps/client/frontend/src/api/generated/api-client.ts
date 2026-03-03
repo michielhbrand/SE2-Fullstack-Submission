@@ -632,7 +632,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    dashboard_GetDashboard(organizationId?: number | undefined, cancelToken?: CancelToken): Promise<FileResponse> {
+    dashboard_GetDashboard(organizationId?: number | undefined, cancelToken?: CancelToken): Promise<DashboardResponse> {
         let url_ = this.baseUrl + "/api/dashboard?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -641,11 +641,10 @@ export class ApiClient {
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
-            responseType: "blob",
             method: "GET",
             url: url_,
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             },
             cancelToken
         };
@@ -661,7 +660,7 @@ export class ApiClient {
         });
     }
 
-    protected processDashboard_GetDashboard(response: AxiosResponse): Promise<FileResponse> {
+    protected processDashboard_GetDashboard(response: AxiosResponse): Promise<DashboardResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -671,22 +670,18 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers["content-disposition"] : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return Promise.resolve({ fileName: fileName, status: status, data: new Blob([response.data], { type: response.headers["content-type"] }), headers: _headers });
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DashboardResponse>(result200);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<DashboardResponse>(null as any);
     }
 
     health_GetHealth( cancelToken?: CancelToken): Promise<void> {
@@ -2153,7 +2148,7 @@ export class ApiClient {
         return Promise.resolve<OrganizationResponse[]>(null as any);
     }
 
-    quote_GetQuotes(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
+    quote_GetQuotes(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfQuoteResponse> {
         let url_ = this.baseUrl + "/api/quote?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -2167,6 +2162,8 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -2557,7 +2554,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    template_GetTemplates(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateResponse> {
+    template_GetTemplates(organizationId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, search?: string | null | undefined, type?: TemplateType | null | undefined, cancelToken?: CancelToken): Promise<PaginatedResponseOfTemplateResponse> {
         let url_ = this.baseUrl + "/api/template?";
         if (organizationId === null)
             throw new globalThis.Error("The parameter 'organizationId' cannot be null.");
@@ -2571,6 +2568,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (type !== undefined && type !== null)
+            url_ += "type=" + encodeURIComponent("" + type) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -3920,6 +3921,62 @@ export interface UpdateClientRequest {
     keycloakUserId?: string | null;
 }
 
+export interface DashboardResponse {
+    kpis?: DashboardKpis;
+    revenueByMonth?: MonthlyRevenue[];
+    invoiceStatusBreakdown?: InvoiceStatusBreakdown;
+    workflowStatusBreakdown?: WorkflowStatusCount[];
+    topClients?: TopClient[];
+    recentActivity?: RecentActivityItem[];
+    overdueInvoices?: OverdueInvoiceItem[];
+}
+
+export interface DashboardKpis {
+    totalRevenue?: number;
+    outstandingAmount?: number;
+    overdueAmount?: number;
+    activeWorkflows?: number;
+    totalInvoices?: number;
+    totalClients?: number;
+}
+
+export interface MonthlyRevenue {
+    month?: string;
+    amount?: number;
+}
+
+export interface InvoiceStatusBreakdown {
+    paid?: number;
+    overdue?: number;
+    notPaid?: number;
+}
+
+export interface WorkflowStatusCount {
+    status?: string;
+    count?: number;
+}
+
+export interface TopClient {
+    clientName?: string;
+    revenue?: number;
+    invoiceCount?: number;
+}
+
+export interface RecentActivityItem {
+    workflowId?: number;
+    clientName?: string;
+    eventType?: string;
+    occurredAt?: Date;
+}
+
+export interface OverdueInvoiceItem {
+    invoiceId?: number;
+    clientName?: string;
+    amount?: number;
+    daysOverdue?: number;
+    payByDate?: Date;
+}
+
 export interface PaginatedResponseOfInvoiceResponse {
     data?: InvoiceResponse[];
     pagination?: PaginationMetadata;
@@ -4125,7 +4182,7 @@ export interface TemplateResponse {
     created?: Date;
     createdBy?: string;
     type?: TemplateType;
-    organizationId?: number;
+    organizationId?: number | null;
 }
 
 export type TemplateType = 0 | 1;
@@ -4243,13 +4300,6 @@ export interface AddWorkflowEventRequest {
     eventType: string;
     description?: string | null;
     payByDays?: number;
-}
-
-export interface FileResponse {
-    data: Blob;
-    status: number;
-    fileName?: string;
-    headers?: { [name: string]: any };
 }
 
 export class ApiException extends Error {

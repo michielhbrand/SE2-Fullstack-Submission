@@ -2,7 +2,6 @@ using InvoiceTrackerApi.Services;
 using InvoiceTrackerApi.Services.Auth;
 using InvoiceTrackerApi.Services.PdfStorage;
 using InvoiceTrackerApi.Services.Workflow;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -53,9 +52,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (keycloakDescriptor != null) services.Remove(keycloakDescriptor);
             services.AddScoped(_ => new Mock<IKeycloakAuthService>().Object);
 
-            // ── Break circular DI: InvoiceService → IWorkflowService → IQuoteToInvoiceConversionService → IInvoiceService ──
-            services.RemoveAll(typeof(IQuoteToInvoiceConversionService));
-            services.AddScoped(_ => new Mock<IQuoteToInvoiceConversionService>().Object);
+            // ── Register Lazy<IWorkflowService> so InvoiceService's circular dep resolves at call-time ──
+            services.AddScoped(sp => new Lazy<IWorkflowService>(sp.GetRequiredService<IWorkflowService>));
 
             // ── Bypass all authorization ───────────────────────────────────────
             services.AddAuthorization(opts =>

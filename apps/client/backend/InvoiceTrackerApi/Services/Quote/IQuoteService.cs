@@ -9,7 +9,7 @@ namespace InvoiceTrackerApi.Services.Quote;
 /// </summary>
 public interface IQuoteService
 {
-    Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int organizationId, int page, int pageSize);
+    Task<PaginatedResponse<QuoteResponse>> GetQuotesAsync(int organizationId, int page, int pageSize, string? search = null);
     Task<QuoteResponse> GetQuoteByIdAsync(int id);
     Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest request, string modifiedBy, int organizationId);
     Task<QuoteResponse> UpdateQuoteAsync(int id, UpdateQuoteRequest request, string modifiedBy);

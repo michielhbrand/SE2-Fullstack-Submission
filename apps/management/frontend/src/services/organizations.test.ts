@@ -74,7 +74,7 @@ describe('organizationService', () => {
   describe('create()', () => {
     it('delegates to apiClient.createOrganization()', async () => {
       const { apiClient } = await import('../api/client')
-      const created = mockOrgs[0]
+      const created = mockOrgs[0]!
       vi.mocked(apiClient.createOrganization).mockResolvedValueOnce(created)
 
       const payload = { Name: 'Acme Corp' } as Parameters<typeof organizationService.create>[0]

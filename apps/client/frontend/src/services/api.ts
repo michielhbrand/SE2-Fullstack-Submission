@@ -73,8 +73,8 @@ export const authApi = {
 // Template API functions
 export const templateApi = {
   // Get all templates for an organization
-  getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25) => {
-    return await client.template_GetTemplates(organizationId, page, pageSize)
+  getTemplates: async (organizationId: number, page: number = 1, pageSize: number = 25, search?: string, type?: number) => {
+    return await client.template_GetTemplates(organizationId, page, pageSize, search || null, type ?? null)
   },
 
   // Get templates filtered by type for an organization
@@ -106,8 +106,8 @@ export const templateApi = {
 // Quote API functions
 export const quoteApi = {
   // Get all quotes for an organization
-  getQuotes: async (organizationId: number, page: number = 1, pageSize: number = 10) => {
-    return await client.quote_GetQuotes(organizationId, page, pageSize)
+  getQuotes: async (organizationId: number, page: number = 1, pageSize: number = 10, search?: string) => {
+    return await client.quote_GetQuotes(organizationId, page, pageSize, search || null)
   },
 
   // Get a specific quote

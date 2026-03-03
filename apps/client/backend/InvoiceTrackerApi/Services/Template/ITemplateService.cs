@@ -10,7 +10,7 @@ namespace InvoiceTrackerApi.Services.Template;
 /// </summary>
 public interface ITemplateService
 {
-    Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int organizationId, int page, int pageSize);
+    Task<PaginatedResponse<TemplateResponse>> GetTemplatesAsync(int organizationId, int page, int pageSize, string? search = null, TemplateType? type = null);
     Task<TemplateResponse> GetTemplateByIdAsync(int id);
     Task<TemplateResponse> CreateTemplateAsync(CreateTemplateRequest request, string createdBy, int organizationId);
     Task DeleteTemplateAsync(int id);

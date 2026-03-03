@@ -25,7 +25,7 @@ public class InvoiceService : IInvoiceService
     private readonly IClientRepository _clientRepository;
     private readonly IKafkaProducerService _kafkaProducer;
     private readonly IPdfStorageService _pdfStorageService;
-    private readonly IWorkflowService _workflowService;
+    private readonly Lazy<IWorkflowService> _workflowService;
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<InvoiceService> _logger;
@@ -36,7 +36,7 @@ public class InvoiceService : IInvoiceService
         IClientRepository clientRepository,
         IKafkaProducerService kafkaProducer,
         IPdfStorageService pdfStorageService,
-        IWorkflowService workflowService,
+        Lazy<IWorkflowService> workflowService,
         IConfiguration configuration,
         TimeProvider timeProvider,
         ILogger<InvoiceService> logger)
@@ -141,7 +141,7 @@ public class InvoiceService : IInvoiceService
         // Auto-create InvoiceFirst workflow
         try
         {
-            await _workflowService.CreateWorkflowAsync(new CreateWorkflowRequest
+            await _workflowService.Value.CreateWorkflowAsync(new CreateWorkflowRequest
             {
                 Type = WorkflowType.InvoiceFirst,
                 ClientId = request.ClientId,

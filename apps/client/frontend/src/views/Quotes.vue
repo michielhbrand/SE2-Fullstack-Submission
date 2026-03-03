@@ -14,8 +14,11 @@ const { ensureOrganizationContext } = useOrganizationContext()
 
 const loading = ref(true)
 const quotes = ref<any[]>([])
+const search = ref<string>('')
 const pdfModalOpen = ref(false)
 const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(10)
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 const pdfPreviewUrl = ref<string | null>(null)
 const pdfPreviewLoading = ref(false)
 const pdfPreviewTitle = ref<string | null>(null)
@@ -30,7 +33,7 @@ const fetchQuotes = async () => {
   try {
     const orgId = organizationStore.currentOrganizationId
     if (!orgId) return
-    const response = await quoteApi.getQuotes(orgId, currentPage.value, pageSize.value)
+    const response = await quoteApi.getQuotes(orgId, currentPage.value, pageSize.value, search.value || undefined)
     quotes.value = response.data || []
     totalCount.value = response.pagination?.totalCount || 0
   } catch (error) {
@@ -38,6 +41,14 @@ const fetchQuotes = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const onSearchInput = () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(async () => {
+    currentPage.value = 1
+    await fetchQuotes()
+  }, 300)
 }
 
 const goToPage = async (page: number) => {
@@ -103,6 +114,22 @@ const closePdfModal = () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
           </button>
+        </div>
+
+        <!-- Search bar -->
+        <div class="mb-4 flex items-center gap-3">
+          <div class="relative flex-1 min-w-[200px] max-w-sm">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+            </svg>
+            <input
+              v-model="search"
+              @input="onSearchInput"
+              type="text"
+              placeholder="Search by client name..."
+              class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
         </div>
 
         <!-- Quotes Table -->

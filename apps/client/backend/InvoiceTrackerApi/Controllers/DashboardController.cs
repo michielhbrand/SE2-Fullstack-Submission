@@ -1,3 +1,4 @@
+using InvoiceTrackerApi.DTOs.Dashboard;
 using InvoiceTrackerApi.Services.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +22,7 @@ public class DashboardController : ControllerBase
     /// Get dashboard summary data for an organisation
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetDashboard([FromQuery] int organizationId)
+    public async Task<ActionResult<DashboardResponse>> GetDashboard([FromQuery] int organizationId)
     {
         var result = await _dashboardService.GetDashboardAsync(organizationId);
         return Ok(result);

@@ -45,7 +45,7 @@ public class InvoiceServiceTests
             _clientRepoMock.Object,
             _kafkaMock.Object,
             _pdfStorageMock.Object,
-            _workflowServiceMock.Object,
+            new Lazy<IWorkflowService>(() => _workflowServiceMock.Object),
             _configurationMock.Object,
             TimeProvider.System,
             _loggerMock.Object);

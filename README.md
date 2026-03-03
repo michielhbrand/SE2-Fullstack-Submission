@@ -63,7 +63,7 @@ On the same organisation detail page, click **Generate Demo Data**. This populat
 
 #### Step 5 — Open the Client Portal
 
-Navigate to **http://localhost:5173** and log in using the **email address of the member you created** in Step 3. The password for all seeded members is the email address by default.
+Navigate to **http://localhost:5173** and log in using the **email address of the member you created** in Step 3. The default password for all new members is **`password123`**.
 
 You will land on a pre-populated dashboard showing revenue trends, overdue alerts, workflow pipeline, and a live activity timeline.
 

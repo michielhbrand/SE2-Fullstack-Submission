@@ -25,7 +25,31 @@ interface Template {
 
 const templates = ref<Template[]>([])
 const loading = ref(true)
+const search = ref<string>('')
+const typeFilter = ref<number | null>(null)
 const { page: currentPage, pageSize, total: totalCount, totalPages, paginationPages } = usePagination(25)
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+const typeFilterOptions = [
+  { value: null,  label: 'All' },
+  { value: 0,     label: 'Invoice' },
+  { value: 1,     label: 'Quote' },
+]
+
+const onSearchInput = () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(async () => {
+    currentPage.value = 1
+    await fetchTemplates()
+  }, 300)
+}
+
+const setTypeFilter = async (value: number | null) => {
+  typeFilter.value = value
+  currentPage.value = 1
+  await fetchTemplates()
+}
 
 const previewUrl = ref<string | null>(null)
 const previewLoading = ref(false)
@@ -44,7 +68,7 @@ const fetchTemplates = async () => {
       toast.error('No organization selected')
       return
     }
-    const response = await templateApi.getTemplates(orgId, currentPage.value, pageSize.value)
+    const response = await templateApi.getTemplates(orgId, currentPage.value, pageSize.value, search.value || undefined, typeFilter.value ?? undefined)
     const typeNames: Record<number, string> = { 0: 'Invoice', 1: 'Quote' }
     templates.value = (response.data || []).map((template: any) => ({
       id: template.id ?? 0,
@@ -115,6 +139,40 @@ const closePreview = () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
           </button>
+        </div>
+
+        <!-- Search + filter bar -->
+        <div class="mb-4 flex items-center gap-3 flex-wrap">
+          <div class="relative flex-1 min-w-[200px] max-w-sm">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+            </svg>
+            <input
+              v-model="search"
+              @input="onSearchInput"
+              type="text"
+              placeholder="Search by template name..."
+              class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+
+          <!-- Type filter button group -->
+          <div class="flex rounded-md border border-gray-300 overflow-hidden">
+            <button
+              v-for="opt in typeFilterOptions"
+              :key="String(opt.value)"
+              @click="setTypeFilter(opt.value)"
+              :disabled="loading"
+              :class="[
+                'px-3 py-1.5 text-sm font-medium transition-colors border-r last:border-r-0 border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed',
+                typeFilter === opt.value
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              ]"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
         </div>
 
         <!-- Templates Table -->
