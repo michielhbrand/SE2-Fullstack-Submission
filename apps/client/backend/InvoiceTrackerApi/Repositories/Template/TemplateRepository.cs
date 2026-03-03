@@ -37,7 +37,7 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
 
     public async Task<IEnumerable<TemplateModel>> GetAllByOrganizationAsync(int organizationId, int page, int pageSize, string? search = null, TemplateType? type = null)
     {
-        var query = _context.Templates.Where(t => t.OrganizationId == organizationId);
+        var query = _context.Templates.Where(t => t.OrganizationId == organizationId || t.OrganizationId == null);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
@@ -55,7 +55,7 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
     public async Task<IEnumerable<TemplateModel>> GetByOrganizationAndTypeAsync(int organizationId, TemplateType type)
     {
         return await _context.Templates
-            .Where(t => t.Type == type)
+            .Where(t => t.Type == type && (t.OrganizationId == organizationId || t.OrganizationId == null))
             .OrderByDescending(t => t.Created)
             .ToListAsync();
     }
@@ -67,7 +67,7 @@ public class TemplateRepository : Repository<TemplateModel>, ITemplateRepository
 
     public async Task<int> GetTotalCountByOrganizationAsync(int organizationId, string? search = null, TemplateType? type = null)
     {
-        var query = _context.Templates.Where(t => t.OrganizationId == organizationId);
+        var query = _context.Templates.Where(t => t.OrganizationId == organizationId || t.OrganizationId == null);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
